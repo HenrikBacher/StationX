@@ -58,7 +58,7 @@ public partial class Hud
         string sig = _panel switch
         {
             "build" => $"{S.Funds / 50}|{S.ActIndex}|{string.Join(",", S.Researched)}|{S.IndicatorChanged}",
-            "staff" => string.Join(",", S.Staff.Select(s => $"{s.Id}{s.Task?.Kind}{s.Leaving}{s.Away}{s.Shift}{(int)(s.Energy * 5)}{(int)(s.Morale * 5)}{s.FarBillet}{s.IsSick(S.Now)}{s.Arriving(S.Now)}")) + $"|{S.Billets}{S.Funds >= Defs.BilletCost}|" +
+            "staff" => string.Join(",", S.Staff.Select(s => $"{s.Id}{s.Task?.Kind}{s.Leaving}{s.Away}{s.Shift}{(int)(s.Energy * 5)}{(int)(s.Morale * 5)}{s.FarBillet}{s.IsSick(S.Now)}{s.Arriving(S.Now)}")) + $"|{S.Billets}{S.Funds >= Defs.BilletCost}{S.AllHands}{S.CanCallAllHands() == null}|" +
                        string.Join(",", S.Candidates.Select(c => c.Id)) + $"|{S.Funds / 25}",
             "requests" => string.Join(",", S.Contracts.Select(c => $"{c.Id}{c.State}{c.Delivered}{c.Spawned}{(int)((c.State == ContractState.Offered ? c.OfferExpires : c.Due) - S.Now) / 60}")) +
                           $"|{string.Join(",", S.KeyBoardNets().Select(n => S.KeyRoute(n)))}",
@@ -203,6 +203,13 @@ public partial class Hud
             string? why = S.CanRequisitionBillets();
             _sideBox.AddChild(Row(bl, UiTheme.Button($"+{Defs.BilletBlock} billets (£{Defs.BilletCost})", () => { S.RequisitionBillets(); _sideSig = ""; }, why == null,
                 tooltip: why ?? "The billeting officer finds rooms in Bletchley and the villages. Without them, new staff lodge miles away and are bussed in.")));
+        }
+        {
+            string? why = S.CanCallAllHands();
+            var ah = UiTheme.Label(S.AllHands ? $"All hands for another {Math.Max(1, Math.Round((S.AllHandsUntil - S.Now) / 60))} h" : "Deadline slipping?", 13, S.AllHands ? Gfx.Warn : UiTheme.TextDim);
+            ah.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+            _sideBox.AddChild(Row(ah, UiTheme.Button("Call all hands", () => { S.CallAllHands(); _sideSig = ""; }, why == null,
+                tooltip: why ?? $"Call everyone off watch back in for {Defs.AllHandsHours:0} hours, at £{Defs.AllHandsPay} overtime each. Morale falls for all, those called in tire half as fast again, and you can't do it again for {Defs.AllHandsCooldownDays:0} days.")));
         }
         if (S.WatchesAvailable)
         {

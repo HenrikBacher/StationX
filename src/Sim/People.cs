@@ -9,7 +9,31 @@ public sealed partial class GameState
 {
     public bool WatchesAvailable => ActIndex >= Defs.WatchesFromAct;
 
-    public bool OnDuty(Staff s) => Defs.Shifts[s.Shift].OnDuty(MinuteOfDay);
+    public bool OnDuty(Staff s) => AllHands || OnWatch(s);
+    bool OnWatch(Staff s) => Defs.Shifts[s.Shift].OnDuty(MinuteOfDay);
+
+    /// <summary>Everyone called in, off watch or not, for a few hours.</summary>
+    public double AllHandsUntil { get; set; }
+    public double LastAllHandsAt { get; set; } = -1e9;
+    public bool AllHands => Now < AllHandsUntil;
+
+    public string? CanCallAllHands() =>
+        AllHands ? "Everyone is already in." :
+        ActIndex < 1 ? "Not until the war gets going." :
+        Now - LastAllHandsAt < Defs.AllHandsCooldownDays * Defs.MinutesPerDay
+            ? $"People won't stand for it again so soon (another {Math.Ceiling((LastAllHandsAt + Defs.AllHandsCooldownDays * Defs.MinutesPerDay - Now) / 60)} h)." : null;
+
+    public bool CallAllHands()
+    {
+        if (CanCallAllHands() != null) return false;
+        int called = Staff.Count(s => !s.Leaving && !OnWatch(s) && !s.IsSick(Now) && !s.Arriving(Now));
+        AllHandsUntil = Now + Defs.AllHandsHours * 60;
+        LastAllHandsAt = Now;
+        Funds -= called * Defs.AllHandsPay;
+        foreach (var s in Staff.Where(s => !s.Leaving)) s.Morale = Math.Max(0, s.Morale - Defs.AllHandsMorale);
+        Emit(EventKind.Info, $"All hands: messengers go round the billets and {called} people off watch are called back in for {Defs.AllHandsHours:0} hours (£{called * Defs.AllHandsPay} overtime). Nobody is pleased.");
+        return true;
+    }
 
     public int OnDutyCount => Staff.Count(s => !s.Away);
 
@@ -65,6 +89,7 @@ public sealed partial class GameState
                     s.Morale = Math.Max(0, s.Morale - Defs.ColdMoralePerMinute * dt);
                 }
                 if (s.Has(Trait.Tireless)) drain *= 0.7;
+                if (AllHands && !OnWatch(s)) drain *= Defs.AllHandsDrain;
                 if (night && s.Has(Trait.NightOwl)) drain *= 0.67;
                 s.Energy = Math.Max(0, s.Energy - drain * dt);
                 if (s.Energy < Defs.Exhausted) s.Morale = Math.Max(0, s.Morale - 0.0004 * dt);
@@ -116,12 +141,14 @@ public sealed partial class GameState
 
     void ComeBack(Staff s)
     {
+        bool calledIn = AllHands && !OnWatch(s);
         s.Away = false;
         int hx = (int)Math.Floor(s.HomeX), hy = (int)Math.Floor(s.HomeY);
         if (Grid.Walkable(hx, hy)) { s.X = s.HomeX; s.Y = s.HomeY; }
         else { s.X = Grid.Gate.x + 0.5; s.Y = Grid.Gate.y + 0.5; }
-        s.Energy = 1;
-        s.Morale = Math.Min(1, s.Morale + 0.01);
+        // Called back from the billets they've had a few hours' rest at best.
+        s.Energy = calledIn ? Math.Max(s.Energy, 0.65) : 1;
+        s.Morale = Math.Min(1, s.Morale + (calledIn ? 0 : 0.01));
     }
 
     bool RestOpen(Station st) =>

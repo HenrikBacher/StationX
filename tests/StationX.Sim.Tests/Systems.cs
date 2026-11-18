@@ -832,3 +832,30 @@ public class VettingTests
         Assert.Equal(0, s.ArrivesAt);
     }
 }
+
+public class AllHandsTests
+{
+    [Fact]
+    public void AllHandsCallsEveryoneInForAFewHoursWithACooldown()
+    {
+        var g = GameState.NewGame(41);
+        g.ActIndex = 2;
+        var night = TestUtil.Add(g, Role.Clerk, shift: Shift.Night);
+        // Late evening: the night watch isn't on yet.
+        while (g.MinuteOfDay < 20 * 60) g.Advance(30);
+        for (int i = 0; i < 4; i++) g.Advance(30);
+        Assert.False(g.OnDuty(night));
+        double morale = night.Morale;
+        Assert.True(g.CallAllHands());
+        Assert.True(g.OnDuty(night));
+        Assert.True(night.Morale < morale);
+        Assert.NotNull(g.CanCallAllHands());
+        Assert.False(g.CallAllHands());
+        g.Advance(Defs.AllHandsHours * 60 + 30);
+        Assert.False(g.AllHands);
+        g.Advance(Defs.AllHandsCooldownDays * Defs.MinutesPerDay);
+        Assert.Null(g.CanCallAllHands());
+        var copy = SaveGame.Load(SaveGame.Save(g));
+        Assert.Equal(g.LastAllHandsAt, copy.LastAllHandsAt);
+    }
+}

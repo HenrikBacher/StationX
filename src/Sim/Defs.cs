@@ -110,6 +110,12 @@ public static class Defs
     public const double ExpectationBase = 0.5;
     /// <summary>Above this balance at the weekly accounts, the Treasury claws back part of the grant.</summary>
     public const int TreasuryComfortable = 2500;
+    // ---- All hands ----
+    public const double AllHandsCooldownDays = 7;
+    public const double AllHandsHours = 4;
+    public const double AllHandsMorale = 0.12;
+    public const int AllHandsPay = 6;   // overtime, per person called in
+    public const double AllHandsDrain = 1.5;
     // ---- Recruitment ----
     /// <summary>Hours from accepting a post to reporting for duty: interview, vetting, the Official Secrets Act and the train.</summary>
     public static double VettingHours(Role r, Difficulty d) =>

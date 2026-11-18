@@ -176,6 +176,10 @@ public sealed class AutoPlayer
         if (g.Winter && !g.HasSickBay && g.StationUnlocked(StationType.SickBay, out _) && g.Funds > 1200)
             TryBuildIn(StationType.SickBay, g.Grid.Zone("mansion")!);
 
+        // All hands when a request is about to be missed.
+        if (g.CanCallAllHands() == null && g.Contracts.Any(c => c.State == ContractState.Active && c.Due - g.Now < 8 * 60 && c.Quantity - c.Delivered >= 2))
+            g.CallAllHands();
+
         // Billets ahead of hiring.
         if (g.Staff.Count >= g.Billets - 2 && g.Funds > Defs.BilletCost + 400) g.RequisitionBillets();
 
