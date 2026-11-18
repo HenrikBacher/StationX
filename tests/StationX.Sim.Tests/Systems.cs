@@ -1306,3 +1306,35 @@ public class PostingTests
         Assert.Null(hut6Tp.Receives);
     }
 }
+
+public class WarMapTests
+{
+    [Fact]
+    public void RequestsBecomeOperationsThatAreWonOrLost()
+    {
+        var g = TestUtil.BombeLine(12, checking: true);
+        int grant0 = g.WeeklyGrant;
+        var c = g.AddScripted(Net.Red, 2, 4, 0, 0, "t", "t", "t");
+        var op = g.OperationFor(c.Id);
+        Assert.NotNull(op);
+        Assert.Equal(OpState.Pending, op!.State);
+        Assert.False(string.IsNullOrEmpty(op.Won) || string.IsNullOrEmpty(op.Lost));
+        TestUtil.Run(g, 4);
+        Assert.NotEqual(OpState.Pending, op.State);
+        if (op.State == OpState.Won) Assert.True(g.WarMood > 1, "a win lifts the grant");
+        // An impossible request is lost, and the loss is counted.
+        var lost = g.AddScripted(Net.Shark, 50, 0.2, 0, 0, "t2", "t", "t");
+        TestUtil.Run(g, 1);
+        Assert.Equal(OpState.Lost, g.OperationFor(lost.Id)!.State);
+        Assert.True(g.War.ShipsSunk + g.War.RaidsUnopposed + g.War.BattlesSurprised > 0);
+    }
+
+    [Fact]
+    public void OperationsSurviveSaving()
+    {
+        var g = TestUtil.BombeLine(12, checking: true);
+        var c = g.AddScripted(Net.Red, 2, 4, 0, 0, "t", "t", "t");
+        var back = SaveGame.Load(SaveGame.Save(g));
+        Assert.Equal(g.OperationFor(c.Id)!.Name, back.OperationFor(c.Id)!.Name);
+    }
+}

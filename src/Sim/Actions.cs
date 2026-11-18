@@ -303,7 +303,7 @@ public sealed partial class GameState
     /// <summary>Reputation lost each morning, before difficulty: what have you done for us lately?</summary>
     public double DailyExpectation => ActIndex < 1 ? 0 : Defs.ExpectationBase + Defs.ExpectationPerAct * ActIndex;
     public int WeeklyUpkeep => Stations.Sum(s => s.Def.Upkeep) + OutstationBombes * Defs.OutstationUpkeep;
-    public int WeeklyGrant => (int)((Defs.GrantBase + Defs.GrantPerRep * Reputation) * Defs.Difficulties[Difficulty].GrantMult);
+    public int WeeklyGrant => (int)((Defs.GrantBase + Defs.GrantPerRep * Reputation) * Defs.Difficulties[Difficulty].GrantMult * WarMood);
 
     // ------------------------------------------------------------- machine servicing
 
@@ -370,6 +370,7 @@ public sealed partial class GameState
     {
         c.State = ContractState.Active;
         c.AcceptedAt = Now;
+        OpenOperation(c);
         c.Due = Now + c.Days * Defs.MinutesPerDay;
         // Urgent traffic is already in hand; routine traffic trickles in over the first part of the window.
         double window = c.Flash ? 30 : c.Days * Defs.MinutesPerDay * 0.6;
@@ -568,6 +569,7 @@ public sealed partial class GameState
                         AdjustRep(c.Rep * pol.Rep, "Requests completed");
                         ChangeMorale(0.02);
                         Stats.ContractsCompleted++;
+                        ResolveOperation(c, won: true);
                         LastServed[c.Issuer] = Now;
                         if (c.Tag != null) Stats.ScriptedDone.Add(c.Tag);
                         Emit(EventKind.Good, $"{Defs.IssuerNames[c.Issuer]} request complete: {c.Title}. +£{reward}");
@@ -576,6 +578,7 @@ public sealed partial class GameState
                     {
                         c.State = ContractState.Failed;
                         Stats.ContractsFailed++;
+                        ResolveOperation(c, won: false);
                         AdjustRep(-(4 + c.Rep), "Missed deadlines");
                         ChangeMorale(-0.04);
                         Emit(EventKind.Bad, $"Missed deadline: {c.Title} for the {Defs.IssuerNames[c.Issuer]}. Reputation falls.");
