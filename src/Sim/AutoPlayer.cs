@@ -166,6 +166,9 @@ public sealed class AutoPlayer
                     && g.Funds > Defs.Station(StationType.Stove).Cost + 50)
                     TryBuildIn(StationType.Stove, z);
 
+        // Billets ahead of hiring.
+        if (g.Staff.Count >= g.Billets - 2 && g.Funds > Defs.BilletCost + 400) g.RequisitionBillets();
+
         // Service worn machines while they're between runs.
         foreach (var st in g.Stations.Where(s => s.Wears && s.Wear > 0.55 && s.Current == null).ToList())
             if (g.Funds > Defs.ServiceCost + 100) g.ServiceMachine(st.Id);

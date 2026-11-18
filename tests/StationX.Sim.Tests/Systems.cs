@@ -694,3 +694,34 @@ public class WeatherTests
         Assert.Equal(1, g.OutdoorPace);
     }
 }
+
+public class BilletTests
+{
+    [Fact]
+    public void StaffBeyondTheBilletsLodgeFarAway()
+    {
+        var g = GameState.NewGame(18);
+        Assert.Equal(Defs.StartBillets, g.Billets);
+        while (g.Staff.Count < Defs.StartBillets + 3) TestUtil.Add(g, Role.Clerk);
+        g.AssignBillets();
+        Assert.Equal(3, g.Overcrowded);
+        var newest = g.Staff.OrderByDescending(s => s.Id).Take(3).ToList();
+        Assert.All(newest, s => Assert.True(s.FarBillet));
+        Assert.True(newest[0].WorkRate < new Staff { Energy = newest[0].Energy, Morale = newest[0].Morale }.WorkRate);
+
+        g.Funds = 5000;
+        Assert.True(g.RequisitionBillets());
+        Assert.Equal(0, g.Overcrowded);
+        Assert.All(g.Staff, s => Assert.False(s.FarBillet));
+    }
+
+    [Fact]
+    public void OldSavesGetEnoughBillets()
+    {
+        var g = GameState.NewGame(18);
+        while (g.Staff.Count < 27) TestUtil.Add(g, Role.Clerk);
+        g.Billets = 0;
+        var copy = SaveGame.Load(SaveGame.Save(g));
+        Assert.True(copy.Billets >= 27);
+    }
+}

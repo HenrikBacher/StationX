@@ -58,7 +58,7 @@ public partial class Hud
         string sig = _panel switch
         {
             "build" => $"{S.Funds / 50}|{S.ActIndex}|{string.Join(",", S.Researched)}|{S.IndicatorChanged}",
-            "staff" => string.Join(",", S.Staff.Select(s => $"{s.Id}{s.Task?.Kind}{s.Leaving}{s.Away}{s.Shift}{(int)(s.Energy * 5)}{(int)(s.Morale * 5)}")) + "|" +
+            "staff" => string.Join(",", S.Staff.Select(s => $"{s.Id}{s.Task?.Kind}{s.Leaving}{s.Away}{s.Shift}{(int)(s.Energy * 5)}{(int)(s.Morale * 5)}{s.FarBillet}")) + $"|{S.Billets}{S.Funds >= Defs.BilletCost}|" +
                        string.Join(",", S.Candidates.Select(c => c.Id)) + $"|{S.Funds / 25}",
             "requests" => string.Join(",", S.Contracts.Select(c => $"{c.Id}{c.State}{c.Delivered}{c.Spawned}{(int)((c.State == ContractState.Offered ? c.OfferExpires : c.Due) - S.Now) / 60}")) +
                           $"|{string.Join(",", S.KeyBoardNets().Select(n => S.KeyRoute(n)))}",
@@ -195,6 +195,15 @@ public partial class Hud
         morale.TooltipText = "Tired people work slower. Canteens restore energy; the common room and rounders restore morale. Two days of very low morale and people ask for a transfer.";
         morale.MouseFilter = Control.MouseFilterEnum.Pass;
         _sideBox.AddChild(morale);
+        {
+            int living = S.Staff.Count(x => !x.Leaving);
+            var bl = UiTheme.Label($"Billets {Math.Min(living, S.Billets)}/{S.Billets}" + (S.Overcrowded > 0 ? $" · {S.Overcrowded} lodged far away (10% slower, unhappy)" : ""), 13,
+                S.Overcrowded > 0 ? Gfx.Warn : UiTheme.Text);
+            bl.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+            string? why = S.CanRequisitionBillets();
+            _sideBox.AddChild(Row(bl, UiTheme.Button($"+{Defs.BilletBlock} billets (£{Defs.BilletCost})", () => { S.RequisitionBillets(); _sideSig = ""; }, why == null,
+                tooltip: why ?? "The billeting officer finds rooms in Bletchley and the villages. Without them, new staff lodge miles away and are bussed in.")));
+        }
         if (S.WatchesAvailable)
         {
             var v = Card(UiTheme.Accent);

@@ -34,6 +34,8 @@ public partial class Hud
                 Gfx.Bad, () => OpenPanel("requests")));
         foreach (var st in S.Stations.Where(s => s.Wears && s.IsDown(S.Now) && !s.Servicing))
             Station(st, $"{st.Def.Name} #{st.Id} broken down", Gfx.Bad);
+        if (S.Overcrowded > 0)
+            list.Add(new Alert($"{S.Overcrowded} staff lodged far away: requisition billets", Gfx.Warn, () => OpenPanel("staff")));
         if (S.Funds < 0)
             list.Add(new Alert("Overdrawn: reputation falls every day until you're back in credit", Gfx.Bad, () => OpenPanel("staff")));
         foreach (var st in S.Stations.Where(s => s.Wears && !s.IsDown(S.Now) && s.Wear > 0.7))

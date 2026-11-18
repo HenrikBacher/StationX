@@ -110,6 +110,12 @@ public static class Defs
     public const double ExpectationBase = 0.5;
     /// <summary>Above this balance at the weekly accounts, the Treasury claws back part of the grant.</summary>
     public const int TreasuryComfortable = 2500;
+    // ---- Billets ----
+    public const int StartBillets = 20;
+    public const int BilletBlock = 10;
+    public const int BilletCost = 400;
+    public const double FarBilletRate = 0.9;
+    public const double FarBilletMoralePerDay = 0.035;
     // ---- Flash requests ----
     public const int FlashFromAct = 2;
     public const double FlashOfferHours = 3;

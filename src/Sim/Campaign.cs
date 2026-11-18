@@ -518,7 +518,7 @@ public sealed partial class GameState
         var g = new GameState
         {
             Seed = seed, Rng = new Rng((ulong)seed * 2654435761UL + 1), Now = 9 * 60,
-            Difficulty = difficulty, Mode = mode, Funds = Defs.Difficulties[difficulty].StartFunds,
+            Difficulty = difficulty, Mode = mode, Funds = Defs.Difficulties[difficulty].StartFunds, Billets = Defs.StartBillets,
         };
         Array.Fill(g.Grid.Occupant, -1);
         g.Place(StationType.Inbox, 3, 3, 0, free: true);

@@ -135,10 +135,12 @@ public sealed class Staff
 
     /// <summary>Minutes of desk or machine work done; skill rises with it.</summary>
     public double Experience { get; set; }
+    /// <summary>Lodged miles away and bussed in: slower and grumpier.</summary>
+    public bool FarBillet { get; set; }
 
     /// <summary>How fast they're working right now: tired or unhappy people are slower.</summary>
     public double WorkRate =>
-        (Energy >= 0.5 ? 1.0 : 0.6 + 0.8 * Energy) * (0.8 + 0.35 * Morale);
+        (Energy >= 0.5 ? 1.0 : 0.6 + 0.8 * Energy) * (0.8 + 0.35 * Morale) * (FarBillet ? Defs.FarBilletRate : 1);
 
     /// <summary>Traits shown to the player (a careless talker is hidden until found out).</summary>
     public IEnumerable<Trait> KnownTraits() =>

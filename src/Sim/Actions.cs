@@ -208,7 +208,9 @@ public sealed partial class GameState
         c.Y = Grid.Gate.y + 0.5;
         c.HomeX = c.X; c.HomeY = c.Y;
         Staff.Add(c);
-        Emit(EventKind.Info, $"{c.Name} signs the Official Secrets Act and reports for duty.");
+        AssignBillets();
+        Emit(EventKind.Info, $"{c.Name} signs the Official Secrets Act and reports for duty." +
+                             (c.FarBillet ? " There's no room in the town, so they're billeted out in the villages." : ""));
         return true;
     }
 

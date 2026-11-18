@@ -229,9 +229,35 @@ public sealed partial class GameState
         return cold;
     }
 
+    /// <summary>Staff beyond the billets available (the newest arrivals) are lodged far away.</summary>
+    public int Overcrowded => Math.Max(0, Staff.Count(s => !s.Leaving) - Billets);
+
+    public void AssignBillets()
+    {
+        int over = Overcrowded;
+        var far = Staff.Where(s => !s.Leaving).OrderByDescending(s => s.Id).Take(over).Select(s => s.Id).ToHashSet();
+        foreach (var s in Staff) s.FarBillet = far.Contains(s.Id);
+    }
+
+    public string? CanRequisitionBillets() => Funds < Defs.BilletCost ? $"Needs £{Defs.BilletCost}." : null;
+
+    public bool RequisitionBillets()
+    {
+        if (CanRequisitionBillets() != null) return false;
+        Funds -= Defs.BilletCost;
+        Billets += Defs.BilletBlock;
+        AssignBillets();
+        Emit(EventKind.Info, $"The billeting officer finds {Defs.BilletBlock} more rooms in Bletchley and the villages. Billets: {Billets}.");
+        return true;
+    }
+
     void DailyPeople()
     {
         MaybeCallUp();
+        AssignBillets();
+        foreach (var s in Staff.Where(s => s.FarBillet)) s.Morale = Math.Max(0, s.Morale - Defs.FarBilletMoralePerDay);
+        if (Overcrowded > 0 && Day % 3 == 0)
+            Emit(EventKind.Bad, $"{Overcrowded} of the staff are billeted miles away and bussed in. They're slower and unhappy. Requisition more billets from the Staff panel.");
         if (Winter && Stats.ScriptedDone.Add($"winter{Date.Year - (Date.Month <= 3 ? 1 : 0)}"))
             Emit(EventKind.Bad, "Winter has come to the Park. The timber huts are freezing: build a coke stove in each one, " +
                                 "or people there will tire faster and grumble. The Mansion has central heating.");

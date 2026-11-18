@@ -51,6 +51,8 @@ public sealed partial class GameState
     public bool SharkBlackout { get; set; }
     public double TonnageLost { get; set; }
     public Weather Weather { get; set; } = Weather.Fine;
+    /// <summary>Lodgings found for staff in the town and villages. 0 in saves from before billets existed.</summary>
+    public int Billets { get; set; }
 
     public int ActIndex { get; set; }
     public int ActStartDay { get; set; }
