@@ -329,8 +329,12 @@ public partial class StationModel : Node3D
         Chair(new Vector3(0, 0, H / 2 + 0.22f));
     }
 
+    /// <summary>The operator's chair, in local space, if this station has one.</summary>
+    public Vector3? ChairLocal { get; private set; }
+
     void Chair(Vector3 at)
     {
+        ChairLocal ??= at;
         Mesh3.BoxAt(this, at.X - 0.16f, 0, at.Z - 0.14f, 0.32f, 0.24f, 0.28f, Gfx.OakDark);
         Mesh3.BoxAt(this, at.X - 0.17f, 0.24f, at.Z - 0.15f, 0.34f, 0.04f, 0.3f, Gfx.Oak);
         Mesh3.BoxAt(this, at.X - 0.17f, 0.24f, at.Z + 0.12f, 0.34f, 0.32f, 0.04f, Gfx.Oak);

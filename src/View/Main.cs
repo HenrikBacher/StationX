@@ -337,13 +337,19 @@ public partial class Main : Node3D
             }
             Vector3? face = null;
             PersonModel.RestSpot? rest = null;
-            if (s.Task is { Kind: TaskKind.Operate } t && StationModels.TryGetValue(t.Dest, out var sm)) face = sm.GlobalPosition;
+            Vector3? seat = null;
+            if (s.Task is { Kind: TaskKind.Operate } t && StationModels.TryGetValue(t.Dest, out var sm))
+            {
+                face = sm.GlobalPosition;
+                // Sit on the front of the chair, pulled in to the desk.
+                if (sm.ChairLocal is Vector3 ch) seat = sm.ToGlobal(ch + new Vector3(0, 0, -0.1f));
+            }
             else if (s.Task is { Kind: TaskKind.Rest } r && StationModels.TryGetValue(r.Dest, out var rm))
             {
                 var (at, f) = rm.Seat(r.Seat);
                 rest = new PersonModel.RestSpot(rm.ToGlobal(at), rm.ToGlobal(f), rm.Seated, rm.Type == StationType.Rounders);
             }
-            m.Sync(s, State, dt, face, rest);
+            m.Sync(s, State, dt, face, rest, seat);
         }
         foreach (var id in PersonModels.Keys.Where(id => State.StaffById(id) == null).ToList())
         {
