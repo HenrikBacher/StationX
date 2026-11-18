@@ -12,6 +12,7 @@ public enum StationType
     Bombe, Bombe4, Typex, Translation, Dispatch,
     Canteen, CommonRoom, Rounders, Checking, Tube, OutstationLink,
     Testery, Colossus, TunnyMachine,
+    Stove,
 }
 
 public enum Family { Hand, Enigma, Lorenz }
@@ -245,6 +246,9 @@ public static class Defs
         [StationType.Checking] = new(StationType.Checking, "Checking machine",
             "Tests each Bombe stop to see if it really is the day's key. Without one, Bombes run longer to be sure, and a false stop sends the crib back to the start.",
             400, 1, 1, Role.Wren, 15, 3, ResearchId.Bombe, 3, Upkeep: 5),
+        [StationType.Stove] = new(StationType.Stove, "Coke stove",
+            "The timber huts were bitterly cold. From November to March, people in a hut without a stove tire faster and grumble. Brick buildings have central heating.",
+            60, 1, 1, null, 0, 0, null, 0, Upkeep: 4),
         [StationType.Tube] = new(StationType.Tube, "Pneumatic tube",
             "Shoots messages to the tube station nearest their destination. Build one in each hut to save long walks.",
             300, 1, 1, null, 4, 12, ResearchId.PneumaticTubes, 4, Upkeep: 8),
@@ -341,7 +345,13 @@ public static class Defs
                     StationType.Translation, StationType.Dispatch }),
     };
 
+    /// <summary>Buildings with central heating: no stove needed, and none allowed.</summary>
+    public static bool Heated(string zoneId) => zoneId is "mansion" or "blockf";
+    public const double ColdDrainMult = 1.4;
+    public const double ColdMoralePerMinute = 0.00006;
+
     public static bool AllowedIn(string zoneId, StationType t) =>
+        t == StationType.Stove ? !Heated(zoneId) :
         Everywhere.Contains(t) || !ZoneRoles.TryGetValue(zoneId, out var r) || r.Allows.Contains(t);
 
     /// <summary>The zone ids a station may go in, in map order.</summary>

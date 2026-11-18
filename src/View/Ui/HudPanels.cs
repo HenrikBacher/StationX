@@ -420,7 +420,7 @@ public partial class Hud
         string sig = st != null
             ? $"st{st.Id}{st.Input.Count}{st.Output.Count}{st.OperatorId}{st.OperatorPresent}{st.Current}{(int)(st.Progress * 20)}{st.PendingRemoval}{st.X},{st.Y}|{string.Join(",", S.PinnedTo(st.Id).Select(p => p.Id))}|{S.Funds >= Defs.MoveCost}|{(int)(st.Wear * 20)}{st.IsDown(S.Now)}{S.Funds >= Defs.ServiceCost}"
             : sf != null ? $"sf{sf.Id}{sf.Task?.Kind}{sf.Task?.Dest}{sf.Leaving}{sf.Decrypts}{sf.Away}{sf.Shift}{sf.Pinned}{(int)(sf.Energy * 10)}{(int)(sf.Morale * 10)}{sf.CarelessKnown}"
-            : $"z{z!.Id}{z.Unlocked}{S.Funds >= z.Cost}";
+            : $"z{z!.Id}{z.Unlocked}{S.Funds >= z.Cost}{S.ColdZones()?.Contains(z.Id)}";
         if (sig == _inspSig) return;
         _inspSig = sig;
         Clear(_inspBox);
@@ -611,6 +611,8 @@ public partial class Hud
             _inspBox.AddChild(UiTheme.Label(role.Purpose, 12, UiTheme.Text));
             _inspBox.AddChild(UiTheme.Label("Takes: " + WhatItTakes(z), 12, UiTheme.TextDim));
         }
+        if (z.Unlocked && S.ColdZones() is { } cold && cold.Contains(z.Id))
+            _inspBox.AddChild(UiTheme.Label("Freezing: no stove. People here tire faster and grumble. Build a coke stove (£60).", 12, Gfx.Warn));
         if (!z.Available)
         {
             _inspBox.AddChild(UiTheme.Label("The Treasury hasn't authorised this hut yet. It will be needed later in the war.", 13, UiTheme.TextDim));

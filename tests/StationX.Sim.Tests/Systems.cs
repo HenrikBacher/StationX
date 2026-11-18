@@ -556,3 +556,38 @@ public class CallUpTests
         Assert.DoesNotContain(g.Dilemmas, x => x.Title == "Call-up papers");
     }
 }
+
+public class WinterTests
+{
+    [Fact]
+    public void TimberHutsAreColdInWinterUntilAStoveGoesIn()
+    {
+        var g = TestUtil.BombeLine(9, false);   // act 5: July 1940
+        Assert.False(g.Winter);
+        Assert.Null(g.ColdZones());
+        g.ActDate = new DateOnly(1940, 12, 10);
+        Assert.True(g.Winter);
+        var cold = g.ColdZones()!;
+        Assert.Contains("hut6", cold);
+        Assert.DoesNotContain("mansion", cold);
+        Assert.NotNull(g.CanPlace(StationType.Stove, 5, 6, 0));     // no stoves in the Mansion
+        Assert.Null(g.CanPlace(StationType.Stove, 30, 3, 0));
+        g.Place(StationType.Stove, 30, 3, 0, free: true);
+        Assert.DoesNotContain("hut6", g.ColdZones()!);
+    }
+
+    [Fact]
+    public void PeopleInAColdHutFeelIt()
+    {
+        var g = TestUtil.BombeLine(9, false);
+        g.ActDate = new DateOnly(1940, 12, 10);
+        var inHut = TestUtil.Add(g, Role.Cryptanalyst, 24.5, 5.5);
+        var inMansion = TestUtil.Add(g, Role.Cryptanalyst, 9.5, 6.5);
+        Assert.True(g.IsCold(inHut, g.ColdZones()));
+        Assert.False(g.IsCold(inMansion, g.ColdZones()));
+        g.Place(StationType.Stove, 30, 3, 0, free: true);
+        Assert.False(g.IsCold(inHut, g.ColdZones()));
+        g.ActDate = new DateOnly(1941, 6, 10);
+        Assert.Null(g.ColdZones());
+    }
+}

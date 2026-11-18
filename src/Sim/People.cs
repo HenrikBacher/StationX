@@ -17,6 +17,7 @@ public sealed partial class GameState
     {
         double hour = MinuteOfDay / 60;
         bool night = hour >= 20 || hour < 6;
+        var cold = ColdZones();
         for (int i = Staff.Count - 1; i >= 0; i--)
         {
             var s = Staff[i];
@@ -49,6 +50,11 @@ public sealed partial class GameState
 
             if (drain > 0)
             {
+                if (IsCold(s, cold))
+                {
+                    drain *= Defs.ColdDrainMult;
+                    s.Morale = Math.Max(0, s.Morale - Defs.ColdMoralePerMinute * dt);
+                }
                 if (s.Has(Trait.Tireless)) drain *= 0.7;
                 if (night && s.Has(Trait.NightOwl)) drain *= 0.67;
                 s.Energy = Math.Max(0, s.Energy - drain * dt);
@@ -166,9 +172,28 @@ public sealed partial class GameState
         });
     }
 
+    public bool Winter => Date.Month is 11 or 12 or 1 or 2 or 3;
+
+    /// <summary>True if this person is standing in one of the cold zones.</summary>
+    public bool IsCold(Staff s, HashSet<string>? cold) =>
+        cold != null && Grid.ZoneAt((int)s.X, (int)s.Y) is { } zone && cold.Contains(zone.Id);
+
+    /// <summary>Open timber huts with no stove, while it's winter; null in summer.</summary>
+    public HashSet<string>? ColdZones()
+    {
+        if (!Winter) return null;
+        var cold = Grid.Zones.Where(z => z.Unlocked && !Defs.Heated(z.Id)).Select(z => z.Id).ToHashSet();
+        foreach (var st in Stations)
+            if (st.Type == StationType.Stove && !st.PendingRemoval && Grid.ZoneAt(st.X, st.Y) is { } z) cold.Remove(z.Id);
+        return cold;
+    }
+
     void DailyPeople()
     {
         MaybeCallUp();
+        if (Winter && Stats.ScriptedDone.Add($"winter{Date.Year - (Date.Month <= 3 ? 1 : 0)}"))
+            Emit(EventKind.Bad, "Winter has come to the Park. The timber huts are freezing: build a coke stove in each one, " +
+                                "or people there will tire faster and grumble. The Mansion has central heating.");
         foreach (var s in Staff.ToList())
         {
             s.Morale += (Defs.MoraleBaseline - s.Morale) * 0.15;

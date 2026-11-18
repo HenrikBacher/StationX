@@ -70,6 +70,7 @@ jobs:
           shot park --days=22 --hour=14 --zoom=0.85 --center=24,14
           shot breakdown --days=30 --hour=11 --zoom=1.8 --breakdown --select=bombe
           shot staff --days=16 --hour=11 --panel=staff
+          shot winter --days=80 --hour=10 --zoom=1.5 --center=26,6
           ls -l shots
 
       - uses: actions/upload-artifact@v4

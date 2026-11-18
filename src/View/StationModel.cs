@@ -62,6 +62,7 @@ public partial class StationModel : Node3D
             case StationType.Rounders: Rounders(); break;
             case StationType.Checking: Checking(); break;
             case StationType.Tube: Tube(); break;
+            case StationType.Stove: Stove(); break;
             case StationType.OutstationLink: Teleprinter(); OutstationSign(); break;
             case StationType.Testery: Desk(); Testery(); break;
             case StationType.Colossus: Colossus(); break;
@@ -185,6 +186,19 @@ public partial class StationModel : Node3D
         Mesh3.Cyl(this, 0.11f, 0.11f, 0.05f, new Vector3(0, 1.3f, -0.15f), Gfx.Brass, 12);
         _canister = Mesh3.Cyl(this, 0.06f, 0.06f, 0.18f, new Vector3(0, 0.88f, 0.05f), Gfx.Brass.Lightened(0.1f), 10);
         _canister.RotationDegrees = new Vector3(90, 0, 0);
+    }
+
+    void Stove()
+    {
+        // A tortoise stove on an iron plate, with its flue up through the roof and a coke scuttle beside it.
+        var iron = new Color("23211f");
+        Mesh3.BoxAt(this, -0.32f, 0, -0.32f, 0.64f, 0.03f, 0.64f, new Color("4a4440"));
+        Mesh3.Cyl(this, 0.2f, 0.24f, 0.5f, new Vector3(0, 0.28f, 0), iron, 14);
+        Mesh3.Cyl(this, 0.12f, 0.2f, 0.12f, new Vector3(0, 0.59f, 0), iron, 14);
+        Mesh3.Cyl(this, 0.05f, 0.05f, 1.6f, new Vector3(0, 1.45f, 0), new Color("2e2b28"), 10);
+        _glow = Mesh3.Box(this, new Vector3(0.14f, 0.08f, 0.02f), new Vector3(0, 0.22f, 0.235f), new Color("ff6a2a"), 2f);
+        Mesh3.Cyl(this, 0.1f, 0.08f, 0.14f, new Vector3(0.32f, 0.07f, 0.22f), new Color("3a342c"), 10);
+        Mesh3.Sphere(this, 0.07f, new Vector3(0.32f, 0.15f, 0.22f), new Color("1a1816"));
     }
 
     void OutstationSign()
@@ -584,6 +598,11 @@ public partial class StationModel : Node3D
             _glow.Position = playing
                 ? new Vector3(Mathf.Sin(_time * 2.1f) * 0.9f, 0.3f + Mathf.Abs(Mathf.Sin(_time * 4.2f)) * 0.8f, Mathf.Cos(_time * 2.1f) * 0.9f)
                 : new Vector3(-0.3f, 0.04f, 0.6f);
+        }
+        else if (_glow != null && Type is StationType.Stove)
+        {
+            float f = g.Winter ? 1.6f + 0.6f * Mathf.Sin(_time * 3.1f) * Mathf.Sin(_time * 1.7f) : 0;
+            _glow.MaterialOverride = Mesh3.Mat(g.Winter ? new Color("ff6a2a") : new Color("3a2a20"), f);
         }
         else if (_glow != null && Type is StationType.Canteen)
         {

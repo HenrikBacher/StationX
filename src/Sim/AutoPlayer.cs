@@ -159,6 +159,13 @@ public sealed class AutoPlayer
         // Outstation Bombes when rich.
         if (g.CanBuyOutstation() == null && g.OutstationBombes < 3 && g.Funds > 4500) g.BuyOutstation();
 
+        // A stove in every working timber hut before winter.
+        if (g.Date.Month is >= 10 or <= 3)
+            foreach (var z in g.Grid.Zones.Where(z => z.Unlocked && !Defs.Heated(z.Id)))
+                if (g.Stations.Any(s => z.InOuter(s.X, s.Y)) && !g.Stations.Any(s => s.Type == StationType.Stove && z.InOuter(s.X, s.Y))
+                    && g.Funds > Defs.Station(StationType.Stove).Cost + 50)
+                    TryBuildIn(StationType.Stove, z);
+
         // Service worn machines while they're between runs.
         foreach (var st in g.Stations.Where(s => s.Wears && s.Wear > 0.55 && s.Current == null).ToList())
             if (g.Funds > Defs.ServiceCost + 100) g.ServiceMachine(st.Id);
