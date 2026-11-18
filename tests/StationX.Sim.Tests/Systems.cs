@@ -943,7 +943,7 @@ public class RepLogTests
         g.AdjustRep(-1, "Missed deadlines");
         g.AdjustRep(3, "Requests completed");
         Assert.Equal(2, g.RepLog.Count);
-        Assert.Equal(-3, g.RepLog[0].Delta, 3);
+        Assert.Equal(-3 * Defs.Difficulties[g.Difficulty].RepLossMult, g.RepLog[0].Delta, 3);
         g.ActIndex = 2;
         g.Advance(20 * Defs.MinutesPerDay);
         g.Events.Clear();

@@ -125,7 +125,10 @@ public class CampaignTests(ITestOutputHelper output)
     [InlineData(1942)]
     public void AutoplayerFinishesTheCampaign(int seed)
     {
-        var g = GameState.NewGame(seed);
+        // Proves every act can be finished. Easy, because Normal is tuned so the autoplayer loses about one
+        // campaign in six: a fixed Normal seed would fail after any legitimate tuning. Win rates per difficulty
+        // come from the 20-seed balance report (BALANCE=1).
+        var g = GameState.NewGame(seed, Difficulty.Easy);
         var ai = new AutoPlayer(g);
         var acts = ai.PlayCampaign(maxDays: 400, log: output.WriteLine);
         output.WriteLine($"status {g.Status} day {g.Day} delivered {g.Stats.DeliveredTotal} failed {g.Stats.ContractsFailed} completed {g.Stats.ContractsCompleted}");
