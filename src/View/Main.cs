@@ -429,17 +429,23 @@ public partial class Main : Node3D
             _ => 1f,
         };
         float dayT = (float)Math.Clamp((h - 6) / 14.0, 0, 1);
-        _sun.RotationDegrees = new Vector3(Mathf.Lerp(-58, -42, night), Mathf.Lerp(85, 5, dayT), 0);
-        var dusk = new Color("ffbd85");
+        // Golden hours: the sun sits low (long shadows) for the first and last two hours of daylight.
+        float low = h switch { < 6 => 1f, < 9 => 1f - (float)((h - 6) / 3), < 16 => 0f, < 19.5 => (float)((h - 16) / 3.5), _ => 1f };
+        _sun.RotationDegrees = new Vector3(Mathf.Lerp(Mathf.Lerp(-56, -30, low), -45, night), Mathf.Lerp(85, 5, dayT), 0);
+        var noon = new Color("fff0d8");
+        var golden = new Color("ffb070");
         var moon = new Color("8fa3d6");
-        _sun.LightColor = night < 0.5f ? new Color("f4ead8").Lerp(dusk, night * 2) : dusk.Lerp(moon, (night - 0.5f) * 2);
+        var sunCol = noon.Lerp(golden, low * low);
+        _sun.LightColor = night < 0.5f ? sunCol.Lerp(golden.Darkened(0.2f), night * 2) : golden.Darkened(0.2f).Lerp(moon, (night - 0.5f) * 2);
         var w = State.Weather;
-        float gloom = w switch { Weather.Fine => 0f, Weather.Overcast => 0.35f, Weather.Fog => 0.5f, Weather.Snow => 0.3f, _ => 0.6f };
-        _sun.LightEnergy = Mathf.Lerp(1.0f, 0.3f, night) * (1 - 0.6f * gloom);
-        _sun.ShadowOpacity = 1 - 0.7f * gloom;
+        float gloom = w switch { Weather.Fine => 0f, Weather.Overcast => 0.45f, Weather.Fog => 0.6f, Weather.Snow => 0.4f, _ => 0.7f };
+        // Strong key light over a cool, dim sky fill: shadows read as blue-grey shade rather than grey wash.
+        _sun.LightEnergy = Mathf.Lerp(Mathf.Lerp(1.45f, 1.15f, low), 0.32f, night) * (1 - 0.7f * gloom);
+        _sun.ShadowOpacity = 1 - 0.75f * gloom;
         var env = _env.Environment;
-        env.AmbientLightColor = new Color("c9c5b8").Lerp(new Color("46506e"), night).Lerp(new Color("b4b8bc"), gloom * 0.6f * (1 - night));
-        env.AmbientLightEnergy = Mathf.Lerp(0.62f, 0.5f, night) * (1 + 0.15f * gloom);
+        var sky = new Color("aab8c8").Lerp(new Color("c8a890"), low * 0.5f);
+        env.AmbientLightColor = sky.Lerp(new Color("46506e"), night).Lerp(new Color("b4b8bc"), gloom * 0.8f * (1 - night));
+        env.AmbientLightEnergy = Mathf.Lerp(0.42f, 0.5f, night) * (1 + 0.55f * gloom);
         // Haze by colour grading: an orthographic camera far above the park makes distance fog all-or-nothing.
         float haze = w switch { Weather.Fog => 1f, Weather.Snow => 0.45f, Weather.Rain or Weather.Storm => 0.35f, _ => 0f };
         env.AdjustmentContrast = 1.06f - 0.22f * haze;
