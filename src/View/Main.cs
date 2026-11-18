@@ -182,7 +182,8 @@ public partial class Main : Node3D
             if (args.ContainsKey("breakdown") && State.Stations.FirstOrDefault(s => s.Wears) is { } worn)
             {
                 worn.DownUntil = State.Now + Defs.RepairMinutes;
-                if (State.Stations.Where(s => s.Wears && s != worn).Skip(0).FirstOrDefault() is { } other) other.Wear = 0.85;
+                if (State.Stations.FirstOrDefault(s => s.Wears && s != worn) is { } other) other.Wear = 0.85;
+                if (!args.ContainsKey("center")) Rig.LookAtTile(worn.X + 1, worn.Y + 1);
             }
             if (args.TryGetValue("select", out var sel) && sel == "bombe")
                 Select(State.Stations.FirstOrDefault(s => s.Type is StationType.Bombe or StationType.Bombe4)?.Id, null);

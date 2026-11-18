@@ -442,7 +442,8 @@ public partial class Hud
         if (d.Operator is Role r)
         {
             var op = st.OperatorId is int id ? S.StaffById(id) : null;
-            string who = op == null
+            string who = st.IsDown(S.Now) ? (st.Servicing ? "Off for servicing" : "Out of action")
+                : op == null
                 ? (st.Input.Count > 0 ? $"Waiting for a free {Defs.Roles[r].Name.ToLowerInvariant()}" : $"Unstaffed. Needs a {Defs.Roles[r].Name.ToLowerInvariant()}.")
                 : st.OperatorPresent ? $"{op.Name} at work" : $"{op.Name} on the way";
             _inspBox.AddChild(UiTheme.Label(who, 13, op == null && st.Input.Count > 0 ? Gfx.Warn : UiTheme.Text));

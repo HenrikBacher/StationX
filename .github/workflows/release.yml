@@ -68,7 +68,7 @@ jobs:
           mkdir -p shots
           shot() { xvfb-run -a -s "-screen 0 1600x900x24" timeout 300 "$GODOT" --path . --resolution 1600x900 -- --shot="$PWD/shots/$1.png" "${@:2}" || true; }
           shot park --days=22 --hour=14 --zoom=0.85 --center=24,14
-          shot breakdown --days=30 --hour=11 --zoom=1.6 --center=40,6 --breakdown --select=bombe
+          shot breakdown --days=30 --hour=11 --zoom=1.8 --breakdown --select=bombe
           shot staff --days=16 --hour=11 --panel=staff
           ls -l shots
 
