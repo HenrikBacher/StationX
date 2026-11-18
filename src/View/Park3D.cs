@@ -46,6 +46,7 @@ public partial class Park3D : Node3D
             AlbedoColor = new Color(0.86f, 0.88f, 0.9f, 0),
             Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
             TextureFilter = BaseMaterial3D.TextureFilterEnum.Nearest,
+            RenderPriority = -10,   // drawn before any other transparent thing, so labels and glass stay on top
             Roughness = 0.9f,
         };
         _snow = new MeshInstance3D
