@@ -397,6 +397,9 @@ public partial class Main : Node3D
         float near = Mathf.Clamp(14f / Rig.Cam.Size, 0.35f, 1.2f);
         Sound.SetLoop("room", live ? 0.55f : 0.25f);
         Sound.SetLoop("teleprinter", live && !Paused ? Mathf.Clamp(clatter / 8f + (State.Contracts.Any(c => c.State == ContractState.Active) ? 0.2f : 0), 0, 0.8f) * near : 0);
+        var wx = State.Weather;
+        Sound.SetLoop("rain", wx switch { Weather.Rain => 0.45f, Weather.Storm => 0.6f, _ => 0f });
+        Sound.SetLoop("wind", wx switch { Weather.Storm => 0.7f, Weather.Snow => 0.25f, Weather.Overcast => 0.08f, _ => 0f });
         Sound.SetLoop("hum", live && !Paused ? Mathf.Clamp(machines * 0.2f, 0, 0.9f) * near : 0);
     }
 

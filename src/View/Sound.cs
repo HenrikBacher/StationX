@@ -38,6 +38,8 @@ public partial class Sound : Node
         _clips["room"] = Loop(6f, RoomTone);
         _clips["teleprinter"] = Loop(3f, Teleprinter);
         _clips["hum"] = Loop(2f, BombeHum);
+        _clips["rain"] = Loop(5f, Rain);
+        _clips["wind"] = Loop(8f, Wind);
 
         for (int i = 0; i < 10; i++)
         {
@@ -45,7 +47,7 @@ public partial class Sound : Node
             AddChild(p);
             _pool.Add(p);
         }
-        foreach (var name in new[] { "room", "teleprinter", "hum" })
+        foreach (var name in new[] { "room", "teleprinter", "hum", "rain", "wind" })
         {
             var p = new AudioStreamPlayer { Bus = "Ambience", Stream = _clips[name], VolumeDb = -60 };
             AddChild(p);
@@ -171,6 +173,24 @@ public partial class Sound : Node
         float frac = beat - Mathf.Floor(beat);
         if (Gfx.Rand01((int)beat, 1, 77) > 0.55f) tap = Noise(r) * Env(frac / 3.1f, 0.004f) * 0.12f;
         return _brown * 0.35f + tap;
+    }
+
+    // Rain on felt roofs: a soft hiss with scattered drips.
+    static float _rainLp;
+    static float Rain(float t, Random r)
+    {
+        _rainLp = _rainLp * 0.7f + Noise(r) * 0.3f;
+        float drip = r.NextDouble() < 0.0009 ? 0.5f : 0;
+        return _rainLp * 0.45f + drip * Noise(r);
+    }
+
+    // Wind: brown noise swelling and fading in gusts.
+    static float _windLp;
+    static float Wind(float t, Random r)
+    {
+        _windLp = Mathf.Clamp(_windLp * 0.998f + Noise(r) * 0.012f, -1, 1);
+        float gust = 0.45f + 0.35f * Mathf.Sin(t * Mathf.Tau / 8f) + 0.2f * Mathf.Sin(t * Mathf.Tau * 3 / 8f);
+        return _windLp * gust * 1.1f;
     }
 
     // Creed teleprinter: about 6.7 characters a second, each a rattle of the selector magnets.
