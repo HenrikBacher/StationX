@@ -13,6 +13,14 @@ dotnet test tests/StationX.Sim.Tests # run the simulation tests
 ./export.sh                          # release builds for Linux and Windows into build/
 ```
 
+### Releases
+
+GitHub Actions (`.github/workflows/release.yml`) tests and exports every push to `main`; the builds are kept as workflow artifacts for 14 days. Pushing a tag such as `v0.2.0` also publishes a release with three downloads:
+
+- `StationX-linux-x86_64.tar.gz`: run `./StationX.x86_64`
+- `StationX-windows-x86_64.zip`: run `StationX.exe`
+- `StationX-linux-windows.zip`: both in one folder. There's no single executable that runs natively on both systems, but the two launchers share the same game data (`StationX.pck`), so one download works on either.
+
 Godot lives in `~/.local/opt/godot/` and is linked as `~/.local/bin/godot`. Exports need the 4.7.2 .NET export templates in `~/.local/share/godot/export_templates/4.7.2.stable.mono`.
 
 ## How it plays
