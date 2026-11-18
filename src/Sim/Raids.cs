@@ -67,11 +67,11 @@ public partial class GameState
         if (machines.Count > 0)
         {
             var m = Rng.Pick(machines);
-            m.DownUntil = Now + Defs.RepairMinutes * 1.5;
+            m.DownUntil = Now + Defs.RepairMinutesFor(m.Type) * 1.5;
             m.Servicing = false;
             Funds -= Defs.RepairCost * 2;
             Stats.Breakdowns++;
-            damage = $" {m.Def.Name} #{m.Id} is shaken off its mountings: the fitters need about {Defs.RepairMinutes * 1.5 / 60:0} hours (£{Defs.RepairCost * 2}).";
+            damage = $" {m.Def.Name} #{m.Id} is shaken off its mountings: the fitters need about {Defs.RepairMinutesFor(m.Type) * 1.5 / 60:0} hours (£{Defs.RepairCost * 2}).";
         }
         foreach (var s in Staff.Where(s => !s.Away))
         {

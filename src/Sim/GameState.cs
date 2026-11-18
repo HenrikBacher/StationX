@@ -394,7 +394,7 @@ public sealed partial class GameState
         st.Wear = Math.Min(1.5, st.Wear + dt / Defs.WearLife(st.Type));
         double p = Defs.BreakdownHazard * st.Wear * st.Wear * dt * Defs.Difficulties[Difficulty].WearMult;
         if (!Rng.Chance(p)) return false;
-        st.DownUntil = Now + Defs.RepairMinutes;
+        st.DownUntil = Now + Defs.RepairMinutesFor(st.Type);
         st.Servicing = false;
         st.Wear = 0.1;
         Funds -= Defs.RepairCost;
@@ -403,9 +403,10 @@ public sealed partial class GameState
         {
             StationType.Bombe or StationType.Bombe4 => Rng.Pick(new[] { "a drum has seized", "the brushes have shorted", "a relay has burnt out" }),
             StationType.TunnyMachine => "the tape has snapped",
+            StationType.Typex => Rng.Pick(new[] { "a rotor contact has worn through", "the printer has jammed", "the keyboard has seized" }),
             _ => Rng.Pick(new[] { "a valve has blown", "the photocell has drifted" }),
         };
-        Emit(EventKind.Bad, $"{st.Def.Name} #{st.Id} has broken down: {what}. The RAF fitters will take about {Defs.RepairMinutes / 60:0} hours (£{Defs.RepairCost}). Service machines before they wear out.");
+        Emit(EventKind.Bad, $"{st.Def.Name} #{st.Id} has broken down: {what}. The RAF fitters will take about {Defs.RepairMinutesFor(st.Type) / 60:0} hours (£{Defs.RepairCost}). Service machines before they wear out.");
         return true;
     }
 

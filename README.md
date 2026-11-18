@@ -56,7 +56,7 @@ Godot lives in `~/.local/opt/godot/` and is linked as `~/.local/bin/godot`. Expo
   After that, that day's traffic needs only a few minutes on Typex. Messages waiting for their key show as pink slips in the out trays.
   - Bombes stop on false positives. A **checking machine** catches most of them; without one, Bombe runs take longer and some cribs come back.
   - Some intercepts arrive **garbled**. They go back to the listening station and return later.
-- **Machines wear out.** Bombes, four-rotor Bombes, Colossus and the Tunny machine wear as they run, and the more worn they are, the likelier a breakdown. A broken machine waits about five hours (and £80) for the RAF fitters; the job it was running waits too. **Service** a machine from its inspector (£20, one hour) to reset its wear. A flashing orange lamp means it's badly worn; red, with smoke, means it's broken.
+- **Machines wear out.** Bombes, four-rotor Bombes, Typex machines, Colossus and the Tunny machine wear as they run, and the more worn they are, the likelier a breakdown. A broken machine waits about five hours (a Typex two and a half) and £80 for the RAF fitters; the job it was running waits too. **Service** a machine from its inspector (£20, one hour) to reset its wear. A flashing orange lamp means it's badly worn; red, with smoke, means it's broken.
 - **People get tired.**
   - Energy runs down with work. Tired people work slower and take tea breaks if there is somewhere to sit: the **canteen**, the **common room**, or the **rounders** pitch on the lawn.
   - Morale goes up with breaks and successes and down with failures, night work and long days. Two days of very low morale and someone asks for a transfer.

@@ -953,3 +953,13 @@ public class RepLogTests
         Assert.Equal(g.RepLog.Count, copy.RepLog.Count);
     }
 }
+
+public class TypexWearTests
+{
+    [Fact]
+    public void TypexWearsAndRepairsFasterThanABombe()
+    {
+        Assert.True(new Station { Type = StationType.Typex }.Wears);
+        Assert.True(Defs.RepairMinutesFor(StationType.Typex) < Defs.RepairMinutesFor(StationType.Bombe));
+    }
+}

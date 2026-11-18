@@ -177,8 +177,12 @@ public static class Defs
         StationType.Bombe4 => 1800,       // the four-rotor Bombes were notoriously temperamental
         StationType.Colossus => 3000,
         StationType.TunnyMachine => 1500, // tapes stretched and snapped
+        StationType.Typex => 3000,        // rotors, contacts and a printer, all worked hard
         _ => 0,
     };
+
+    /// <summary>Repair time: a Typex is a far simpler machine than a Bombe.</summary>
+    public static double RepairMinutesFor(StationType t) => t == StationType.Typex ? RepairMinutes * 0.5 : RepairMinutes;
     /// <summary>Chance per working minute of a breakdown, times wear squared.</summary>
     public const double BreakdownHazard = 0.006;
     public const double RepairMinutes = 300;
