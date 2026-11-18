@@ -43,8 +43,9 @@ public partial class Park3D : Node3D
         // A sheet of snow just above the lawn: under the lake surface and the hut floors.
         _snowMat = new StandardMaterial3D
         {
-            AlbedoColor = new Color(0.93f, 0.94f, 0.96f, 0),
+            AlbedoColor = new Color(0.86f, 0.88f, 0.9f, 0),
             Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+            TextureFilter = BaseMaterial3D.TextureFilterEnum.Nearest,
             Roughness = 0.9f,
         };
         _snow = new MeshInstance3D
@@ -60,12 +61,31 @@ public partial class Park3D : Node3D
         AddChild(_buildings);
     }
 
+    /// <summary>Where snow can lie: thick on the lawns, thinner on trodden paths, none indoors or on the lake.</summary>
+    static ImageTexture SnowMask(Grid g)
+    {
+        const int px = 4;
+        var img = Image.CreateEmpty(Grid.Width * px, Grid.Height * px, false, Image.Format.Rgba8);
+        for (int y = 0; y < Grid.Height; y++)
+            for (int x = 0; x < Grid.Width; x++)
+            {
+                float a = g.Get(x, y) switch { Tile.Lawn or Tile.Tree => 1f, Tile.Path => 0.55f, _ => 0f };
+                for (int j = 0; j < px; j++)
+                    for (int i = 0; i < px; i++)
+                    {
+                        float n = a > 0 ? Gfx.Rand01(x * px + i, y * px + j, 913) * 0.18f : 0;
+                        img.SetPixel(x * px + i, y * px + j, new Color(1, 1, 1, Mathf.Clamp(a - n, 0, 1)));
+                    }
+            }
+        return ImageTexture.CreateFromImage(img);
+    }
+
     /// <summary>0 = green, 1 = a full covering of snow.</summary>
     public void SetSnow(float cover)
     {
         _snow.Visible = cover > 0.01f;
         var c = _snowMat.AlbedoColor;
-        c.A = Mathf.Clamp(cover, 0, 1) * 0.82f;
+        c.A = Mathf.Clamp(cover, 0, 1) * 0.78f;
         _snowMat.AlbedoColor = c;
     }
 
@@ -117,6 +137,7 @@ public partial class Park3D : Node3D
             TextureFilter = BaseMaterial3D.TextureFilterEnum.LinearWithMipmapsAnisotropic,
         };
 
+        _snowMat.AlbedoTexture = SnowMask(g);
         foreach (var c in _buildings.GetChildren()) c.QueueFree();
         Lamps.Clear();
         _sided.Clear();
