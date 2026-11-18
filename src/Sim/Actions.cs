@@ -469,7 +469,7 @@ public sealed partial class GameState
         // A scripted request that fails comes back: the war doesn't wait, and the act needs it.
         if (retries != null)
             foreach (var f in retries)
-                AddScripted(f.Net, f.Quantity, f.Days, f.Reward, f.Rep, f.Tag!, f.Title,
-                    "They are trying again with the next day's traffic. Don't miss it twice.");
+                AddScripted(f.Net, f.Quantity, f.Days * 1.25, f.Reward, f.Rep, f.Tag!, f.Title,
+                    "They are trying again with the next day's traffic, and have given us a little longer. Don't miss it twice.");
     }
 }

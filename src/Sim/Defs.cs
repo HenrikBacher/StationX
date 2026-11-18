@@ -112,6 +112,9 @@ public static class Defs
     public const int OutstationUpkeep = 40;
     public const int GardeningCost = 300;
     public const double GarbledChance = 0.06;
+    /// <summary>Daily chance that a man on the staff is called up (1940-42).</summary>
+    public const double CallUpChance = 0.1;
+    public const int CallUpRulingCost = 150;
 
     // ---- Machine wear (RAF fitters kept the Bombes running) ----
     /// <summary>Working minutes for a machine to go from freshly serviced to fully worn.</summary>
@@ -163,7 +166,7 @@ public static class Defs
     {
         [Difficulty.Easy] = new(Difficulty.Easy, "Easy", "More money, longer deadlines, slower German suspicion.", 2200, 1.2, 1, 0.6, 0.7, 0.5),
         [Difficulty.Normal] = new(Difficulty.Normal, "Normal", "As intended.", 1500, 1.0, 0, 1.0, 1.0),
-        [Difficulty.Hard] = new(Difficulty.Hard, "Hard", "Less money, tighter deadlines, and the Germans notice everything.", 1100, 0.85, -0.5, 1.4, 1.3, 1.4),
+        [Difficulty.Hard] = new(Difficulty.Hard, "Hard", "Less money, tighter deadlines, and the Germans notice everything.", 1100, 0.85, -0.25, 1.4, 1.2, 1.2),
     };
 
     public static readonly Dictionary<Policy, PolicyDef> Policies = new()

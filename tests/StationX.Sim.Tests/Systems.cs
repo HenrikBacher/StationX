@@ -518,3 +518,41 @@ public class BreakdownTests
         Assert.NotNull(g.CanServiceMachine(g.Stations.First(s => s.Type == StationType.Registration).Id));
     }
 }
+
+public class CallUpTests
+{
+    [Fact]
+    public void MenGetCalledUpAndCanBeKeptOrLost()
+    {
+        var g = GameState.NewGame(4);
+        g.DebugSkipToAct(2);
+        var man = TestUtil.Add(g, Role.Linguist);
+        man.Female = false; man.Notable = null; man.Skill = 3;
+        Dilemma? d = null;
+        for (int day = 0; day < 80 && d == null; day++)
+        {
+            g.Advance(Defs.MinutesPerDay);
+            g.Events.Clear();
+            d = g.Dilemmas.Find(x => x.Title == "Call-up papers");
+            if (d == null) g.Dilemmas.Clear();
+        }
+        Assert.NotNull(d);
+        var who = g.StaffById(d!.StaffId!.Value)!;
+        Assert.False(who.Female);
+        Assert.NotEqual(Role.Messenger, who.Role);
+
+        long funds = g.Funds;
+        Assert.True(g.ResolveDilemma(d.Id, 1));
+        Assert.Equal(funds - Defs.CallUpRulingCost, g.Funds);
+        Assert.False(who.Leaving);
+    }
+
+    [Fact]
+    public void NoCallUpsBeforeThePhoneyWarOrForWomen()
+    {
+        var g = GameState.NewGame(4);
+        foreach (var s in g.Staff) s.Female = true;
+        for (int day = 0; day < 6; day++) { g.Advance(Defs.MinutesPerDay); g.Events.Clear(); }
+        Assert.DoesNotContain(g.Dilemmas, x => x.Title == "Call-up papers");
+    }
+}

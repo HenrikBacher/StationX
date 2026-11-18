@@ -76,6 +76,28 @@ public sealed class AutoPlayer
         return needMinutes < c.Days * Defs.MinutesPerDay * 0.85;
     }
 
+    /// <summary>Keep good people if we can afford to; let the rest go.</summary>
+    int CallUpChoice(Dilemma d)
+    {
+        var who = g.StaffById(d.StaffId!.Value);
+        if (who == null || who.Skill < 2) return 2;
+        if (g.Funds > Defs.CallUpRulingCost + 400) return 1;
+        return g.Reputation > 45 ? 0 : 2;
+    }
+
+    /// <summary>Each Enigma network needs about one Bombe's day to break its key, so don't take on more networks than Bombes.</summary>
+    bool BombeNetFits(Net net)
+    {
+        // Cribs and Banburismus both lead on to a Bombe run; Zygalski sheets don't.
+        bool NeedsBombe(Net n) => g.KeyRoute(n) is StationType.Crib or StationType.Banburismus;
+        if (!NeedsBombe(net)) return true;
+        var nets = g.Contracts.Where(x => x.State == ContractState.Active && Defs.NetOf(x.Net).Family != Family.Hand)
+                              .Select(x => x.Net).ToHashSet();
+        if (nets.Contains(net)) return true;
+        int bombes = g.Stations.Count(s => s.Type is StationType.Bombe or StationType.Bombe4 && !s.PendingRemoval) + g.OutstationBombes;
+        return nets.Count(NeedsBombe) < bombes;
+    }
+
     static readonly StationType[] BuildOrder =
     {
         StationType.Registration, StationType.HandCipher, StationType.Translation,
@@ -99,7 +121,8 @@ public sealed class AutoPlayer
         // ULTRA: answer dilemmas, and ease off when the Germans grow suspicious.
         foreach (var d in g.Dilemmas.ToList())
         {
-            int pick = d.StaffId != null ? 0
+            int pick = d.Title == "Call-up papers" ? CallUpChoice(d)
+                : d.StaffId != null ? 0
                 : g.SuspicionOf(d.Service) > 50 ? d.Options.Select((o, i) => (o, i)).OrderBy(x => x.o.Suspicion).First().i
                 : 1;
             g.ResolveDilemma(d.Id, pick);
@@ -197,6 +220,7 @@ public sealed class AutoPlayer
                 : (g.KeyRoute(c.Net) != null || g.KeyBroken(c.Net, g.Day)) && Have(Defs.DecryptStep(c.Net)) > 0;
             if (!can) continue;
             if (nd.Family == Family.Hand && !HandWorkFits(c)) continue;
+            if (nd.Family != Family.Hand && !BombeNetFits(c.Net)) continue;
             if (g.Accept(c.Id)) active++;
         }
     }

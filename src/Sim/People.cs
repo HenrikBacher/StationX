@@ -135,8 +135,40 @@ public sealed partial class GameState
         if (s.Path.Count == 0) OnArrive(s);
     }
 
+    /// <summary>
+    /// Men of military age could be called up. GC&amp;CS fought for each deferment, spending Whitehall's goodwill,
+    /// or got the Foreign Office to rule the post a reserved occupation, which cost money and paperwork.
+    /// </summary>
+    void MaybeCallUp()
+    {
+        if (ActIndex < 1 || ActIndex > 10) return;
+        if (Dilemmas.Count > 0 || Now - LastDilemmaAt < Defs.MinutesPerDay) return;
+        if (!Rng.Chance(Defs.CallUpChance)) return;
+        var men = Staff.Where(s => !s.Female && !s.Leaving && s.Notable == null && s.Role != Role.Messenger && s.Role != Role.Wren).ToList();
+        if (men.Count == 0) return;
+        // The Ministry of Labour has an unerring eye for the people you can least spare.
+        var who = men.OrderByDescending(s => s.Skill * 10 + Rng.Range(0, 15)).First();
+        var role = Defs.Roles[who.Role].Name.ToLowerInvariant();
+        RaiseDilemma(new Dilemma
+        {
+            Service = Service.Security, StaffId = who.Id, Title = "Call-up papers",
+            Text = $"{who.Name} ({role}, {new string('★', who.Skill)}) has received call-up papers from the Ministry of Labour. " +
+                   "Without a deferment he reports to an Army training depot on Monday, and we can't tell the Army why he matters.",
+            Options =
+            {
+                new() { Label = "Fight for a deferment", Rep = -4,
+                    Outcome = $"Commander Denniston calls in a favour at the War Office. {who.Name} stays, and Whitehall remembers it." },
+                new() { Label = "Ask the Foreign Office to make the post reserved", Funds = -Defs.CallUpRulingCost,
+                    Outcome = $"A ruling comes through after a week of forms. {who.Name} stays." },
+                new() { Label = "Let him go", DismissStaff = true, Morale = -0.02, Rep = 1,
+                    Outcome = $"{who.Name} leaves for the Army. He may never say where he has been." },
+            },
+        });
+    }
+
     void DailyPeople()
     {
+        MaybeCallUp();
         foreach (var s in Staff.ToList())
         {
             s.Morale += (Defs.MoraleBaseline - s.Morale) * 0.15;
