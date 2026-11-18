@@ -124,6 +124,11 @@ public static class Defs
     /// <summary>Paper passes straight across to a next-step desk this close (Manhattan, between working tiles, same hut).</summary>
     public const int HandOverReach = 2;
     /// <summary>Walking slows by this much for each other person on the tile ahead or the one you're on.</summary>
+    // Crises (from act 2): a power cut stops the machines; a surge brings a run of MOST IMMEDIATE requests.
+    public const int CrisesFromAct = 2;
+    public const double CrisisChance = 0.07;            // per day, scaled by difficulty's wear multiplier
+    public const int GeneratorCost = 250, OvertimeCost = 200;
+    public const double OvertimeRate = 1.25, OvertimeDrain = 1.35, OvertimeMorale = -0.06, OvertimeDays = 2;
     public const double CrowdSlow = 0.15;
     public const double CrowdFloor = 0.6;
 

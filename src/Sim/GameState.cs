@@ -114,6 +114,7 @@ public sealed partial class GameState
         WorkStations(dt);
         TickRemote();
         TickRaids();
+        TickCrises();
 
         if (Now >= NextScheduleAt)
         {
@@ -133,6 +134,7 @@ public sealed partial class GameState
         RollWeather();
         MaybeStaleCribs();
         PlanRaid();
+        PlanCrisis();
         DailyPeople();
         DailyIntelligence();
         foreach (var k in Flows.Keys.ToList())
@@ -318,6 +320,7 @@ public sealed partial class GameState
                 continue;
             }
             if (st.Wears && !MachineUp(st)) continue;
+            if (Unpowered(st)) continue;
             if (st.IsMachine && st.Current != null)
             {
                 // Running unattended until it stops.
@@ -366,7 +369,7 @@ public sealed partial class GameState
 
             if (st.Wears && WearAndMaybeBreak(st, dt)) { ReleaseOperator(st); continue; }
             double head = headed.Count > 0 && Grid.ZoneAt(st.X, st.Y) is { } hz && headed.Contains(hz) ? Defs.HeadBonus : 1;
-            st.WorkDone += dt * op.WorkRate * RaidWorkFactor * head;
+            st.WorkDone += dt * op.WorkRate * RaidWorkFactor * head * OvertimeFactor;
             st.LastWorked = Now;
             if (st.WorkDone >= st.WorkTotal)
             {

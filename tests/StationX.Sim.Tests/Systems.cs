@@ -1372,3 +1372,43 @@ public class KeyOrderTests
         Assert.Equal(b.Id, bombe.Current);
     }
 }
+
+public class CrisisTests
+{
+    [Fact]
+    public void PowerCutStopsMachinesUnlessTheGeneratorRunsTheBombes()
+    {
+        var g = TestUtil.BombeLine(12, checking: true);
+        g.PowerCutAt = g.Now + 1;
+        g.Advance(3);
+        Assert.True(g.PowerCut);
+        var d = g.Dilemmas.Single(x => x.Title == "Power cut");
+        var bombe = g.Stations.First(s => s.Type == StationType.Bombe);
+        var typex = g.Stations.First(s => s.Type == StationType.Typex);
+        Assert.True(g.Unpowered(bombe) && g.Unpowered(typex));
+        int funds = g.Funds;
+        g.ResolveDilemma(d.Id, 0);
+        Assert.Equal(funds - Defs.GeneratorCost, g.Funds);
+        Assert.False(g.Unpowered(bombe));
+        Assert.True(g.Unpowered(typex));
+        TestUtil.Run(g, 0.4);
+        Assert.False(g.PowerCut);
+        Assert.False(g.Generator);
+        Assert.False(g.Unpowered(typex));
+    }
+
+    [Fact]
+    public void SurgeBringsUrgentRequestsAndOvertimeSpeedsWork()
+    {
+        var g = TestUtil.BombeLine(12, checking: true);
+        g.SurgeAt = g.Now + 1;
+        g.Advance(3);
+        var d = g.Dilemmas.Single(x => x.Options.Any(o => o.Action == "overtime"));
+        Assert.Contains(g.Contracts, c => c.Flash && c.State == ContractState.Offered);
+        g.ResolveDilemma(d.Id, d.Options.FindIndex(o => o.Action == "overtime"));
+        Assert.True(g.Overtime);
+        Assert.Equal(Defs.OvertimeRate, g.OvertimeFactor);
+        TestUtil.Run(g, Defs.OvertimeDays + 0.1);
+        Assert.False(g.Overtime);
+    }
+}

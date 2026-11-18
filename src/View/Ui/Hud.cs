@@ -179,6 +179,7 @@ public partial class Hud : CanvasLayer
         string mode = S.Mode == GameMode.FreePlay ? " · free play" : "";
         string sky = S.Weather switch { Weather.Fine => "fine", Weather.Overcast => "overcast", Weather.Rain => "rain", Weather.Fog => "fog", Weather.Snow => "snow", _ => "gale" };
         if (S.RaidOn) sky += " · AIR RAID";
+        if (S.PowerCut) sky += " · POWER CUT";
         if (S.AllHands) sky += " · ALL HANDS";
         _time.Text = $"{m / 60:00}:{m % 60:00} · {sky} · {shift} · {S.OnDutyCount}/{S.Staff.Count} on duty{mode}";
         _pauseBtn.SetPressedNoSignal(_main.Paused);

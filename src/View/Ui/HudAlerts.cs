@@ -34,6 +34,11 @@ public partial class Hud
                 Gfx.Bad, () => OpenPanel("requests")));
         foreach (var st in S.Stations.Where(s => s.Wears && s.IsDown(S.Now) && !s.Servicing))
             Station(st, $"{st.Def.Name} #{st.Id} broken down", Gfx.Bad);
+        if (S.PowerCut)
+            list.Add(new Alert(S.Generator ? $"Power cut: only the Bombes run, on the generator ({Math.Max(1, (int)((S.PowerCutUntil - S.Now) / 60 + 0.5))} h)"
+                                           : $"Power cut: the machines have stopped ({Math.Max(1, (int)((S.PowerCutUntil - S.Now) / 60 + 0.5))} h)", Gfx.Bad, () => { }));
+        if (S.Overtime)
+            list.Add(new Alert($"Leave cancelled: overtime, work +25%, people tire faster ({Math.Max(1, (int)((S.OvertimeUntil - S.Now) / 60 + 0.5))} h)", Gfx.Warn, () => { }));
         if (S.RaidOn)
             list.Add(new Alert($"Air raid: desk work at half pace until the all-clear ({Math.Max(1, (int)((S.RaidUntil - S.Now) / 60 + 0.5))} h)", Gfx.Bad, () => { }));
         foreach (var (issuer, days) in S.NeglectedMinistries())

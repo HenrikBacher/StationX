@@ -307,6 +307,8 @@ public sealed class DilemmaOption
     public int Points { get; set; }
     public bool DismissStaff { get; set; }
     public bool RevealTalker { get; set; }
+    /// <summary>A special effect handled by the sim (a crisis response), or null.</summary>
+    public string? Action { get; set; }
 
     /// <summary>One-line summary of the effects, for buttons.</summary>
     public string Effects()

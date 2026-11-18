@@ -137,6 +137,7 @@ public sealed partial class GameState
         Stats.DilemmasResolved++;
         Emit(o.Rep < 0 || o.Suspicion > 10 ? EventKind.Bad : EventKind.Info, o.Outcome);
         if (d.Title == RuthlessTitle && option == 0) RuthlessOutcome();
+        if (o.Action != null) CrisisAction(o.Action);
         return true;
     }
 

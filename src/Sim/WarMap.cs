@@ -67,7 +67,7 @@ public sealed partial class GameState
     void OpenOperation(Contract c)
     {
         if (OperationFor(c.Id) != null) return;
-        var r = new Random(HashCode.Combine(Seed, c.Id, 0x0b5));
+        var r = new Random(Mix(Seed, c.Id, 0x0b5));
         var op = WarOps.Make(c.Net, DateOf(Day), c.Quantity, r);
         op.Id = NextId++;
         op.ContractId = c.Id;

@@ -480,10 +480,16 @@ public sealed partial class GameState
         double hour = MinuteOfDay / 60;
         if (hour < 7 || hour > 20) { NextFlashAt = Now + 6 * 60; return; }   // they arrive in office hours
         if (Contracts.Any(c => c.Flash && c.State is ContractState.Offered or ContractState.Active)) return;
+        PostFlash();
+    }
+
+    /// <summary>Posts one MOST IMMEDIATE request on something we can read. False if there's nothing we could read.</summary>
+    bool PostFlash()
+    {
         // Only networks we can actually read today.
         var pool = Act.Pool.Where(p => (p.Requires == null || Researched.Contains(p.Requires.Value)) &&
                                        (Defs.NetOf(p.Net).Family == Family.Hand || KeyRoute(p.Net) != null || KeyBroken(p.Net, Day))).ToList();
-        if (pool.Count == 0) return;
+        if (pool.Count == 0) return false;
         // Mostly about something we're reading today: that's why they've come to us.
         var readable = pool.Where(p => KeyBroken(p.Net, Day)).ToList();
         var tpl = Rng.Pick(readable.Count > 0 && Rng.Chance(0.75) ? readable : pool);
@@ -504,6 +510,7 @@ public sealed partial class GameState
         };
         Contracts.Add(c);
         Emit(EventKind.Bad, $"MOST IMMEDIATE from the {Defs.IssuerNames[c.Issuer]}: {c.Flavour} Answer within {Defs.FlashOfferHours:0} hours.");
+        return true;
     }
 
     void TickContracts()

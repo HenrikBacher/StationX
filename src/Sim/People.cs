@@ -90,6 +90,7 @@ public sealed partial class GameState
                 }
                 if (s.Has(Trait.Tireless)) drain *= 0.7;
                 if (AllHands && !OnWatch(s)) drain *= Defs.AllHandsDrain;
+                if (Overtime) drain *= Defs.OvertimeDrain;
                 if (night && s.Has(Trait.NightOwl)) drain *= 0.67;
                 s.Energy = Math.Max(0, s.Energy - drain * dt);
                 if (s.Energy < Defs.Exhausted) s.Morale = Math.Max(0, s.Morale - 0.0004 * dt);
