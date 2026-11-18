@@ -77,6 +77,7 @@ public sealed partial class GameState
             if (m.Reserved) continue;
             var src = StationById(m.LocId);
             if (src == null) continue;
+            if (src.Type != StationType.Tube && HandOver(src, m)) continue;
             var dest = BestDestination(m.Next!.Value, src.UseTile, 1);
             if (dest == null) continue;
             if (src.Type != StationType.Tube && TubeVia(src, dest) is { } tube) dest = tube;
@@ -100,6 +101,40 @@ public sealed partial class GameState
             if (runner.Path.Count == 0) OnArrive(runner);
             idle--;
         }
+    }
+
+    /// <summary>
+    /// Next-step desk within arm's reach in the same hut, with someone sitting at one of the two: the paper is passed
+    /// across, no runner. This is what makes a well laid-out hut quicker than a scattered one.
+    /// </summary>
+    bool HandOver(Station src, Message m)
+    {
+        var zone = Grid.ZoneAt(src.UseTile.x, src.UseTile.y);
+        if (zone == null || m.Next is not StationType next) return false;
+        bool srcManned = src.OperatorId != null && src.OperatorPresent;
+        Station? best = null;
+        foreach (var st in Stations)
+        {
+            if (st == src || !st.Accepts(next) || st.FreeInput < 1 || st.IsDown(Now) || !CanBeStaffed(st)) continue;
+            if (Manhattan(st.UseTile, src.UseTile) > Defs.HandOverReach) continue;
+            if (Grid.ZoneAt(st.UseTile.x, st.UseTile.y) != zone) continue;
+            if (!srcManned && !(st.OperatorId != null && st.OperatorPresent)) continue;
+            if (best == null || st.Input.Count < best.Input.Count) best = st;
+        }
+        if (best == null) return false;
+        var batch = src.Output.Where(id => !Messages[id].Reserved && Messages[id].Next == next)
+                              .Take(Math.Min(Defs.CarryBatch, best.FreeInput)).ToList();
+        foreach (var id in batch)
+        {
+            var x = Messages[id];
+            src.Output.Remove(id);
+            x.Loc = Loc.Input;
+            x.LocId = best.Id;
+            x.Since = Now;
+            best.Input.Add(id);
+        }
+        Stats.HandOvers += batch.Count;
+        return batch.Count > 0;
     }
 
     /// <summary>A specialist shouldn't wander off to run errands while their machines have work.</summary>

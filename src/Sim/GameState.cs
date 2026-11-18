@@ -154,15 +154,31 @@ public sealed partial class GameState
 
     // ------------------------------------------------------------- movement
 
+    readonly Dictionary<(int x, int y), int> _crowd = new();
+
+    double CrowdFactor(Staff s)
+    {
+        int others = _crowd.GetValueOrDefault(s.TilePos) - 1 + (s.Path.Count > 0 ? _crowd.GetValueOrDefault(s.Path[0]) : 0);
+        return others <= 0 ? 1 : Math.Max(Defs.CrowdFloor, 1 / (1 + Defs.CrowdSlow * others));
+    }
+
+    /// <summary>For tests and the flow view: how much walking is slowed on a tile by the people on it (1 = clear).</summary>
+    public double CrowdingAt((int x, int y) tile) => 1 / (1 + Defs.CrowdSlow * Math.Max(0, Staff.Count(o => !o.Away && o.TilePos == tile) - 1));
+
     void MoveStaff(double dt)
     {
         double step = Defs.WalkTilesPerMinute * dt;
         double outdoors = OutdoorPace;
+        // Crowding: people squeezing past each other (and past those sitting at their desks) slow down.
+        _crowd.Clear();
+        foreach (var o in Staff)
+            if (!o.Away) _crowd[o.TilePos] = _crowd.GetValueOrDefault(o.TilePos) + 1;
         for (int i = Staff.Count - 1; i >= 0; i--)
         {
             var s = Staff[i];
             if (s.Path.Count == 0) continue;
             double remaining = s.Role == Role.Messenger ? step * Defs.MessengerSpeed : step;
+            remaining *= CrowdFactor(s);
             if (outdoors < 1 && Grid.ZoneAt((int)s.X, (int)s.Y) == null) remaining *= outdoors;
             while (remaining > 0 && s.Path.Count > 0)
             {

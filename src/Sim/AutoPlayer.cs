@@ -293,16 +293,22 @@ public sealed class AutoPlayer
         {
             var zone = g.Grid.Zone(zid);
             if (zone == null || !zone.Unlocked) continue;
-            // Rows of desks facing the camera, leaving aisles: try even rows first.
-            for (int pass = 0; pass < 2; pass++)
-                for (int y = zone.Y + 1; y < zone.Y + zone.H - 1; y++)
-                {
-                    if (pass == 0 && (y - zone.Y) % 3 != 1) continue;
-                    for (int x = zone.X + 1; x < zone.X + zone.W - 1; x++)
-                        foreach (int rot in new[] { 0, 2, 1, 3 })
-                            if (g.CanPlace(t, x, y, rot) == null)
-                                return g.Place(t, x, y, rot) != null;
-                }
+            // Rows of desks leaving aisles, and as close as possible to the desks it trades paper with,
+            // so work can be handed across rather than carried.
+            var near = Defs.FlowNeighbours(t);
+            var mates = g.Stations.Where(s => near.Contains(s.Type) && g.Grid.ZoneAt(s.UseTile.x, s.UseTile.y) == zone).Select(s => s.UseTile).ToList();
+            (int x, int y, int rot)? best = null;
+            int bestScore = int.MaxValue;
+            for (int y = zone.Y + 1; y < zone.Y + zone.H - 1; y++)
+                for (int x = zone.X + 1; x < zone.X + zone.W - 1; x++)
+                    foreach (int rot in new[] { 0, 2, 1, 3 })
+                    {
+                        if (g.CanPlace(t, x, y, rot) != null) continue;
+                        var use = Station.UseTileFor(t, x, y, rot);
+                        int score = ((y - zone.Y) % 3 == 1 ? 0 : 6) + (mates.Count == 0 ? (y - zone.Y) + (x - zone.X) / 4 : mates.Min(m => Math.Abs(m.x - use.x) + Math.Abs(m.y - use.y)) * 2);
+                        if (score < bestScore) { bestScore = score; best = (x, y, rot); }
+                    }
+            if (best is var (bx, by, br)) return g.Place(t, bx, by, br) != null;
         }
         return false;
     }

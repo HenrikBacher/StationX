@@ -116,9 +116,31 @@ public static class Defs
     public const double RuthlessSuccess = 0.4;
     public const int RuthlessPoints = 80;
     public const double RuthlessSuspicion = 18;
+    // ---- Layout ----
+    /// <summary>Paper passes straight across to a next-step desk this close (Manhattan, between working tiles, same hut).</summary>
+    public const int HandOverReach = 2;
+    /// <summary>Walking slows by this much for each other person on the tile ahead or the one you're on.</summary>
+    public const double CrowdSlow = 0.15;
+    public const double CrowdFloor = 0.6;
+
+    /// <summary>The steps that feed a station, and the steps it feeds: where it wants to sit.</summary>
+    public static StationType[] FlowNeighbours(StationType t) => t switch
+    {
+        StationType.Inbox => new[] { StationType.Registration },
+        StationType.Registration => new[] { StationType.Inbox, StationType.HandCipher, StationType.Crib, StationType.Typex },
+        StationType.HandCipher => new[] { StationType.Registration, StationType.Translation },
+        StationType.Crib => new[] { StationType.Registration, StationType.Zygalski, StationType.Banburismus, StationType.Bombe, StationType.Bombe4 },
+        StationType.Zygalski or StationType.Banburismus => new[] { StationType.Crib, StationType.Bombe, StationType.Bombe4 },
+        StationType.Bombe or StationType.Bombe4 => new[] { StationType.Crib, StationType.Checking },
+        StationType.Checking => new[] { StationType.Bombe, StationType.Bombe4 },
+        StationType.Typex => new[] { StationType.Registration, StationType.Translation },
+        StationType.Translation => new[] { StationType.Typex, StationType.HandCipher, StationType.Dispatch },
+        StationType.Dispatch => new[] { StationType.Translation },
+        _ => Array.Empty<StationType>(),
+    };
     // ---- Traffic growth ----
     /// <summary>German wireless traffic grew year on year; requests grow with each chapter, so the Park must grow too.</summary>
-    public const double TrafficPerAct = 0.15;
+    public const double TrafficPerAct = 0.16;
     public static double TrafficScale(int act) => 1 + TrafficPerAct * Math.Max(0, act);
     // ---- Heads of huts ----
     public const double HeadBonus = 1.1;

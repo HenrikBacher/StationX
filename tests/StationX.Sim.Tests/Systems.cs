@@ -1129,3 +1129,44 @@ public class WartimeInterceptTests
         Assert.DoesNotContain(Many(Net.Chaffinch, new DateOnly(1941, 6, 1)), x => x.English.Contains("Algeria"));
     }
 }
+
+public class LayoutTests
+{
+    static GameState Run(int[] xs, out Contract c)
+    {
+        var g = GameState.NewGame(7);
+        Assert.NotNull(g.Place(StationType.Registration, xs[0], 3, 0));
+        Assert.NotNull(g.Place(StationType.HandCipher, xs[1], 3, 0));
+        Assert.NotNull(g.Place(StationType.Translation, xs[2], 3, 0));
+        g.Advance(1);
+        c = g.Contracts.First(k => k.State == ContractState.Offered);
+        Assert.True(g.Accept(c.Id));
+        for (int t = 0; t < 3 * Defs.MinutesPerDay; t += 30) g.Advance(30);
+        return g;
+    }
+
+    [Fact]
+    public void NeighbouringDesksHandWorkAcross()
+    {
+        var tight = Run(new[] { 5, 7, 9 }, out var c);
+        Assert.True(tight.Stats.HandOvers > 0, "desks side by side should pass paper across");
+        Assert.Equal(ContractState.Completed, c.State);
+
+        // A new game comes with its own starting desks, so compare rather than expect none.
+        var spread = Run(new[] { 4, 9, 14 }, out _);
+        Assert.True(tight.Stats.HandOvers > spread.Stats.HandOvers, $"tight {tight.Stats.HandOvers} vs spread {spread.Stats.HandOvers}");
+    }
+
+    [Fact]
+    public void CrowdedTilesSlowWalking()
+    {
+        var g = GameState.NewGame(7);
+        var tile = (9, 8);
+        Assert.Equal(1.0, g.CrowdingAt(tile), 3);
+        foreach (var r in new[] { Role.Clerk, Role.Clerk, Role.Clerk })
+        {
+            var p = g.NewPerson(r, 1); p.X = 9.5; p.Y = 8.5; g.Staff.Add(p);
+        }
+        Assert.True(g.CrowdingAt(tile) < 0.8);
+    }
+}

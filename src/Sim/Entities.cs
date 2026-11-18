@@ -231,6 +231,8 @@ public sealed class Stats
     public int ContractsCompleted { get; set; }
     public int ContractsFailed { get; set; }
     public int Breakdowns { get; set; }
+    /// <summary>Messages passed straight across between neighbouring desks, no runner needed.</summary>
+    public int HandOvers { get; set; }
 
     public Stats Clone() => new()
     {
