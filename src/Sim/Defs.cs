@@ -31,6 +31,8 @@ public enum Difficulty { Easy, Normal, Hard }
 
 public enum GameMode { Campaign, FreePlay }
 
+public enum Weather { Fine, Overcast, Rain, Fog, Snow, Storm }
+
 /// <summary>Working hours. Office hours until the watch system starts, then three watches round the clock.</summary>
 public enum Shift { Office, Day, Evening, Night }
 

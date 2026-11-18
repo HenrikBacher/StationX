@@ -73,6 +73,8 @@ jobs:
           shot winter --days=80 --hour=10 --zoom=1.5 --center=26,6
           shot alerts --days=30 --hour=11 --breakdown
           shot end --days=3 --modal=end
+          shot snow --days=80 --hour=11 --zoom=1.0 --center=24,14 --weather=snow
+          shot rain --days=40 --hour=15 --zoom=1.0 --center=24,14 --weather=storm
           ls -l shots
 
       - uses: actions/upload-artifact@v4

@@ -117,7 +117,7 @@ public sealed partial class GameState
 
     bool RestOpen(Station st) =>
         !st.PendingRemoval && st.IsRest &&
-        (st.Type != StationType.Rounders || MinuteOfDay is >= 8 * 60 and < 19 * 60);
+        (st.Type != StationType.Rounders || MinuteOfDay is >= 8 * 60 and < 19 * 60 && Weather is Weather.Fine or Weather.Overcast);
 
     int SeatsTaken(Station st) => Staff.Count(x => x.Task is { Kind: TaskKind.Rest } t && t.Dest == st.Id);
 
@@ -184,6 +184,33 @@ public sealed partial class GameState
         s.Salary += raise;
         s.Morale = Math.Min(1, s.Morale + 0.05);
         Emit(EventKind.Good, $"{s.Name} has got the hang of it: now {new string('★', s.Skill)}, and {(s.Female ? "her" : "his")} pay goes up £{raise} a week.");
+    }
+
+    /// <summary>Walking speed outdoors: snow and gales slow everyone between the huts.</summary>
+    public double OutdoorPace => Weather switch { Weather.Snow => 0.65, Weather.Storm => 0.8, Weather.Rain => 0.92, _ => 1 };
+
+    /// <summary>Atmospherics: storms and fog make intercepts harder to take down cleanly.</summary>
+    public double WeatherGarble => Weather switch { Weather.Storm => 2.5, Weather.Fog => 1.3, Weather.Rain => 1.15, _ => 1 };
+
+    /// <summary>The day's weather, rolled each midnight from the month. English, so mostly grey.</summary>
+    void RollWeather()
+    {
+        int m = Date.Month;
+        bool winter = m is 12 or 1 or 2;
+        double r = Rng.NextDouble();
+        Weather = winter
+            ? r < 0.15 ? Weather.Fine : r < 0.45 ? Weather.Overcast : r < 0.62 ? Weather.Rain : r < 0.75 ? Weather.Fog : r < 0.93 ? Weather.Snow : Weather.Storm
+            : m is >= 5 and <= 8
+            ? r < 0.45 ? Weather.Fine : r < 0.75 ? Weather.Overcast : r < 0.93 ? Weather.Rain : r < 0.97 ? Weather.Fog : Weather.Storm
+            : r < 0.25 ? Weather.Fine : r < 0.55 ? Weather.Overcast : r < 0.8 ? Weather.Rain : r < 0.92 ? Weather.Fog : Weather.Storm;
+        string? note = Weather switch
+        {
+            Weather.Snow => "Snow overnight. The paths between the huts are treacherous, and there's no rounders today.",
+            Weather.Storm => "A gale is blowing. Reception at the listening stations is poor: expect garbled intercepts.",
+            Weather.Fog => "Thick fog over the Park.",
+            _ => null,
+        };
+        if (note != null) Emit(EventKind.Info, note);
     }
 
     public bool Winter => Date.Month is 11 or 12 or 1 or 2 or 3;

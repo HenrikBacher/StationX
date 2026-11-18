@@ -673,3 +673,24 @@ public class ScoreTests
         Assert.Equal(GameState.Honours.OrderBy(h => h.min).Select(h => h.min), GameState.Honours.Select(h => h.min));
     }
 }
+
+public class WeatherTests
+{
+    [Fact]
+    public void WeatherVariesWithTheSeasonAndHasEffects()
+    {
+        var g = GameState.NewGame(17);
+        g.ActDate = new DateOnly(1940, 1, 1);
+        var seen = new System.Collections.Generic.HashSet<Weather>();
+        for (int i = 0; i < 40; i++) { g.Advance(Defs.MinutesPerDay); g.Events.Clear(); seen.Add(g.Weather); }
+        Assert.Contains(Weather.Snow, seen);
+        Assert.True(seen.Count >= 3);
+
+        g.Weather = Weather.Snow;
+        Assert.True(g.OutdoorPace < 1);
+        g.Weather = Weather.Storm;
+        Assert.True(g.WeatherGarble > 1);
+        g.Weather = Weather.Fine;
+        Assert.Equal(1, g.OutdoorPace);
+    }
+}

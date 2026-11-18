@@ -50,6 +50,7 @@ public sealed partial class GameState
     public bool IndicatorChanged { get; set; }
     public bool SharkBlackout { get; set; }
     public double TonnageLost { get; set; }
+    public Weather Weather { get; set; } = Weather.Fine;
 
     public int ActIndex { get; set; }
     public int ActStartDay { get; set; }
@@ -119,6 +120,7 @@ public sealed partial class GameState
     void OnNewDay()
     {
         RecordDay();
+        RollWeather();
         DailyPeople();
         DailyIntelligence();
         foreach (var k in Flows.Keys.ToList())
@@ -143,11 +145,13 @@ public sealed partial class GameState
     void MoveStaff(double dt)
     {
         double step = Defs.WalkTilesPerMinute * dt;
+        double outdoors = OutdoorPace;
         for (int i = Staff.Count - 1; i >= 0; i--)
         {
             var s = Staff[i];
             if (s.Path.Count == 0) continue;
             double remaining = s.Role == Role.Messenger ? step * Defs.MessengerSpeed : step;
+            if (outdoors < 1 && Grid.ZoneAt((int)s.X, (int)s.Y) == null) remaining *= outdoors;
             while (remaining > 0 && s.Path.Count > 0)
             {
                 var (tx, ty) = s.Path[0];

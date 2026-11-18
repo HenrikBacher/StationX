@@ -502,7 +502,7 @@ public sealed partial class GameState
                         {
                             Id = NextId++, Net = c.Net, ContractId = c.Id, Day = Day, Created = Now, Since = Now,
                             Loc = Loc.Output, LocId = inbox.Id,
-                            Garbled = ActIndex >= 1 && Rng.Chance(Defs.GarbledChance * (hour < 6 || hour >= 20 ? 1.6 : 1)),
+                            Garbled = ActIndex >= 1 && Rng.Chance(Defs.GarbledChance * (hour < 6 || hour >= 20 ? 1.6 : 1) * WeatherGarble),
                         };
                         Messages[m.Id] = m;
                         inbox.Output.Add(m.Id);
