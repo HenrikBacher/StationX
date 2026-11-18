@@ -136,6 +136,10 @@ public sealed class AutoPlayer
         // Outstation Bombes when rich.
         if (g.CanBuyOutstation() == null && g.OutstationBombes < 3 && g.Funds > 4500) g.BuyOutstation();
 
+        // Service worn machines while they're between runs.
+        foreach (var st in g.Stations.Where(s => s.Wears && s.Wear > 0.55 && s.Current == null).ToList())
+            if (g.Funds > Defs.ServiceCost + 100) g.ServiceMachine(st.Id);
+
         // Retire obsolete sheet tables.
         foreach (var st in g.Stations.Where(s => s.Obsolete && !s.PendingRemoval).ToList())
             g.RequestRemove(st.Id);

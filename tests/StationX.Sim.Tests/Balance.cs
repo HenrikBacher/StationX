@@ -36,7 +36,7 @@ public class Balance(ITestOutputHelper output)
                 if (g.Status == GameStatus.Won) wins++;
                 output.WriteLine($"{d,-6} seed {seed,3}: {g.Status,-7} day {g.Day,3} act {g.ActIndex,2} " +
                                  $"rep min {minRep,3:0} end {g.Reputation,3:0}  funds min £{minFunds,5:0} end £{g.Funds,5}  " +
-                                 $"contracts {g.Stats.ContractsCompleted}/{g.Stats.ContractsCompleted + g.Stats.ContractsFailed}");
+                                 $"contracts {g.Stats.ContractsCompleted}/{g.Stats.ContractsCompleted + g.Stats.ContractsFailed}  breakdowns {g.Stats.Breakdowns}");
             }
             output.WriteLine($"{d}: {wins}/6 won");
         }

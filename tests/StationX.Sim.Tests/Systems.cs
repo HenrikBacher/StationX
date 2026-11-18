@@ -456,3 +456,65 @@ public class MessengerTests
         Assert.DoesNotContain(Defs.Stations.Values, d => d.Operator == Role.Messenger);
     }
 }
+
+public class BreakdownTests
+{
+    /// <summary>The line's Bombe, already running a very long job so it wears while the test watches.</summary>
+    static Station Bombe(GameState g)
+    {
+        var b = g.Stations.First(s => s.Type == StationType.Bombe);
+        var m = new Message { Id = g.NextId++, Net = Net.Red, Day = g.Day, Created = g.Now, Since = g.Now, Loc = Loc.Processing, LocId = b.Id };
+        g.Messages[m.Id] = m;
+        b.Current = m.Id;
+        b.WorkTotal = 100000;
+        return b;
+    }
+
+    [Fact]
+    public void WornMachinesBreakDownAndGetRepaired()
+    {
+        var g = TestUtil.BombeLine(5, false);
+        var b = Bombe(g);
+        b.Wear = 1.4;
+        long funds = g.Funds;
+        for (int i = 0; i < 48 * 4 && b.DownUntil <= 0; i++) { g.Advance(15); g.Events.Clear(); }
+        Assert.True(b.DownUntil > 0, "a badly worn Bombe never broke down");
+        Assert.False(b.Servicing);
+        Assert.True(g.Stats.Breakdowns >= 1);
+        Assert.True(b.Wear < 0.5);
+        double work = b.WorkDone;
+        g.Advance(60);
+        Assert.Equal(work, b.WorkDone);   // nothing happens while it's down
+        g.Advance(Defs.RepairMinutes);
+        g.Advance(1);
+        Assert.Equal(0, b.DownUntil);
+    }
+
+    [Fact]
+    public void FreshMachinesRarelyBreak()
+    {
+        var g = TestUtil.BombeLine(6, false);
+        var b = Bombe(g);
+        b.Wear = 0;
+        g.Advance(240);
+        Assert.Equal(0, g.Stats.Breakdowns);
+    }
+
+    [Fact]
+    public void ServicingResetsWearAndTakesAnHour()
+    {
+        var g = TestUtil.BombeLine(7, false);
+        var b = Bombe(g);
+        b.Wear = 0.8;
+        Assert.Null(g.CanServiceMachine(b.Id));
+        long funds = g.Funds;
+        Assert.True(g.ServiceMachine(b.Id));
+        Assert.Equal(funds - Defs.ServiceCost, g.Funds);
+        Assert.Equal(0, b.Wear);
+        Assert.True(b.IsDown(g.Now) && b.Servicing);
+        Assert.NotNull(g.CanServiceMachine(b.Id));
+        g.Advance(Defs.ServiceMinutes + 1);
+        Assert.False(b.IsDown(g.Now));
+        Assert.NotNull(g.CanServiceMachine(g.Stations.First(s => s.Type == StationType.Registration).Id));
+    }
+}

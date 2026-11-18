@@ -418,7 +418,7 @@ public partial class Hud
         if (!_inspector.Visible) { _inspSig = ""; return; }
 
         string sig = st != null
-            ? $"st{st.Id}{st.Input.Count}{st.Output.Count}{st.OperatorId}{st.OperatorPresent}{st.Current}{(int)(st.Progress * 20)}{st.PendingRemoval}{st.X},{st.Y}|{string.Join(",", S.PinnedTo(st.Id).Select(p => p.Id))}|{S.Funds >= Defs.MoveCost}"
+            ? $"st{st.Id}{st.Input.Count}{st.Output.Count}{st.OperatorId}{st.OperatorPresent}{st.Current}{(int)(st.Progress * 20)}{st.PendingRemoval}{st.X},{st.Y}|{string.Join(",", S.PinnedTo(st.Id).Select(p => p.Id))}|{S.Funds >= Defs.MoveCost}|{(int)(st.Wear * 20)}{st.IsDown(S.Now)}{S.Funds >= Defs.ServiceCost}"
             : sf != null ? $"sf{sf.Id}{sf.Task?.Kind}{sf.Task?.Dest}{sf.Leaving}{sf.Decrypts}{sf.Away}{sf.Shift}{sf.Pinned}{(int)(sf.Energy * 10)}{(int)(sf.Morale * 10)}{sf.CarelessKnown}"
             : $"z{z!.Id}{z.Unlocked}{S.Funds >= z.Cost}";
         if (sig == _inspSig) return;
@@ -466,6 +466,7 @@ public partial class Hud
             _inspBox.AddChild(UiTheme.Label(what, 13, UiTheme.Accent));
             _inspBox.AddChild(new ProgressBar { MinValue = 0, MaxValue = 1, Value = st.Progress, ShowPercentage = false, CustomMinimumSize = new Vector2(0, 8) });
         }
+        if (st.Wears) InspectWear(st);
         int waiting = st.Output.Count(id => S.Messages.TryGetValue(id, out var mm) && mm.Next == null);
         if (waiting > 0)
             _inspBox.AddChild(UiTheme.Label($"{waiting} message(s) in the out tray are waiting for their day's key.", 12, Gfx.PaperWaiting));
@@ -506,6 +507,30 @@ public partial class Hud
             () => { S.RequestRemove(id2); _inspSig = ""; })));
         if (st.PendingRemoval)
             _inspBox.AddChild(UiTheme.Label("It will be taken away once its trays are empty.", 12, UiTheme.TextDim));
+    }
+
+    /// <summary>Condition bar, downtime, and the Service button for machines that wear.</summary>
+    void InspectWear(Station st)
+    {
+        double condition = Math.Clamp(1 - st.Wear, 0, 1);
+        if (st.IsDown(S.Now))
+        {
+            string until = $"{(int)(st.DownUntil % Defs.MinutesPerDay / 60):00}:{(int)(st.DownUntil % 60):00}";
+            _inspBox.AddChild(UiTheme.Label(st.Servicing
+                ? $"Being serviced. Back at work at {until}."
+                : $"Broken down. The RAF fitters expect to have it going again by {until}.", 13, st.Servicing ? UiTheme.Accent : Gfx.Bad));
+            return;
+        }
+        var bar = new ProgressBar { MinValue = 0, MaxValue = 1, Value = condition, ShowPercentage = false, CustomMinimumSize = new Vector2(110, 8),
+                                    SizeFlagsVertical = Control.SizeFlags.ShrinkCenter };
+        bar.AddThemeStyleboxOverride("fill", UiTheme.Box(condition < 0.3 ? Gfx.Bad : condition < 0.5 ? Gfx.Warn : Gfx.Good, Colors.Transparent, 2, 0));
+        string note = condition < 0.3 ? "Badly worn: likely to break down" : condition < 0.5 ? "Getting worn" : "Running well";
+        _inspBox.AddChild(Row(UiTheme.Label($"Condition {Pct(condition)}", 13), bar, UiTheme.Label(note, 12, condition < 0.3 ? Gfx.Bad : UiTheme.TextDim)));
+        var id = st.Id;
+        string? why = S.CanServiceMachine(id);
+        var btn = UiTheme.Button($"Service (£{Defs.ServiceCost}, 1 h)", () => { S.ServiceMachine(id); _inspSig = ""; }, why == null,
+            tooltip: why ?? "Take it off for an hour to clean the contacts and check the drums. Any run in progress waits. Worn machines break down, and the fitters take hours.");
+        _inspBox.AddChild(Row(Spacer(), btn));
     }
 
     void InspectStaff(Staff s)

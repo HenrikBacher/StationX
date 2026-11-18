@@ -60,7 +60,23 @@ jobs:
       - name: UI self-test (virtual display)
         run: |
           sudo apt-get update -qq && sudo apt-get install -y -qq xvfb mesa-vulkan-drivers > /dev/null
+          dotnet build StationX.csproj --nologo -v q
           xvfb-run -a -s "-screen 0 1600x900x24" timeout 600 "$GODOT" --path . --resolution 1600x900 -- --selftest
+
+      - name: Screenshots
+        run: |
+          mkdir -p shots
+          shot() { xvfb-run -a -s "-screen 0 1600x900x24" timeout 300 "$GODOT" --path . --resolution 1600x900 -- --shot="$PWD/shots/$1.png" "${@:2}" || true; }
+          shot park --days=22 --hour=14 --zoom=0.85 --center=24,14
+          shot breakdown --days=30 --hour=11 --zoom=1.6 --center=40,6 --breakdown --select=bombe
+          shot staff --days=16 --hour=11 --panel=staff
+          ls -l shots
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: screenshots-${{ github.sha }}
+          path: shots/
+          retention-days: 7
 
       - name: Export Linux and Windows
         run: ./export.sh

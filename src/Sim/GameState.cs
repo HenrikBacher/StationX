@@ -283,9 +283,11 @@ public sealed partial class GameState
                 if (st.Def.Minutes > 0) WorkAutomatic(st, dt);
                 continue;
             }
+            if (st.Wears && !MachineUp(st)) continue;
             if (st.IsMachine && st.Current != null)
             {
                 // Running unattended until it stops.
+                if (WearAndMaybeBreak(st, dt)) continue;
                 st.WorkDone += dt;
                 st.LastWorked = Now;
                 if (st.WorkDone >= st.WorkTotal)
@@ -328,6 +330,7 @@ public sealed partial class GameState
                 }
             }
 
+            if (st.Wears && WearAndMaybeBreak(st, dt)) { ReleaseOperator(st); continue; }
             st.WorkDone += dt * op.WorkRate;
             st.LastWorked = Now;
             if (st.WorkDone >= st.WorkTotal)
@@ -339,6 +342,40 @@ public sealed partial class GameState
                 Complete(st, op, m);
             }
         }
+    }
+
+    /// <summary>False while broken or being serviced. Announces the machine's return when the downtime ends.</summary>
+    bool MachineUp(Station st)
+    {
+        if (st.DownUntil <= 0) return true;
+        if (st.IsDown(Now)) return false;
+        Emit(EventKind.Good, st.Servicing
+            ? $"{st.Def.Name} #{st.Id} is serviced and back at work."
+            : $"The RAF fitters have repaired {st.Def.Name} #{st.Id}.");
+        st.DownUntil = 0;
+        st.Servicing = false;
+        return true;
+    }
+
+    /// <summary>Adds wear for dt minutes of work. Returns true if the machine broke down.</summary>
+    bool WearAndMaybeBreak(Station st, double dt)
+    {
+        st.Wear = Math.Min(1.5, st.Wear + dt / Defs.WearLife(st.Type));
+        double p = Defs.BreakdownHazard * st.Wear * st.Wear * dt * Defs.Difficulties[Difficulty].WearMult;
+        if (!Rng.Chance(p)) return false;
+        st.DownUntil = Now + Defs.RepairMinutes;
+        st.Servicing = false;
+        st.Wear = 0.1;
+        Funds -= Defs.RepairCost;
+        Stats.Breakdowns++;
+        string what = st.Type switch
+        {
+            StationType.Bombe or StationType.Bombe4 => Rng.Pick(new[] { "a drum has seized", "the brushes have shorted", "a relay has burnt out" }),
+            StationType.TunnyMachine => "the tape has snapped",
+            _ => Rng.Pick(new[] { "a valve has blown", "the photocell has drifted" }),
+        };
+        Emit(EventKind.Bad, $"{st.Def.Name} #{st.Id} has broken down: {what}. The RAF fitters will take about {Defs.RepairMinutes / 60:0} hours (£{Defs.RepairCost}). Service machines before they wear out.");
+        return true;
     }
 
     /// <summary>Stations that work by themselves: the pneumatic tubes.</summary>

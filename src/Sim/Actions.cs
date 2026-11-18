@@ -246,6 +246,33 @@ public sealed partial class GameState
     public int WeeklyUpkeep => Stations.Sum(s => s.Def.Upkeep) + OutstationBombes * Defs.OutstationUpkeep;
     public int WeeklyGrant => (int)((Defs.GrantBase + Defs.GrantPerRep * Reputation) * Defs.Difficulties[Difficulty].GrantMult);
 
+    // ------------------------------------------------------------- machine servicing
+
+    /// <summary>Why a machine can't be serviced now, or null if it can.</summary>
+    public string? CanServiceMachine(int stationId)
+    {
+        var st = StationById(stationId);
+        if (st == null || !st.Wears) return "Only the machines need servicing.";
+        if (st.IsDown(Now)) return st.Servicing ? "Already being serviced." : "Broken down; the fitters are on it.";
+        if (st.Wear < 0.05) return "Freshly serviced.";
+        if (Funds < Defs.ServiceCost) return $"Needs £{Defs.ServiceCost}.";
+        return null;
+    }
+
+    /// <summary>Takes a machine out of action for an hour to reset its wear. Any run in progress waits.</summary>
+    public bool ServiceMachine(int stationId)
+    {
+        if (CanServiceMachine(stationId) != null) return false;
+        var st = StationById(stationId)!;
+        Funds -= Defs.ServiceCost;
+        st.Wear = 0;
+        st.DownUntil = Now + Defs.ServiceMinutes;
+        st.Servicing = true;
+        if (st.OperatorId != null && !st.IsMachine) ReleaseOperator(st);
+        Emit(EventKind.Info, $"{st.Def.Name} #{st.Id} is off for an hour's servicing.");
+        return true;
+    }
+
     // ------------------------------------------------------------- research
 
     public bool DoResearch(ResearchId id)

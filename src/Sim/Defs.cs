@@ -63,7 +63,7 @@ public sealed record ShiftDef(Shift Id, string Name, int StartHour, int EndHour)
 }
 
 public sealed record DifficultyDef(Difficulty Id, string Name, string Blurb, int StartFunds, double GrantMult,
-    double ExtraDays, double SuspicionMult, double RepLossMult);
+    double ExtraDays, double SuspicionMult, double RepLossMult, double WearMult = 1);
 
 public sealed record PolicyDef(Policy Id, string Name, string Blurb, double Suspicion, double Reward, double Rep);
 
@@ -113,6 +113,23 @@ public static class Defs
     public const int GardeningCost = 300;
     public const double GarbledChance = 0.06;
 
+    // ---- Machine wear (RAF fitters kept the Bombes running) ----
+    /// <summary>Working minutes for a machine to go from freshly serviced to fully worn.</summary>
+    public static double WearLife(StationType t) => t switch
+    {
+        StationType.Bombe => 2400,
+        StationType.Bombe4 => 1800,       // the four-rotor Bombes were notoriously temperamental
+        StationType.Colossus => 3000,
+        StationType.TunnyMachine => 1500, // tapes stretched and snapped
+        _ => 0,
+    };
+    /// <summary>Chance per working minute of a breakdown, times wear squared.</summary>
+    public const double BreakdownHazard = 0.006;
+    public const double RepairMinutes = 300;
+    public const int RepairCost = 80;
+    public const double ServiceMinutes = 60;
+    public const int ServiceCost = 20;
+
     // ---- Suspicion ----
     public const double SuspicionPerDecrypt = 0.8;
     public const double SuspicionDecayPerDay = 5;
@@ -144,9 +161,9 @@ public static class Defs
 
     public static readonly Dictionary<Difficulty, DifficultyDef> Difficulties = new()
     {
-        [Difficulty.Easy] = new(Difficulty.Easy, "Easy", "More money, longer deadlines, slower German suspicion.", 2200, 1.2, 1, 0.6, 0.7),
+        [Difficulty.Easy] = new(Difficulty.Easy, "Easy", "More money, longer deadlines, slower German suspicion.", 2200, 1.2, 1, 0.6, 0.7, 0.5),
         [Difficulty.Normal] = new(Difficulty.Normal, "Normal", "As intended.", 1500, 1.0, 0, 1.0, 1.0),
-        [Difficulty.Hard] = new(Difficulty.Hard, "Hard", "Less money, tighter deadlines, and the Germans notice everything.", 1100, 0.85, -0.5, 1.4, 1.3),
+        [Difficulty.Hard] = new(Difficulty.Hard, "Hard", "Less money, tighter deadlines, and the Germans notice everything.", 1100, 0.85, -0.5, 1.4, 1.3, 1.4),
     };
 
     public static readonly Dictionary<Policy, PolicyDef> Policies = new()

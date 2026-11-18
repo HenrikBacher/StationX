@@ -35,6 +35,15 @@ public sealed class Station
     /// <summary>Bombes and Colossus run by themselves once a Wren has set them going.</summary>
     public bool IsMachine => Type is StationType.Bombe or StationType.Bombe4 or StationType.Colossus;
 
+    /// <summary>0 when freshly serviced; breakdowns get likely past about 0.7.</summary>
+    public double Wear { get; set; }
+    /// <summary>While Now is before this, the machine is out of action (broken down or being serviced).</summary>
+    public double DownUntil { get; set; }
+    /// <summary>True when the downtime is a planned service rather than a breakdown.</summary>
+    public bool Servicing { get; set; }
+    public bool Wears => Defs.WearLife(Type) > 0;
+    public bool IsDown(double now) => DownUntil > now;
+
     public IEnumerable<(int x, int y)> Footprint()
     {
         var (w, h) = Dims;
@@ -202,6 +211,7 @@ public sealed class Stats
     public int DeliveredTotal { get; set; }
     public int ContractsCompleted { get; set; }
     public int ContractsFailed { get; set; }
+    public int Breakdowns { get; set; }
 
     public Stats Clone() => new()
     {
@@ -213,6 +223,7 @@ public sealed class Stats
         DeliveredTotal = DeliveredTotal,
         ContractsCompleted = ContractsCompleted,
         ContractsFailed = ContractsFailed,
+        Breakdowns = Breakdowns,
     };
 
     public static int Get(Dictionary<Net, int> d, Net n) => d.TryGetValue(n, out var v) ? v : 0;

@@ -15,7 +15,7 @@ dotnet test tests/StationX.Sim.Tests # run the simulation tests
 
 ### Releases
 
-GitHub Actions (`.github/workflows/release.yml`) tests and exports every push to `main`; the builds are kept as workflow artifacts for 14 days. Pushing a tag such as `v0.2.0` also publishes a release with three downloads:
+GitHub Actions (`.github/workflows/release.yml`) runs the sim tests and the UI self-test (on a virtual display), renders a few screenshots, and exports every push to `main`; the builds are kept as workflow artifacts for 14 days. Pushing a tag such as `v0.2.0` also publishes a release with three downloads:
 
 - `StationX-linux-x86_64.tar.gz`: run `./StationX.x86_64`
 - `StationX-windows-x86_64.zip`: run `StationX.exe`
@@ -56,6 +56,7 @@ Godot lives in `~/.local/opt/godot/` and is linked as `~/.local/bin/godot`. Expo
   After that, that day's traffic needs only a few minutes on Typex. Messages waiting for their key show as pink slips in the out trays.
   - Bombes stop on false positives. A **checking machine** catches most of them; without one, Bombe runs take longer and some cribs come back.
   - Some intercepts arrive **garbled**. They go back to the listening station and return later.
+- **Machines wear out.** Bombes, four-rotor Bombes, Colossus and the Tunny machine wear as they run, and the more worn they are, the likelier a breakdown. A broken machine waits about five hours (and £80) for the RAF fitters; the job it was running waits too. **Service** a machine from its inspector (£20, one hour) to reset its wear. A flashing orange lamp means it's badly worn; red, with smoke, means it's broken.
 - **People get tired.**
   - Energy runs down with work. Tired people work slower and take tea breaks if there is somewhere to sit: the **canteen**, the **common room**, or the **rounders** pitch on the lawn.
   - Morale goes up with breaks and successes and down with failures, night work and long days. Two days of very low morale and someone asks for a transfer.
@@ -142,7 +143,7 @@ Optional flags:
 - `--panel=requests|build|staff|research|huts|intel|stats`
 - `--modal=pause|settings|save|load|newgame|dilemma|end`
 - `--select=bombe`, `--briefing`, `--title`, `--build=Registration`
-- `--quarter=0..3`, `--flows`
+- `--quarter=0..3`, `--flows`, `--breakdown` (breaks the first machine and wears another)
 - `--seed=N`, `--difficulty=easy|normal|hard`, `--freeplay --act=N`
 - `--load=slot1|slot2|slot3|quick|auto`
 - `--zoom`: a value above 1 moves closer.

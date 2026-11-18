@@ -503,10 +503,55 @@ public partial class StationModel : Node3D
 
     // ---------------------------------------------------------------- update
 
+    // Breakdown and servicing: a lamp on top, smoke while broken, a fitter's toolbox while down.
+    Node3D? _fault;
+    MeshInstance3D? _faultLamp;
+    readonly List<MeshInstance3D> _smoke = new();
+
+    void SyncFault(Station st, GameState g)
+    {
+        bool down = st.IsDown(g.Now);
+        bool worn = st.Wear > 0.7;
+        if (!down && !worn) { if (_fault != null) _fault.Visible = false; return; }
+        if (_fault == null)
+        {
+            _fault = new Node3D();
+            AddChild(_fault);
+            float top = ToLocal(TopPoint).Y;
+            Mesh3.Cyl(_fault, 0.05f, 0.06f, 0.06f, new Vector3(0.25f, top + 0.03f, 0), new Color("2a2622"), 10);
+            _faultLamp = Mesh3.Sphere(_fault, 0.07f, new Vector3(0.25f, top + 0.1f, 0), new Color("aa2a1e"));
+            // The fitters' toolbox, on the floor at the front.
+            Mesh3.Box(_fault, new Vector3(0.34f, 0.14f, 0.16f), new Vector3(-0.35f, 0.07f, 0.75f), new Color("7a2e22"));
+            Mesh3.Box(_fault, new Vector3(0.22f, 0.03f, 0.03f), new Vector3(-0.35f, 0.17f, 0.75f), new Color("2a2622"));
+            for (int i = 0; i < 4; i++)
+                _smoke.Add(Mesh3.Sphere(_fault, 0.12f, new Vector3(0, top, 0), new Color(0.32f, 0.31f, 0.3f)));
+        }
+        _fault.Visible = true;
+        bool broken = down && !st.Servicing;
+        float pulse = 0.5f + 0.5f * Mathf.Sin(_time * 7);
+        _faultLamp!.MaterialOverride = broken ? Mesh3.Mat(new Color("ff3a22"), 0.5f + 2.5f * pulse)
+                                     : st.Servicing ? Mesh3.Mat(new Color("ffb43a"), 1.5f)
+                                     : Mesh3.Mat(new Color("ff8a2a"), 0.4f + 1.2f * pulse * pulse);
+        foreach (var child in _fault.GetChildren())
+            if (child is MeshInstance3D mi && mi != _faultLamp && !_smoke.Contains(mi) && mi.Position.Y < 0.3f) mi.Visible = down;
+        float top2 = ToLocal(TopPoint).Y;
+        for (int i = 0; i < _smoke.Count; i++)
+        {
+            var puff = _smoke[i];
+            puff.Visible = broken;
+            if (!broken) continue;
+            float t = (_time * 0.5f + i / (float)_smoke.Count) % 1f;
+            puff.Position = new Vector3(-0.1f + Mathf.Sin(t * 5 + i) * 0.15f, top2 + t * 1.4f, 0.1f * i - 0.15f);
+            puff.Scale = Vector3.One * (0.5f + t * 1.6f);
+            puff.Transparency = t;
+        }
+    }
+
     public void Sync(Station st, GameState g, float dt)
     {
         _time += dt;
-        bool working = st.Working;
+        if (st.Wears) SyncFault(st, g);
+        bool working = st.Working && !st.IsDown(g.Now);
         if (working)
         {
             foreach (var s in _spinners)

@@ -22,6 +22,7 @@ public sealed partial class GameState
             if (role == null || st.OperatorId != null || st.Obsolete) continue;
             if (st.Input.Count == 0 && st.Current == null) continue;
             if (st.IsMachine && st.Current != null) continue;
+            if (st.IsDown(Now)) continue;
             var who = FindIdle(st.UseTile, s => s.Pinned == st.Id)
                       ?? FindIdle(st.UseTile, s => s.Role == role.Value && s.Pinned == null);
             if (who == null) continue;
@@ -111,6 +112,7 @@ public sealed partial class GameState
             bool takes = st.Accepts(next) ||
                          (st.Type == StationType.OutstationLink && !st.PendingRemoval && OutstationTakes(next));
             if (!takes || st.FreeInput < Math.Min(need, st.Def.InputCap)) continue;
+            if (st.IsDown(Now) && Stations.Any(o => o != st && o.Type == st.Type && !o.IsDown(Now))) continue;
             if (!CanBeStaffed(st)) continue;
             // Prefer the closest, but spread work across stations with shorter queues.
             int score = Manhattan(st.UseTile, from) + (st.Input.Count + st.ReservedInputs) * 6;
