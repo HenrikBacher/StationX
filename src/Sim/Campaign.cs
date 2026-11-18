@@ -339,7 +339,7 @@ public static class Campaign
             Goals = new[]
             {
                 new Goal(GoalKind.Contracts, 6, "Complete 6 requests"),
-                new Goal(GoalKind.StaffCount, 20, "Have 20 staff"),
+                new Goal(GoalKind.StaffCount, 40, "Have 40 staff"),
                 new Goal(GoalKind.Build, 3, "Run 3 Bombes", Station: StationType.Bombe),
             },
             Pool = new[]

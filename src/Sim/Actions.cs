@@ -373,7 +373,8 @@ public sealed partial class GameState
     public Contract MakeContract(ContractTemplate tpl)
     {
         var net = Defs.NetOf(tpl.Net);
-        int qty = Rng.Range(tpl.MinQty, tpl.MaxQty + 1);
+        int baseQty = Rng.Range(tpl.MinQty, tpl.MaxQty + 1);
+        int qty = (int)Math.Round(baseQty * Defs.TrafficScale(ActIndex));
         double days = Math.Max(2, Rng.Range(tpl.MinDays, tpl.MaxDays + 1) + Defs.Difficulties[Difficulty].ExtraDays);
         var c = new Contract
         {
@@ -383,7 +384,7 @@ public sealed partial class GameState
             Quantity = qty,
             Days = days,
             Reward = 80 + qty * net.PayPerMsg,
-            Rep = 2 + qty / 6,
+            Rep = 2 + baseQty / 6,
             OfferedAt = Now,
             OfferExpires = Now + Defs.OfferLifetimeDays * Defs.MinutesPerDay,
             Title = $"{qty} {net.Name} decrypts",

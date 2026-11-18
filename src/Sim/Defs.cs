@@ -116,6 +116,10 @@ public static class Defs
     public const double RuthlessSuccess = 0.4;
     public const int RuthlessPoints = 80;
     public const double RuthlessSuspicion = 18;
+    // ---- Traffic growth ----
+    /// <summary>German wireless traffic grew year on year; requests grow with each chapter, so the Park must grow too.</summary>
+    public const double TrafficPerAct = 0.15;
+    public static double TrafficScale(int act) => 1 + TrafficPerAct * Math.Max(0, act);
     // ---- Heads of huts ----
     public const double HeadBonus = 1.1;
     public const double HeadMoralePerDay = 0.02;
@@ -231,8 +235,8 @@ public static class Defs
     public static readonly Dictionary<Difficulty, DifficultyDef> Difficulties = new()
     {
         [Difficulty.Easy] = new(Difficulty.Easy, "Easy", "More money, longer deadlines, slower German suspicion.", 2200, 1.2, 1, 0.6, 0.7, 0.5),
-        [Difficulty.Normal] = new(Difficulty.Normal, "Normal", "As intended.", 1500, 0.88, 0, 1.0, 1.2),
-        [Difficulty.Hard] = new(Difficulty.Hard, "Hard", "Less money, tighter deadlines, and the Germans notice everything.", 1100, 0.85, -0.25, 1.4, 1.35, 1.2),
+        [Difficulty.Normal] = new(Difficulty.Normal, "Normal", "As intended.", 1500, 0.88, 0, 1.0, 1.0),
+        [Difficulty.Hard] = new(Difficulty.Hard, "Hard", "Less money, tighter deadlines, and the Germans notice everything.", 1100, 0.85, -0.25, 1.4, 1.0, 1.2),
     };
 
     public static readonly Dictionary<Policy, PolicyDef> Policies = new()

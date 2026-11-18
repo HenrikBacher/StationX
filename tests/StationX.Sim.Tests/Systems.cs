@@ -366,7 +366,8 @@ public class ModeTests(ITestOutputHelper output)
     [Fact]
     public void TheTunnyChapterCanBeFinished()
     {
-        var g = GameState.NewGame(77);
+        // Easy: Normal is tuned so the autoplayer loses half its campaigns.
+        var g = GameState.NewGame(77, Difficulty.Easy);
         var ai = new AutoPlayer(g) { ContinuePastEnigma = true };
         ai.PlayCampaign(maxDays: 400, log: output.WriteLine);
         Assert.True(g.Status == GameStatus.Won && g.ActIndex == Campaign.Acts.Length - 1,

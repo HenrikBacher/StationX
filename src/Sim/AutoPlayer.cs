@@ -219,7 +219,7 @@ public sealed class AutoPlayer
             g.RequestRemove(st.Id);
 
         // Staff. Round-the-clock watches need more people than long days.
-        double cover = g.WatchesAvailable ? 1.4 : 1.0;
+        double cover = g.WatchesAvailable ? Math.Min(3.0, 1.4 + 0.18 * g.ActIndex) : 1.0;
         int Need(double n) => (int)Math.Ceiling(n * cover);
         var want = new Dictionary<Role, int>
         {
