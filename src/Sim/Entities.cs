@@ -137,6 +137,11 @@ public sealed class Staff
     public double Experience { get; set; }
     /// <summary>Lodged miles away and bussed in: slower and grumpier.</summary>
     public bool FarBillet { get; set; }
+    /// <summary>Off sick until this time; they don't come back on watch before it.</summary>
+    public double SickUntil { get; set; }
+    /// <summary>Worked in a freezing hut today (reset each midnight).</summary>
+    public bool Chilled { get; set; }
+    public bool IsSick(double now) => SickUntil > now;
 
     /// <summary>How fast they're working right now: tired or unhappy people are slower.</summary>
     public double WorkRate =>

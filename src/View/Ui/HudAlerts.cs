@@ -36,6 +36,8 @@ public partial class Hud
             Station(st, $"{st.Def.Name} #{st.Id} broken down", Gfx.Bad);
         if (S.RaidOn)
             list.Add(new Alert($"Air raid: desk work at half pace until the all-clear ({Math.Max(1, (int)((S.RaidUntil - S.Now) / 60 + 0.5))} h)", Gfx.Bad, () => { }));
+        if (S.SickCount >= 3)
+            list.Add(new Alert($"{S.SickCount} staff off sick", Gfx.Warn, () => OpenPanel("staff")));
         if (S.Overcrowded > 0)
             list.Add(new Alert($"{S.Overcrowded} staff lodged far away: requisition billets", Gfx.Warn, () => OpenPanel("staff")));
         if (S.Funds < 0)

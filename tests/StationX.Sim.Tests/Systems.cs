@@ -754,3 +754,32 @@ public class RaidTests
         for (int i = 0; i < 20; i++) { g.Advance(Defs.MinutesPerDay); Assert.False(g.RaidOn); Assert.True(g.NextRaidAt < 0); }
     }
 }
+
+public class IllnessTests
+{
+    [Fact]
+    public void FluSpreadsInWinter()
+    {
+        var g = GameState.NewGame(23);
+        g.ActDate = new DateOnly(1940, 12, 1);
+        while (g.Staff.Count < 18) TestUtil.Add(g, Role.Clerk);
+        int maxSick = 0;
+        for (int i = 0; i < 40; i++) { g.Advance(Defs.MinutesPerDay); g.Events.Clear(); maxSick = Math.Max(maxSick, g.SickCount); }
+        Assert.True(maxSick > 0);
+    }
+
+    [Fact]
+    public void TheSickStayHomeUntilWell()
+    {
+        var g = GameState.NewGame(23);
+        var s = g.Staff[0];
+        // Wait until they go off watch, then make them ill for two days.
+        for (int i = 0; i < 96 && !s.Away; i++) g.Advance(30);
+        Assert.True(s.Away);
+        s.SickUntil = g.Now + 2 * Defs.MinutesPerDay;
+        for (int i = 0; i < 2 * 48 - 2; i++) { g.Advance(30); Assert.True(s.Away); }
+        bool back = false;
+        for (int i = 0; i < 96 && !back; i++) { g.Advance(30); back = !s.Away; }
+        Assert.True(back);
+    }
+}

@@ -24,7 +24,7 @@ public sealed partial class GameState
             bool duty = OnDuty(s);
             if (s.Away)
             {
-                if (duty && !s.Leaving) ComeBack(s);
+                if (duty && !s.Leaving && !s.IsSick(Now)) ComeBack(s);
                 continue;
             }
 
@@ -52,6 +52,7 @@ public sealed partial class GameState
             {
                 if (IsCold(s, cold))
                 {
+                    s.Chilled = true;
                     drain *= Defs.ColdDrainMult;
                     s.Morale = Math.Max(0, s.Morale - Defs.ColdMoralePerMinute * dt);
                 }
@@ -251,9 +252,36 @@ public sealed partial class GameState
         return true;
     }
 
+    public int SickCount => Staff.Count(s => s.IsSick(Now));
+
+    /// <summary>Colds and flu: worse in winter, in freezing huts, among the worn out and the far-billeted, and catching.</summary>
+    void SpreadIllness()
+    {
+        int sick = SickCount;
+        double baseChance = (Winter ? Defs.SickChanceWinter : Defs.SickChanceSummer) + Defs.SickContagion * Math.Min(sick, 8);
+        var fallen = new List<Staff>();
+        foreach (var s in Staff)
+        {
+            bool chilled = s.Chilled;
+            s.Chilled = false;
+            if (s.Leaving || s.IsSick(Now)) continue;
+            double p = baseChance * (chilled ? Defs.SickChilledMult : 1) * (s.FarBillet ? Defs.SickFarBilletMult : 1)
+                       * (s.Energy < 0.3 ? Defs.SickTiredMult : 1);
+            if (!Rng.Chance(p)) continue;
+            s.SickUntil = Now + Rng.Range(2.0, 5.0) * Defs.MinutesPerDay;
+            fallen.Add(s);
+        }
+        if (fallen.Count == 1)
+            Emit(EventKind.Bad, $"{fallen[0].Name} has gone down with {(Winter ? "flu" : "a heavy cold")} and is off for {Math.Round((fallen[0].SickUntil - Now) / Defs.MinutesPerDay)} days.");
+        else if (fallen.Count > 1)
+            Emit(EventKind.Bad, $"{(Winter ? "Flu" : "A cold")} is going round the Park: {string.Join(", ", fallen.Take(3).Select(s => s.Name))}" +
+                                $"{(fallen.Count > 3 ? $" and {fallen.Count - 3} more" : "")} are off sick. Warm huts and decent billets keep it down.");
+    }
+
     void DailyPeople()
     {
         MaybeCallUp();
+        SpreadIllness();
         AssignBillets();
         foreach (var s in Staff.Where(s => s.FarBillet)) s.Morale = Math.Max(0, s.Morale - Defs.FarBilletMoralePerDay);
         if (Overcrowded > 0 && Day % 3 == 0)

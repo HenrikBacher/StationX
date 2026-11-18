@@ -110,6 +110,13 @@ public static class Defs
     public const double ExpectationBase = 0.5;
     /// <summary>Above this balance at the weekly accounts, the Treasury claws back part of the grant.</summary>
     public const int TreasuryComfortable = 2500;
+    // ---- Illness ----
+    public const double SickChanceSummer = 0.002;
+    public const double SickChanceWinter = 0.008;
+    public const double SickContagion = 0.0025;   // per colleague already off sick
+    public const double SickChilledMult = 2.0;
+    public const double SickFarBilletMult = 1.5;
+    public const double SickTiredMult = 1.5;
     // ---- The Blitz ----
     public const double RaidChance = 0.22;
     public const double RaidBombChance = 0.06;

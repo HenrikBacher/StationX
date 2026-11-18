@@ -58,7 +58,7 @@ public partial class Hud
         string sig = _panel switch
         {
             "build" => $"{S.Funds / 50}|{S.ActIndex}|{string.Join(",", S.Researched)}|{S.IndicatorChanged}",
-            "staff" => string.Join(",", S.Staff.Select(s => $"{s.Id}{s.Task?.Kind}{s.Leaving}{s.Away}{s.Shift}{(int)(s.Energy * 5)}{(int)(s.Morale * 5)}{s.FarBillet}")) + $"|{S.Billets}{S.Funds >= Defs.BilletCost}|" +
+            "staff" => string.Join(",", S.Staff.Select(s => $"{s.Id}{s.Task?.Kind}{s.Leaving}{s.Away}{s.Shift}{(int)(s.Energy * 5)}{(int)(s.Morale * 5)}{s.FarBillet}{s.IsSick(S.Now)}")) + $"|{S.Billets}{S.Funds >= Defs.BilletCost}|" +
                        string.Join(",", S.Candidates.Select(c => c.Id)) + $"|{S.Funds / 25}",
             "requests" => string.Join(",", S.Contracts.Select(c => $"{c.Id}{c.State}{c.Delivered}{c.Spawned}{(int)((c.State == ContractState.Offered ? c.OfferExpires : c.Due) - S.Now) / 60}")) +
                           $"|{string.Join(",", S.KeyBoardNets().Select(n => S.KeyRoute(n)))}",
@@ -229,7 +229,7 @@ public partial class Hud
             _sideBox.AddChild(head);
             foreach (var p in people)
             {
-                string doing = p.Away ? "off watch" : p.Task?.Kind switch
+                string doing = p.IsSick(S.Now) ? "off sick" : p.Away ? "off watch" : p.Task?.Kind switch
                 {
                     null => "idle",
                     TaskKind.Operate => "working",
@@ -431,7 +431,7 @@ public partial class Hud
 
         string sig = st != null
             ? $"st{st.Id}{st.Input.Count}{st.Output.Count}{st.OperatorId}{st.OperatorPresent}{st.Current}{(int)(st.Progress * 20)}{st.PendingRemoval}{st.X},{st.Y}|{string.Join(",", S.PinnedTo(st.Id).Select(p => p.Id))}|{S.Funds >= Defs.MoveCost}|{(int)(st.Wear * 20)}{st.IsDown(S.Now)}{S.Funds >= Defs.ServiceCost}"
-            : sf != null ? $"sf{sf.Id}{sf.Task?.Kind}{sf.Task?.Dest}{sf.Leaving}{sf.Decrypts}{sf.Away}{sf.Shift}{sf.Pinned}{(int)(sf.Energy * 10)}{(int)(sf.Morale * 10)}{sf.CarelessKnown}{(int)(sf.Experience / 60)}{sf.Skill}"
+            : sf != null ? $"sf{sf.Id}{sf.Task?.Kind}{sf.Task?.Dest}{sf.Leaving}{sf.Decrypts}{sf.Away}{sf.IsSick(S.Now)}{sf.Shift}{sf.Pinned}{(int)(sf.Energy * 10)}{(int)(sf.Morale * 10)}{sf.CarelessKnown}{(int)(sf.Experience / 60)}{sf.Skill}"
             : $"z{z!.Id}{z.Unlocked}{S.Funds >= z.Cost}{S.ColdZones()?.Contains(z.Id)}";
         if (sig == _inspSig) return;
         _inspSig = sig;
@@ -563,7 +563,7 @@ public partial class Hud
             var l = UiTheme.Label($"{td.Name}: {td.Blurb}", 12, td.Good ? UiTheme.Accent : Gfx.Bad);
             _inspBox.AddChild(l);
         }
-        string doing = s.Away ? $"Off watch, back at the billets until {Defs.Shifts[s.Shift].StartHour:00}:00" : s.Task switch
+        string doing = s.IsSick(S.Now) ? $"Off sick: back in about {Math.Max(1, Math.Round((s.SickUntil - S.Now) / Defs.MinutesPerDay))} days" : s.Away ? $"Off watch, back at the billets until {Defs.Shifts[s.Shift].StartHour:00}:00" : s.Task switch
         {
             { Kind: TaskKind.Operate } t => $"Working at the {S.StationById(t.Dest)?.Def.Name.ToLowerInvariant()}",
             { Kind: TaskKind.Carry, Phase: 0 } => "Fetching messages",
