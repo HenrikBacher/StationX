@@ -783,3 +783,32 @@ public class IllnessTests
         Assert.True(back);
     }
 }
+
+public class SickBayTests
+{
+    [Fact]
+    public void SickBayOnlyInTheMansionAndShortensIllness()
+    {
+        Assert.True(Defs.AllowedIn("mansion", StationType.SickBay));
+        Assert.False(Defs.AllowedIn("hut6", StationType.SickBay));
+
+        double Longest(bool bay)
+        {
+            var g = GameState.NewGame(31);
+            g.ActDate = new DateOnly(1940, 12, 1);
+            while (g.Staff.Count < 25) TestUtil.Add(g, Role.Clerk);
+            if (bay) g.Stations.Add(new Station { Id = 999, Type = StationType.SickBay, X = 2, Y = 2 });
+            double longest = 0;
+            for (int i = 0; i < 60; i++)
+            {
+                double before = g.Now;
+                g.Advance(Defs.MinutesPerDay);
+                g.Events.Clear();
+                foreach (var s in g.Staff.Where(s => s.SickUntil > before)) longest = Math.Max(longest, s.SickUntil - g.Now);
+            }
+            return longest;
+        }
+        Assert.True(Longest(true) <= 3 * Defs.MinutesPerDay + 1);
+        Assert.True(Longest(false) > 3 * Defs.MinutesPerDay);
+    }
+}

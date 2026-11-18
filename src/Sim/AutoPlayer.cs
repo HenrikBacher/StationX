@@ -172,6 +172,10 @@ public sealed class AutoPlayer
                     && g.Funds > Defs.Station(StationType.Stove).Cost + 50)
                     TryBuildIn(StationType.Stove, z);
 
+        // A sick bay once flu season comes.
+        if (g.Winter && !g.HasSickBay && g.StationUnlocked(StationType.SickBay, out _) && g.Funds > 1200)
+            TryBuildIn(StationType.SickBay, g.Grid.Zone("mansion")!);
+
         // Billets ahead of hiring.
         if (g.Staff.Count >= g.Billets - 2 && g.Funds > Defs.BilletCost + 400) g.RequisitionBillets();
 

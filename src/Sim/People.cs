@@ -253,12 +253,15 @@ public sealed partial class GameState
     }
 
     public int SickCount => Staff.Count(s => s.IsSick(Now));
+    public bool HasSickBay => Stations.Any(s => s.Type == StationType.SickBay && !s.PendingRemoval);
 
     /// <summary>Colds and flu: worse in winter, in freezing huts, among the worn out and the far-billeted, and catching.</summary>
     void SpreadIllness()
     {
         int sick = SickCount;
-        double baseChance = (Winter ? Defs.SickChanceWinter : Defs.SickChanceSummer) + Defs.SickContagion * Math.Min(sick, 8);
+        bool bay = HasSickBay;
+        double baseChance = (Winter ? Defs.SickChanceWinter : Defs.SickChanceSummer)
+                            + Defs.SickContagion * Math.Min(sick, 8) * (bay ? Defs.SickBayContagion : 1);
         var fallen = new List<Staff>();
         foreach (var s in Staff)
         {
@@ -268,14 +271,14 @@ public sealed partial class GameState
             double p = baseChance * (chilled ? Defs.SickChilledMult : 1) * (s.FarBillet ? Defs.SickFarBilletMult : 1)
                        * (s.Energy < 0.3 ? Defs.SickTiredMult : 1);
             if (!Rng.Chance(p)) continue;
-            s.SickUntil = Now + Rng.Range(2.0, 5.0) * Defs.MinutesPerDay;
+            s.SickUntil = Now + Rng.Range(2.0, 5.0) * (bay ? Defs.SickBayDuration : 1) * Defs.MinutesPerDay;
             fallen.Add(s);
         }
         if (fallen.Count == 1)
             Emit(EventKind.Bad, $"{fallen[0].Name} has gone down with {(Winter ? "flu" : "a heavy cold")} and is off for {Math.Round((fallen[0].SickUntil - Now) / Defs.MinutesPerDay)} days.");
         else if (fallen.Count > 1)
             Emit(EventKind.Bad, $"{(Winter ? "Flu" : "A cold")} is going round the Park: {string.Join(", ", fallen.Take(3).Select(s => s.Name))}" +
-                                $"{(fallen.Count > 3 ? $" and {fallen.Count - 3} more" : "")} are off sick. Warm huts and decent billets keep it down.");
+                                $"{(fallen.Count > 3 ? $" and {fallen.Count - 3} more" : "")} are off sick. Warm huts and decent billets keep it down{(bay ? "" : ", and a sick bay in the Mansion gets people back sooner")}.");
     }
 
     void DailyPeople()

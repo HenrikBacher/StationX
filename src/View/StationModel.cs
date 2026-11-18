@@ -63,6 +63,7 @@ public partial class StationModel : Node3D
             case StationType.Checking: Checking(); break;
             case StationType.Tube: Tube(); break;
             case StationType.Stove: Stove(); break;
+            case StationType.SickBay: SickBay(); break;
             case StationType.OutstationLink: Teleprinter(); OutstationSign(); break;
             case StationType.Testery: Desk(); Testery(); break;
             case StationType.Colossus: Colossus(); break;
@@ -199,6 +200,31 @@ public partial class StationModel : Node3D
         _glow = Mesh3.Box(this, new Vector3(0.14f, 0.08f, 0.02f), new Vector3(0, 0.22f, 0.235f), new Color("ff6a2a"), 2f);
         Mesh3.Cyl(this, 0.1f, 0.08f, 0.14f, new Vector3(0.32f, 0.07f, 0.22f), new Color("3a342c"), 10);
         Mesh3.Sphere(this, 0.07f, new Vector3(0.32f, 0.15f, 0.22f), new Color("1a1816"));
+    }
+
+    void SickBay()
+    {
+        // Two iron bedsteads with white counterpanes, a folding screen and a medicine cabinet.
+        var iron = new Color("2b2d2e");
+        var sheet = new Color("e6e2d6");
+        foreach (float x in new[] { -0.55f, 0.45f })
+        {
+            Mesh3.BoxAt(this, x - 0.22f, 0.22f, -0.42f, 0.44f, 0.12f, 0.84f, sheet);
+            Mesh3.BoxAt(this, x - 0.18f, 0.34f, -0.38f, 0.36f, 0.06f, 0.18f, Colors.White);
+            Mesh3.BoxAt(this, x - 0.26f, 0, -0.46f, 0.04f, 0.55f, 0.04f, iron);
+            Mesh3.BoxAt(this, x + 0.22f, 0, -0.46f, 0.04f, 0.55f, 0.04f, iron);
+            Mesh3.BoxAt(this, x - 0.26f, 0, 0.42f, 0.04f, 0.38f, 0.04f, iron);
+            Mesh3.BoxAt(this, x + 0.22f, 0, 0.42f, 0.04f, 0.38f, 0.04f, iron);
+            Mesh3.BoxAt(this, x - 0.26f, 0.45f, -0.46f, 0.52f, 0.04f, 0.04f, iron);
+            Mesh3.BoxAt(this, x - 0.26f, 0.3f, 0.42f, 0.52f, 0.04f, 0.04f, iron);
+            Mesh3.BoxAt(this, x - 0.22f, 0.16f, -0.42f, 0.44f, 0.06f, 0.84f, new Color("7a6a55"));
+        }
+        // Screen between the beds.
+        Mesh3.BoxAt(this, -0.06f, 0, -0.35f, 0.03f, 0.75f, 0.6f, new Color("cfc8b4"));
+        // Cabinet with a red cross.
+        Mesh3.BoxAt(this, 0.8f, 0, -0.45f, 0.18f, 0.6f, 0.22f, new Color("e2ddd0"));
+        Mesh3.BoxAt(this, 0.86f, 0.4f, -0.235f, 0.06f, 0.02f, 0.01f, Gfx.Bad);
+        Mesh3.BoxAt(this, 0.88f, 0.38f, -0.235f, 0.02f, 0.06f, 0.01f, Gfx.Bad);
     }
 
     void OutstationSign()

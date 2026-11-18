@@ -12,7 +12,7 @@ public enum StationType
     Bombe, Bombe4, Typex, Translation, Dispatch,
     Canteen, CommonRoom, Rounders, Checking, Tube, OutstationLink,
     Testery, Colossus, TunnyMachine,
-    Stove,
+    Stove, SickBay,
 }
 
 public enum Family { Hand, Enigma, Lorenz }
@@ -117,6 +117,8 @@ public static class Defs
     public const double SickChilledMult = 2.0;
     public const double SickFarBilletMult = 1.5;
     public const double SickTiredMult = 1.5;
+    public const double SickBayDuration = 0.6;
+    public const double SickBayContagion = 0.5;
     // ---- The Blitz ----
     public const double RaidChance = 0.22;
     public const double RaidBombChance = 0.06;
@@ -277,6 +279,9 @@ public static class Defs
         [StationType.Stove] = new(StationType.Stove, "Coke stove",
             "The timber huts were bitterly cold. From November to March, people in a hut without a stove tire faster and grumble. Brick buildings have central heating.",
             60, 1, 1, null, 0, 0, null, 0, Upkeep: 4),
+        [StationType.SickBay] = new(StationType.SickBay, "Sick bay",
+            "Two iron beds, a screen and a nursing sister in the Mansion. The sick get well sooner and pass less on.",
+            350, 2, 1, null, 0, 0, null, 2, Upkeep: 15),
         [StationType.Tube] = new(StationType.Tube, "Pneumatic tube",
             "Shoots messages to the tube station nearest their destination. Build one in each hut to save long walks.",
             300, 1, 1, null, 4, 12, ResearchId.PneumaticTubes, 4, Upkeep: 8),
@@ -380,6 +385,7 @@ public static class Defs
 
     public static bool AllowedIn(string zoneId, StationType t) =>
         t == StationType.Stove ? !Heated(zoneId) :
+        t == StationType.SickBay ? zoneId == "mansion" :
         Everywhere.Contains(t) || !ZoneRoles.TryGetValue(zoneId, out var r) || r.Allows.Contains(t);
 
     /// <summary>The zone ids a station may go in, in map order.</summary>
