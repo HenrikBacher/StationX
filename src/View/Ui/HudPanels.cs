@@ -294,7 +294,9 @@ public partial class Hud
             var v = Card(Gfx.NetColor(c.Net));
             ContractHeader(v, c);
             v.AddChild(UiTheme.Label(c.Flavour, 12, UiTheme.TextDim));
-            v.AddChild(UiTheme.Label($"{c.Quantity} messages within {c.Days} days · £{c.Reward:N0} · reputation +{c.Rep}", 13, UiTheme.Text));
+            v.AddChild(UiTheme.Label($"{c.Quantity} messages within {Hours(c.Days * Defs.MinutesPerDay)} · £{c.Reward:N0} · reputation +{c.Rep}", 13, UiTheme.Text));
+            if (c.Flash)
+                v.AddChild(UiTheme.Label($"Urgent. Ignoring it costs {Defs.FlashIgnoredRep:0} reputation; declining costs {Defs.FlashIgnoredRep / 2:0}. Best taken when today's key is already broken.", 11, Gfx.Warn));
             var nd = Defs.NetOf(c.Net);
             if (nd.Family == Family.Enigma && S.KeyRouteProblem(c.Net) is string prob && !S.KeyBroken(c.Net, S.Day))
                 v.AddChild(UiTheme.Label($"Warning: no way to break {nd.Name} yet ({prob.ToLowerInvariant()}).", 12, Gfx.Warn));
@@ -317,7 +319,8 @@ public partial class Hud
 
     static void ContractHeader(Control v, Contract c)
     {
-        var issuer = UiTheme.Caps(Defs.IssuerNames[c.Issuer] + (c.Tag != null ? " · MOST IMMEDIATE" : ""), 11, c.Tag != null ? Gfx.Bad : UiTheme.TextDim);
+        bool urgent = c.Tag != null || c.Flash;
+        var issuer = UiTheme.Caps(Defs.IssuerNames[c.Issuer] + (urgent ? " · MOST IMMEDIATE" : ""), 11, urgent ? Gfx.Bad : UiTheme.TextDim);
         v.AddChild(issuer);
         v.AddChild(UiTheme.Label(c.Title, 15, UiTheme.Text, Fonts.BodyBold));
     }

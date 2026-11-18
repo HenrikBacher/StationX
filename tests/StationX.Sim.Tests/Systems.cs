@@ -606,3 +606,33 @@ public class TreasuryTests
         Assert.Equal(g.WeeklyGrant, g.TreasuryCut(g.WeeklyGrant));
     }
 }
+
+public class FlashTests
+{
+    [Fact]
+    public void FlashRequestsArriveAndPunishBeingIgnored()
+    {
+        var g = TestUtil.BombeLine(14, false);
+        Contract? f = null;
+        for (int i = 0; i < 24 * 8 && f == null; i++)
+        {
+            g.Advance(60); g.Events.Clear();
+            f = g.Contracts.Find(c => c.Flash && c.State == ContractState.Offered);
+        }
+        Assert.NotNull(f);
+        Assert.True(f!.Days < 1);
+        Assert.Equal(1, g.Contracts.Count(c => c.Flash && c.State == ContractState.Offered));
+        double rep = g.Reputation;
+        g.Advance(Defs.FlashOfferHours * 60 + 2);
+        Assert.Equal(ContractState.Expired, f.State);
+        Assert.True(g.Reputation < rep);
+    }
+
+    [Fact]
+    public void NoFlashRequestsEarlyOn()
+    {
+        var g = GameState.NewGame(14);
+        for (int i = 0; i < 24 * 5; i++) { g.Advance(60); g.Events.Clear(); }
+        Assert.DoesNotContain(g.Contracts, c => c.Flash);
+    }
+}

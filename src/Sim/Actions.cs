@@ -309,7 +309,13 @@ public sealed partial class GameState
     public void Decline(int contractId)
     {
         var c = ContractById(contractId);
-        if (c != null && c.State == ContractState.Offered) c.State = ContractState.Expired;
+        if (c == null || c.State != ContractState.Offered) return;
+        c.State = ContractState.Expired;
+        if (c.Flash)
+        {
+            AdjustRep(-Defs.FlashIgnoredRep / 2);
+            Emit(EventKind.Info, $"We tell the {Defs.IssuerNames[c.Issuer]} we can't do it in time. They are disappointed, but grateful for the honesty.");
+        }
     }
 
     void Activate(Contract c)
@@ -317,7 +323,8 @@ public sealed partial class GameState
         c.State = ContractState.Active;
         c.AcceptedAt = Now;
         c.Due = Now + c.Days * Defs.MinutesPerDay;
-        double window = c.Days * Defs.MinutesPerDay * 0.6;
+        // Urgent traffic is already in hand; routine traffic trickles in over the first part of the window.
+        double window = c.Flash ? 30 : c.Days * Defs.MinutesPerDay * 0.6;
         c.SpawnTimes = Enumerable.Range(0, c.Quantity)
             .Select(_ => Now + 20 + Rng.NextDouble() * window)
             .OrderBy(t => t).ToList();
@@ -405,6 +412,50 @@ public sealed partial class GameState
         return c;
     }
 
+    static readonly Dictionary<Issuer, string[]> FlashFlavours = new()
+    {
+        [Issuer.Admiralty] = new[] { "A convoy sails from Halifax tonight. Where are the U-boats?", "The Home Fleet is at sea and needs to know if the Germans are coming out." },
+        [Issuer.AirMinistry] = new[] { "Fighter Command needs tonight's raid targets before dusk.", "Bomber Command wants the night-fighter dispositions before take-off." },
+        [Issuer.WarOffice] = new[] { "A counter-attack goes in at dawn. What's in front of it?", "GHQ needs the enemy's order of battle before the conference." },
+        [Issuer.SIS] = new[] { "An agent is to be landed tonight. Do the Abwehr know?", "A double agent's next message must be checked before it's sent." },
+    };
+
+    /// <summary>Now and then an urgent request lands that has to be dealt with within hours.</summary>
+    void MaybeFlash()
+    {
+        if (ActIndex < Defs.FlashFromAct) return;
+        if (NextFlashAt <= 0) { NextFlashAt = Now + Rng.Range(1.0, 2.5) * Defs.MinutesPerDay; return; }
+        if (Now < NextFlashAt) return;
+        NextFlashAt = Now + Rng.Range(2.0, 4.0) * Defs.MinutesPerDay;
+        double hour = MinuteOfDay / 60;
+        if (hour < 7 || hour > 20) { NextFlashAt = Now + 6 * 60; return; }   // they arrive in office hours
+        if (Contracts.Any(c => c.Flash && c.State is ContractState.Offered or ContractState.Active)) return;
+        // Only networks we can actually read today.
+        var pool = Act.Pool.Where(p => (p.Requires == null || Researched.Contains(p.Requires.Value)) &&
+                                       (Defs.NetOf(p.Net).Family == Family.Hand || KeyRoute(p.Net) != null || KeyBroken(p.Net, Day))).ToList();
+        if (pool.Count == 0) return;
+        // Mostly about something we're reading today: that's why they've come to us.
+        var readable = pool.Where(p => KeyBroken(p.Net, Day)).ToList();
+        var tpl = Rng.Pick(readable.Count > 0 && Rng.Chance(0.75) ? readable : pool);
+        var net = Defs.NetOf(tpl.Net);
+        bool hand = net.Family == Family.Hand;
+        int qty = hand ? Rng.Range(1, 3) : Rng.Range(2, 5);
+        // Hours of desk time per message at the slowest step: hand ciphers are slow, Typex is quick.
+        double perMsg = hand ? Defs.Station(StationType.HandCipher).Minutes / 60.0 * net.Difficulty : 0.75;
+        var c = new Contract
+        {
+            Id = NextId++, Issuer = net.Issuer, Net = tpl.Net, Quantity = qty, Flash = true,
+            Days = (12 + perMsg * qty * 1.3) / 24.0 * (Difficulty == Difficulty.Easy ? 1.3 : 1),
+            Reward = 3 * (80 + qty * net.PayPerMsg), Rep = 6,
+            OfferedAt = Now, OfferExpires = Now + Defs.FlashOfferHours * 60,
+            Title = $"{qty} {net.Name} decrypts",
+            Flavour = Rng.Pick(FlashFlavours[net.Issuer]),
+            State = ContractState.Offered,
+        };
+        Contracts.Add(c);
+        Emit(EventKind.Bad, $"MOST IMMEDIATE from the {Defs.IssuerNames[c.Issuer]}: {c.Flavour} Answer within {Defs.FlashOfferHours:0} hours.");
+    }
+
     void TickContracts()
     {
         // Offers
@@ -424,6 +475,8 @@ public sealed partial class GameState
             }
         }
 
+        MaybeFlash();
+
         Station? inbox = null;
         List<Contract>? retries = null;
         foreach (var c in Contracts)
@@ -432,6 +485,11 @@ public sealed partial class GameState
             {
                 case ContractState.Offered when Now > c.OfferExpires:
                     c.State = ContractState.Expired;
+                    if (c.Flash)
+                    {
+                        AdjustRep(-Defs.FlashIgnoredRep);
+                        Emit(EventKind.Bad, $"The {Defs.IssuerNames[c.Issuer]}'s MOST IMMEDIATE request went unanswered. They noticed.");
+                    }
                     break;
                 case ContractState.Active:
                     while (c.Spawned < c.Quantity && c.SpawnTimes[c.Spawned] <= Now)

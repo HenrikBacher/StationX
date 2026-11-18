@@ -62,6 +62,7 @@ Godot lives in `~/.local/opt/godot/` and is linked as `~/.local/bin/godot`. Expo
   - Morale goes up with breaks and successes and down with failures, night work and long days. Two days of very low morale and someone asks for a transfer.
   - From the Battle of Britain onwards there are three **watches** (day 09–16, evening 16–24, night 00–09), and off-watch staff go back to their billets.
 - **Traits.** Some recruits are crossword fiends, native German speakers, night owls, chess players, tireless or meticulous. A few are careless talkers, and you only find out when MI5 does.
+- **Flash requests.** From early 1940, every few days a MOST IMMEDIATE request lands: a handful of messages due within hours, at three times the pay. Answer within three hours. Ignoring one costs reputation, declining costs a little less, and missing one after accepting costs a lot. Take them when you're already reading that network today. Every desk works on the most urgent message in its tray first.
 - **Winter.** From November to March the timber huts are freezing. People in a hut without a **coke stove** (£60, £4 a week in coke) tire 40% faster and slowly lose heart. The Mansion and Block F have central heating.
 - **Call-up papers.** From the Phoney War until 1942 the Ministry of Labour calls up men on the staff, and it has an eye for the ones you can least spare. Fight for a deferment (reputation), get the post made a reserved occupation (£150), or let him go.
 - **Pinning.** You can pin a person to a station; they work there first and don't run errands.

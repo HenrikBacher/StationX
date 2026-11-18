@@ -195,6 +195,8 @@ public sealed class Contract
     public int Reward { get; set; }
     public int Rep { get; set; }
     public string? Tag { get; set; }
+    /// <summary>A MOST IMMEDIATE request: hours, not days, and ignoring it is noticed.</summary>
+    public bool Flash { get; set; }
     public ContractState State { get; set; }
     public List<double> SpawnTimes { get; set; } = new();
 }

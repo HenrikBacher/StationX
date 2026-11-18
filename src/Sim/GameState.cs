@@ -59,6 +59,7 @@ public sealed partial class GameState
     public Stats ActBaseline { get; set; } = new();
     public int NextId { get; set; } = 1;
     public double NextOfferAt { get; set; }
+    public double NextFlashAt { get; set; }
     public double NextScheduleAt { get; set; }
 
     /// <summary>Events for the UI. The view drains this list.</summary>
@@ -310,8 +311,8 @@ public sealed partial class GameState
             {
                 if (st.Input.Count > 0 && !st.Obsolete)
                 {
-                    int id = st.Input[0];
-                    st.Input.RemoveAt(0);
+                    int id = MostUrgent(st.Input);
+                    st.Input.Remove(id);
                     var m = Messages[id];
                     m.Loc = Loc.Processing;
                     m.LocId = st.Id;
@@ -342,6 +343,19 @@ public sealed partial class GameState
                 Complete(st, op, m);
             }
         }
+    }
+
+    /// <summary>The message in a tray whose request is due soonest; first come, first served among equals.</summary>
+    int MostUrgent(List<int> tray)
+    {
+        int best = tray[0];
+        double bestDue = double.MaxValue;
+        foreach (var id in tray)
+        {
+            double due = Messages.TryGetValue(id, out var m) && ContractById(m.ContractId) is { } c ? c.Due : double.MaxValue;
+            if (due < bestDue) { bestDue = due; best = id; }
+        }
+        return best;
     }
 
     /// <summary>False while broken or being serviced. Announces the machine's return when the downtime ends.</summary>

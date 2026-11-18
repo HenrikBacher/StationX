@@ -216,7 +216,16 @@ public sealed class AutoPlayer
         int active = g.Contracts.Count(c => c.State == ContractState.Active);
         if (g.Contracts.Any(c => c.State == ContractState.Active && c.Tag != null)) active += 2;   // focus on the urgent one
         int capacity = 2 + Have(StationType.Bombe) + Have(StationType.Bombe4) + Have(StationType.HandCipher) / 2;
-        foreach (var c in g.Contracts.Where(c => c.State == ContractState.Offered).OrderByDescending(c => c.Reward).ToList())
+        // Flash requests: only if today's key is already out (or it's a hand cipher and a desk is free); otherwise say so.
+        foreach (var f in g.Contracts.Where(c => c.Flash && c.State == ContractState.Offered).ToList())
+        {
+            var fn = Defs.NetOf(f.Net);
+            bool ready = fn.Family == Family.Hand
+                ? g.Stations.Any(s => s.Type == StationType.HandCipher && s.Input.Count == 0 && s.Current == null)
+                : Have(StationType.Typex) > 0 && g.KeyBroken(f.Net, g.Day) && g.MinuteOfDay < 16 * 60;
+            if (ready) g.Accept(f.Id); else g.Decline(f.Id);
+        }
+        foreach (var c in g.Contracts.Where(c => c.State == ContractState.Offered && !c.Flash).OrderByDescending(c => c.Reward).ToList())
         {
             if (active >= capacity) break;
             var nd = Defs.NetOf(c.Net);
