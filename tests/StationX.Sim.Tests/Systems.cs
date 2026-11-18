@@ -990,3 +990,18 @@ public class HeadOfHutTests
         for (int i = 0; i < 200; i++) { g.Advance(5); Assert.NotEqual(TaskKind.Operate, crypt2.Task?.Kind); }
     }
 }
+
+public class PriorityTests
+{
+    [Fact]
+    public void WorkForAMissedRequestWaitsBehindLiveOnes()
+    {
+        var g = GameState.NewGame(67);
+        var dead = new Contract { Id = 7001, Net = Net.Police, State = ContractState.Failed, Due = g.Now - 60 };
+        var live = new Contract { Id = 7002, Net = Net.Police, State = ContractState.Active, Due = g.Now + 600 };
+        g.Contracts.Add(dead); g.Contracts.Add(live);
+        g.Messages[9001] = new Message { Id = 9001, Net = Net.Police, ContractId = dead.Id };
+        g.Messages[9002] = new Message { Id = 9002, Net = Net.Police, ContractId = live.Id };
+        Assert.Equal(9002, g.DebugMostUrgent(new() { 9001, 9002 }));
+    }
+}

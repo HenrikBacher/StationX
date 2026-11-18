@@ -80,7 +80,10 @@ public sealed class AutoPlayer
     int CallUpChoice(Dilemma d)
     {
         var who = g.StaffById(d.StaffId!.Value);
-        if (who == null || who.Skill < 2) return 2;
+        if (who == null) return 2;
+        // Never lose the only person who can do a job, however junior.
+        bool sole = g.Staff.Count(s => s.Role == who.Role && !s.Leaving) <= 1;
+        if (who.Skill < 2 && !sole) return 2;
         if (g.Funds > Defs.CallUpRulingCost + 400) return 1;
         return g.Reputation > 45 ? 0 : 2;
     }

@@ -365,13 +365,17 @@ public sealed partial class GameState
     }
 
     /// <summary>The message in a tray whose request is due soonest; first come, first served among equals.</summary>
+    /// <summary>For tests.</summary>
+    public int DebugMostUrgent(List<int> tray) => MostUrgent(tray);
+
     int MostUrgent(List<int> tray)
     {
         int best = tray[0];
         double bestDue = double.MaxValue;
         foreach (var id in tray)
         {
-            double due = Messages.TryGetValue(id, out var m) && ContractById(m.ContractId) is { } c ? c.Due : double.MaxValue;
+            // Only live requests set the order: work for a request already missed or met waits until the rest is done.
+            double due = Messages.TryGetValue(id, out var m) && ContractById(m.ContractId) is { State: ContractState.Active } c ? c.Due : double.MaxValue;
             if (due < bestDue) { bestDue = due; best = id; }
         }
         return best;
