@@ -97,7 +97,7 @@ public partial class Main
 
             // Panels by keyboard
             foreach (var (key, id) in new[] { (Godot.Key.B, "build"), (Godot.Key.H, "staff"), (Godot.Key.Q, "requests"), (Godot.Key.T, "research"),
-                                              (Godot.Key.G, "huts"), (Godot.Key.I, "intel"), (Godot.Key.K, "stats") })
+                                              (Godot.Key.G, "huts"), (Godot.Key.I, "intel"), (Godot.Key.N, "intercepts"), (Godot.Key.K, "stats") })
             {
                 await Tap(key);
                 Check(Hud.PanelId == id, $"key {key} opens the {id} panel");
@@ -105,11 +105,15 @@ public partial class Main
             await Tap(Godot.Key.Escape);
             Check(Hud.PanelId == null, "Esc closes the panel");
 
-            // Accept a request by clicking it
+            // Accept a request by clicking it. Paused: the panel rebuilds every game hour, and a rebuild between
+            // finding the button and clicking it made this check flaky.
+            Paused = true;
             await Tap(Godot.Key.Q);
+            await Frames(2);
             int active = State.Contracts.Count(c => c.State == ContractState.Active);
             if (ButtonNamed("Accept") is { } acc) await Click(CentreOf(acc));
             Check(State.Contracts.Count(c => c.State == ContractState.Active) == active + 1, "clicking Accept takes on a request");
+            Paused = false;
             await Tap(Godot.Key.Escape);
 
             // Build: open the panel, click Place on the registration desk, click a free tile in the Mansion.

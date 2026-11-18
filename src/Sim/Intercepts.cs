@@ -34,7 +34,7 @@ public static class Intercepts
     public static InterceptText For(int seed, int id, Net net, int day, DateOnly date, double created, bool garbled)
     {
         var r = new Random(Mix(seed, id, (int)net, 7919));
-        var (de, en) = Plaintext(net, r);
+        var (de, en) = Plaintext(net, r, date);
         // Naval operators wrote Q for CH; the readable version restores it, as Hut 8's emenders did.
         string sent = Defs.NetOf(net).Service == Service.Kriegsmarine ? de.Replace("CH", "Q") : de;
         string letters = new(sent.Where(char.IsAsciiLetterUpper).ToArray());
@@ -216,11 +216,15 @@ public static class Intercepts
         return ($"{Digits(t / 1000)} {Digits(t / 100 % 10)} {Digits(t / 10 % 10)} {Digits(t % 10)} UHR", $"{t:0000} hrs");
     }
 
-    static (string de, string en) Plaintext(Net net, Random r)
+    static (string de, string en) Plaintext(Net net, Random r, DateOnly date)
     {
         var parts = new List<(string de, string en)>();
         int n = r.NextDouble() < 0.4 ? 2 : 1;
-        for (int i = 0; i < n; i++) parts.Add(Sentence(net, r));
+        for (int i = 0; i < n; i++)
+        {
+            var p = Sentence(net, r, date);
+            if (!parts.Contains(p)) parts.Add(p);
+        }
         var head = Header(net, r);
         string de = head.de + " X " + string.Join(" X ", parts.Select(p => p.de)) + " X";
         string en = head.en + "\n\n" + string.Join(" ", parts.Select(p => p.en));
@@ -281,121 +285,233 @@ public static class Intercepts
         _ => P("AN", "To:"),
     };
 
-    static (string de, string en) Sentence(Net net, Random r)
+    static bool In(DateOnly d, int y0, int m0, int d0, int y1, int m1, int d1) =>
+        d >= new DateOnly(y0, m0, d0) && d <= new DateOnly(y1, m1, d1);
+
+    /// <summary>
+    /// One sentence of traffic, true to the date: routine traffic for the network as it stood then, plus (weighted up)
+    /// whatever that part of the German forces was doing in that week of the war.
+    /// </summary>
+    static (string de, string en) Sentence(Net net, Random r, DateOnly d)
     {
         int a = r.Next(4, 40), b = r.Next(1, 15), c = r.Next(2, 28);
         var t = Time(r);
+        var pool = new List<(string de, string en)>();
+        void Add(params (string de, string en)[] xs) => pool.AddRange(xs);
+        void Now(params (string de, string en)[] xs) { pool.AddRange(xs); pool.AddRange(xs); pool.AddRange(xs); }   // topical: three times as likely
+
         switch (net)
         {
             case Net.Red:
             {
+                bool france = d >= new DateOnly(1940, 6, 25);
                 var unit = Pick(r, new[] { P("KG ZWO", "KG 2"), P("KG FUENF FUENF", "KG 55"), P("KG ZWO SIEBEN", "KG 27"), P("JG ZWO SECHS", "JG 26"), P("KG EINS NULL NULL", "KG 100"), P("STG ZWO", "StG 2") });
-                var field = Pick(r, new[] { P("VILLACOUBLAY", "Villacoublay"), P("CHARTRES", "Chartres"), P("BEAUVAIS", "Beauvais"), P("CAEN", "Caen"), P("SAINT OMER", "St Omer"), P("ABBEVILLE", "Abbeville"), P("VANNES", "Vannes") });
-                var target = Pick(r, new[] { P("LONDON", "London"), P("COVENTRY", "Coventry"), P("BIRMINGHAM", "Birmingham"), P("LIVERPOOL", "Liverpool"), P("PLYMOUTH", "Plymouth"), P("SOUTHAMPTON", "Southampton"), P("BRISTOL", "Bristol") });
-                return Pick(r, new[]
-                {
-                    P($"{unit.de} STAND {t.de} EINSATZBEREIT {Digits(a)} FLUGZEUGE BEDINGT EINSATZBEREIT {Digits(b)}", $"{unit.en}, state at {t.en}: {a} aircraft serviceable, {b} partly serviceable."),
-                    P($"{unit.de} GREIFT HEUTE NACHT {target.de} AN ZIELZEIT {t.de} ANFLUG UEBER {field.de}", $"{unit.en} will attack {target.en} tonight. Time over target {t.en}. Approach via {field.en}."),
-                    P($"KNICKEBEIN SENDER CHERBOURG RICHTUNG {target.de} AB {t.de}", $"Knickebein beam transmitter at Cherbourg to be laid on {target.en} from {t.en}."),
+                var field = france
+                    ? Pick(r, new[] { P("VILLACOUBLAY", "Villacoublay"), P("CHARTRES", "Chartres"), P("BEAUVAIS", "Beauvais"), P("CAEN", "Caen"), P("SAINT OMER", "St Omer"), P("ABBEVILLE", "Abbeville"), P("VANNES", "Vannes") })
+                    : Pick(r, new[] { P("MUENSTER", "Münster"), P("DORTMUND", "Dortmund"), P("KOELN BUTZWEILERHOF", "Cologne-Butzweilerhof"), P("FRANKFURT RHEIN MAIN", "Frankfurt Rhein-Main"), P("JEVER", "Jever"), P("WESTERLAND", "Westerland") });
+                Add(P($"{unit.de} STAND {t.de} EINSATZBEREIT {Digits(a)} FLUGZEUGE BEDINGT EINSATZBEREIT {Digits(b)}", $"{unit.en}, state at {t.en}: {a} aircraft serviceable, {b} partly serviceable."),
                     P($"FLIEGERHORST {field.de} MELDET BETRIEBSSTOFF {Digits(a * 10)} KUBIKMETER BOMBEN SC FUENF NULL NULL {Digits(c)} STUECK", $"Airfield {field.en} reports fuel {a * 10} cubic metres; {c} SC 500 bombs."),
                     P($"{unit.de} VERLEGT AM {Digits(c)} NACH {field.de} BODENPERSONAL MIT BAHN", $"{unit.en} transfers to {field.en} on the {c}th. Ground personnel by rail."),
-                    P($"WETTER {field.de} {t.de} BEWOELKUNG {Digits(b % 10)} ZEHNTEL SICHT {Digits(a)} KM", $"Weather at {field.en}, {t.en}: cloud {b % 10}/10, visibility {a} km."),
-                });
+                    P($"WETTER {field.de} {t.de} BEWOELKUNG {Digits(b % 10)} ZEHNTEL SICHT {Digits(a)} KM", $"Weather at {field.en}, {t.en}: cloud {b % 10}/10, visibility {a} km."));
+                if (d < new DateOnly(1940, 5, 10))
+                    Now(P($"AUFKLAERUNG UEBER SCAPA FLOW {t.de} ERGEBNIS {Digits(b % 4 + 1)} SCHLACHTSCHIFFE IM HAFEN", $"Reconnaissance over Scapa Flow at {t.en}: {b % 4 + 1} battleships in harbour."),
+                        P($"KG ZWO SECHS ANGRIFF AUF GELEITZUG VOR DER SCHOTTISCHEN KUESTE", "KG 26 to attack the convoy off the Scottish coast."));
+                if (In(d, 1940, 5, 10, 1940, 5, 25))
+                    Now(P($"{unit.de} ANGRIFF AUF MAASBRUECKEN BEI SEDAN {t.de}", $"{unit.en} to attack the Meuse bridges at Sedan at {t.en}."),
+                        P("STUKAS VOR FUER PANZERSPITZEN RAUM SEDAN", "Stukas forward in support of the armoured spearheads near Sedan."));
+                if (In(d, 1940, 5, 26, 1940, 6, 4))
+                    Now(P($"ANGRIFF AUF SCHIFFSANSAMMLUNGEN VOR DUENKIRCHEN MIT ALLEN KRAEFTEN {t.de}", $"Attack the concentrations of shipping off Dunkirk with all forces at {t.en}."),
+                        P("STRAND OSTWAERTS DUENKIRCHEN VOLL VON TRUPPEN", "Beaches east of Dunkirk crowded with troops."));
+                if (In(d, 1940, 7, 10, 1940, 8, 12))
+                    Now(P($"GELEITZUG IM KANAL HOEHE DOVER KURS WEST ANGREIFEN {t.de}", $"Attack the convoy in the Channel off Dover, westbound, at {t.en}."),
+                        P($"FUNKMESSSTATION VENTNOR BOMBARDIEREN", "Bomb the radar station at Ventnor."));
+                if (In(d, 1940, 8, 13, 1940, 9, 6))
+                {
+                    var rafField = Pick(r, new[] { P("BIGGIN HILL", "Biggin Hill"), P("KENLEY", "Kenley"), P("MANSTON", "Manston"), P("HORNCHURCH", "Hornchurch"), P("NORTH WEALD", "North Weald"), P("DETLING", "Detling") });
+                    Now(P($"ADLERANGRIFF {unit.de} ZIEL FLUGPLATZ {rafField.de} {t.de}", $"Adler attack: {unit.en} to attack the airfield at {rafField.en} at {t.en}."),
+                        P($"JAGDSCHUTZ JG ZWO SECHS FUER ANGRIFF {rafField.de}", $"JG 26 to provide fighter cover for the attack on {rafField.en}."),
+                        P($"ERFOLGSMELDUNG {rafField.de} ROLLFELD MIT {Digits(a)} TREFFERN", $"Report of success: {a} hits on the landing ground at {rafField.en}."));
+                }
+                if (In(d, 1940, 9, 7, 1940, 11, 9))
+                    Now(P($"{unit.de} GREIFT HEUTE NACHT LONDON DOCKS AN ZIELZEIT {t.de}", $"{unit.en} will attack the London docks tonight. Time over target {t.en}."),
+                        P($"KNICKEBEIN SENDER CHERBOURG RICHTUNG LONDON AB {t.de}", $"Knickebein beam transmitter at Cherbourg to be laid on London from {t.en}."));
+                if (In(d, 1940, 11, 9, 1940, 11, 15))
+                    Now(P("UNTERNEHMEN MONDSCHEINSONATE ZIEL KORN", "Operation MONDSCHEINSONATE (Moonlight Sonata). Target: KORN."),
+                        P("X GERAET KG EINS NULL NULL ALS BELEUCHTER FUER ZIEL KORN", "X-Gerät: KG 100 to act as fire-raisers for target KORN."));
+                if (In(d, 1940, 11, 16, 1941, 5, 16))
+                {
+                    var city = Pick(r, new[] { P("BIRMINGHAM", "Birmingham"), P("BRISTOL", "Bristol"), P("SOUTHAMPTON", "Southampton"), P("LIVERPOOL", "Liverpool"), P("PLYMOUTH", "Plymouth"), P("HULL", "Hull"), P("CLYDEBANK", "Clydebank"), P("BELFAST", "Belfast"), P("LONDON", "London") });
+                    Now(P($"{unit.de} GREIFT HEUTE NACHT {city.de} AN ZIELZEIT {t.de}", $"{unit.en} will attack {city.en} tonight. Time over target {t.en}."),
+                        P($"X GERAET SENDER RICHTUNG {city.de} AB {t.de}", $"X-Gerät beams to be laid on {city.en} from {t.en}."));
+                }
+                if (In(d, 1941, 5, 15, 1941, 6, 1))
+                    Now(P("UNTERNEHMEN MERKUR FALLSCHIRMJAEGER ABSPRUNG FLUGPLATZ MALEME", "Operation MERKUR: paratroops to drop on Maleme airfield."),
+                        P($"FLIEGERKORPS ACHT ANGRIFF AUF FLOTTE NOERDLICH KRETA {t.de}", $"Fliegerkorps VIII to attack the fleet north of Crete at {t.en}."));
+                if (In(d, 1941, 5, 20, 1941, 7, 15))
+                    Now(P($"{unit.de} VERLEGT NACH OSTEN NEUER EINSATZRAUM POSEN", $"{unit.en} moves east. New operational area: Posen."),
+                        P("LUFTFLOTTE ZWO GEFECHTSSTAND NACH WARSCHAU", "Luftflotte 2 battle headquarters to Warsaw."));
+                break;
             }
             case Net.LightBlue:
             {
                 var field = Pick(r, new[] { P("DERNA", "Derna"), P("GAZALA", "Gazala"), P("MARTUBA", "Martuba"), P("BENGASI", "Benghazi"), P("CASTEL BENITO", "Castel Benito"), P("GAMBUT", "Gambut") });
-                var target = Pick(r, new[] { P("TOBRUK", "Tobruk"), P("MALTA", "Malta"), P("MARSA MATRUH", "Mersa Matruh"), P("SIDI BARRANI", "Sidi Barrani") });
-                return Pick(r, new[]
-                {
-                    P($"STG DREI EINSATZBEREIT {Digits(b + 4)} JU EINS ACHT SEVEN".Replace("SEVEN", "SIEBEN"), $"StG 3: {b + 4} Ju 87s serviceable."),
-                    P($"MORGEN {t.de} ANGRIFF AUF {target.de} MIT ALLEN VERFUEGBAREN KRAEFTEN", $"Attack on {target.en} tomorrow at {t.en} with all available forces."),
+                Add(P($"STG DREI EINSATZBEREIT {Digits(b + 4)} JU EINS ACHT SIEBEN", $"StG 3: {b + 4} Ju 87s serviceable."),
                     P($"SANDSTURM {field.de} STARTVERBOT BIS AUF WEITERES", $"Sandstorm at {field.en}. All take-offs forbidden until further notice."),
                     P($"FLUGPLATZ {field.de} BETRIEBSSTOFF NUR NOCH {Digits(a)} TONNEN ERBITTE ZUFUEHRUNG", $"Airfield {field.en} has only {a} tons of fuel left. Request supply."),
-                    P($"GELEITSCHUTZ FUER DAMPFER NACH BENGASI AB {t.de} DURCH JG ZWO SIEBEN", $"Fighter escort for steamers bound for Benghazi from {t.en}, by JG 27."),
-                });
+                    P($"GELEITSCHUTZ FUER DAMPFER NACH BENGASI AB {t.de} DURCH JG ZWO SIEBEN", $"Fighter escort for steamers bound for Benghazi from {t.en}, by JG 27."));
+                if (In(d, 1941, 1, 10, 1941, 5, 31) || In(d, 1942, 1, 1, 1942, 5, 15))
+                    Now(P($"ZEHNTES FLIEGERKORPS ANGRIFF AUF MALTA HAFEN LA VALETTA {t.de}", $"X Fliegerkorps to attack Malta, Valletta harbour, at {t.en}."),
+                        P("FLUGPLATZ LUQA UND HAL FAR ERNEUT BOMBARDIEREN", "Bomb the airfields at Luqa and Hal Far again."));
+                if (In(d, 1941, 4, 10, 1941, 11, 27))
+                    Now(P($"STUKAANGRIFF AUF FESTUNG TOBRUK HAFEN {t.de}", $"Stuka attack on the Tobruk fortress harbour at {t.en}."));
+                if (In(d, 1941, 11, 18, 1941, 12, 31))
+                    Now(P("FEINDLICHER GROSSANGRIFF AUS RAUM SIDI OMAR ALLE VERFUEGBAREN KRAEFTE EINSETZEN", "Major enemy offensive from the Sidi Omar area. Commit all available forces."),
+                        P($"FLUGPLATZ GAMBUT GERAEUMT {Digits(b)} FLUGZEUGE ZURUECKGELASSEN", $"Gambut airfield abandoned; {b} aircraft left behind."));
+                if (In(d, 1942, 5, 26, 1942, 6, 21))
+                    Now(P("STUKAANGRIFFE AUF BIR HACHEIM FORTSETZEN", "Continue the Stuka attacks on Bir Hacheim."),
+                        P("TOBRUK GEFALLEN", "Tobruk has fallen."));
+                if (In(d, 1942, 7, 1, 1942, 11, 4))
+                    Now(P($"JAGDSCHUTZ UEBER EL ALAMEIN AB {t.de}", $"Fighter cover over El Alamein from {t.en}."),
+                        P($"MARSEILLE {Digits(a % 9 + 1)} ABSCHUESSE", $"Marseille: {a % 9 + 1} victories."));
+                break;
             }
             case Net.Chaffinch:
             {
                 var unit = Pick(r, new[] { P("FUENFZEHNTE PANZERDIVISION", "15th Panzer Division"), P("EINUNDZWANZIGSTE PANZERDIVISION", "21st Panzer Division"), P("NEUNZIGSTE LEICHTE DIVISION", "90th Light Division"), P("DAK", "Afrika Korps") });
                 var ship = Pick(r, new[] { P("ANKARA", "ANKARA"), P("TINOS", "TINOS"), P("PROCIDA", "PROCIDA"), P("ATLAS", "ATLAS"), P("ANNA ZIPPITELLI", "ANNA ZIPPITELLI") });
                 var port = Pick(r, new[] { P("TRIPOLIS", "Tripoli"), P("BENGASI", "Benghazi"), P("TOBRUK", "Tobruk") });
-                return Pick(r, new[]
-                {
-                    P($"{unit.de} MELDET EINSATZBEREIT PANZER DREI {Digits(a)} PANZER VIER {Digits(b)} IN INSTANDSETZUNG {Digits(c)}", $"{unit.en} reports serviceable: {a} Pz III, {b} Pz IV; {c} under repair."),
+                Add(P($"{unit.de} MELDET EINSATZBEREIT PANZER DREI {Digits(a)} PANZER VIER {Digits(b)} IN INSTANDSETZUNG {Digits(c)}", $"{unit.en} reports serviceable: {a} Pz III, {b} Pz IV; {c} under repair."),
                     P($"DAMPFER {ship.de} MIT {Digits(a * 50)} TONNEN BETRIEBSSTOFF {port.de} EINGELAUFEN", $"Steamer {ship.en} arrived {port.en} with {a * 50} tons of fuel."),
-                    P($"BETRIEBSSTOFFLAGE ERNST VORRAT REICHT NUR FUER {Digits(b % 6 + 2)} TAGE", $"Fuel situation serious. Stocks will last only {b % 6 + 2} days."),
                     P($"DAMPFER {ship.de} LAEUFT {Digits(c)} AUS NEAPEL AUS LADUNG MUNITION UND {Digits(a)} PANZER", $"Steamer {ship.en} sails from Naples on the {c}th, carrying ammunition and {a} tanks."),
-                    P($"{unit.de} VERPFLEGUNGSSTAERKE {Digits(a * 300)} WASSER {Digits(b)} LITER JE KOPF UND TAG", $"{unit.en} ration strength {a * 300}; water {b} litres per head per day."),
-                });
+                    P($"{unit.de} VERPFLEGUNGSSTAERKE {Digits(a * 300)} WASSER {Digits(b)} LITER JE KOPF UND TAG", $"{unit.en} ration strength {a * 300}; water {b} litres per head per day."));
+                if (In(d, 1941, 2, 12, 1941, 4, 15))
+                    Now(P("GENERALLEUTNANT ROMMEL IN TRIPOLIS EINGETROFFEN", "Generalleutnant Rommel has arrived in Tripoli."),
+                        P("VORMARSCH AUF AGEDABIA BEGINNT", "The advance on Agedabia begins."));
+                if (In(d, 1941, 11, 1, 1942, 1, 15) || In(d, 1942, 8, 25, 1942, 9, 10))
+                    Now(P($"BETRIEBSSTOFFLAGE ERNST VORRAT REICHT NUR FUER {Digits(b % 4 + 1)} TAGE", $"Fuel situation serious. Stocks will last only {b % 4 + 1} days."),
+                        P($"GELEITZUG MIT BETRIEBSSTOFF VERSENKT ERBITTE SOFORTIGEN ERSATZ", "Fuel convoy sunk. Request immediate replacement."));
+                if (In(d, 1941, 11, 18, 1941, 12, 31))
+                    Now(P("FEINDLICHER GROSSANGRIFF RAUM SIDI REZEGH PANZERSCHLACHT IM GANGE", "Major enemy offensive near Sidi Rezegh. Tank battle in progress."));
+                if (In(d, 1942, 5, 26, 1942, 6, 21))
+                    Now(P("ANGRIFF AUF GAZALA STELLUNG UMGEHUNG SUEDLICH BIR HACHEIM", "Attack on the Gazala line: outflanking south of Bir Hacheim."),
+                        P($"IN TOBRUK ERBEUTET {Digits(a * 100)} TONNEN BETRIEBSSTOFF", $"Captured in Tobruk: {a * 100} tons of fuel."));
+                if (In(d, 1942, 10, 23, 1942, 11, 8))
+                    Now(P("FEINDLICHER GROSSANGRIFF EL ALAMEIN PANZERARMEE HAELT", "Major enemy attack at El Alamein. Panzerarmee holding."),
+                        P($"PANZERARMEE NUR NOCH {Digits(b + 20)} EINSATZBEREITE PANZER RUECKZUG AUF FUKA", $"Panzerarmee down to {b + 20} serviceable tanks. Withdrawal to Fuka."));
+                if (d >= new DateOnly(1942, 11, 8))
+                    Now(P("LANDUNG STARKER ANGLOAMERIKANISCHER KRAEFTE IN ALGERIEN UND MAROKKO", "Strong Anglo-American forces have landed in Algeria and Morocco."));
+                break;
             }
             case Net.Dolphin:
             {
                 var port = Pick(r, new[] { P("BREST", "Brest"), P("LORIENT", "Lorient"), P("SAINT NAZAIRE", "St Nazaire"), P("LA PALLICE", "La Pallice"), P("KIEL", "Kiel"), P("BERGEN", "Bergen"), P("TRONDHEIM", "Trondheim") });
                 var sq = Square(r);
                 int boat = r.Next(30, 600);
-                return Pick(r, new[]
-                {
-                    P($"U {Digits(boat)} EINLAUFEN {port.de} AM {Digits(c)} {t.de} SPERRBRECHER ERBETEN", $"U-{boat} entering {port.en} on the {c}th at {t.en}. Request Sperrbrecher escort."),
+                Add(P($"U {Digits(boat)} EINLAUFEN {port.de} AM {Digits(c)} {t.de} SPERRBRECHER ERBETEN", $"U-{boat} entering {port.en} on the {c}th at {t.en}. Request Sperrbrecher escort."),
                     P($"GELEIT AB {port.de} {t.de} TREFFPUNKT {sq.de}", $"Escort leaves {port.en} at {t.en}. Rendezvous {sq.en}."),
                     P($"MINENSUCHFLOTTILLE {Digits(b)} WEG GRUEN GERAEUMT {Digits(c)} MINEN GESCHNITTEN", $"Minesweeping flotilla {b} has swept route Green; {c} mines cut."),
                     P($"WETTERBEOBACHTUNG {port.de} {t.de} WIND WEST STAERKE {Digits(b % 9 + 1)} SEEGANG {Digits(b % 6 + 1)}", $"Weather at {port.en}, {t.en}: wind west force {b % 9 + 1}, sea state {b % 6 + 1}."),
-                    P($"VORPOSTENBOOT MELDET FEINDLICHES U BOOT {sq.de}", $"Patrol boat reports an enemy submarine in {sq.en}."),
-                });
+                    P($"VORPOSTENBOOT MELDET FEINDLICHES U BOOT {sq.de}", $"Patrol boat reports an enemy submarine in {sq.en}."));
+                if (In(d, 1941, 3, 4, 1941, 3, 12))
+                    Now(P("BRITISCHER UEBERFALL AUF LOFOTEN FISCHFABRIKEN ZERSTOERT VORPOSTENBOOT KREBS VERLOREN", "British raid on the Lofotens: fish-oil factories destroyed; patrol boat KREBS lost."));
+                if (In(d, 1941, 5, 18, 1941, 5, 28))
+                    Now(P("BISMARCK UND PRINZ EUGEN AUSGELAUFEN UNTERNEHMEN RHEINUEBUNG", "BISMARCK and PRINZ EUGEN have sailed. Operation RHEINÜBUNG."),
+                        P($"FLOTTENCHEF BISMARCK STEUERT BREST AN TREIBSTOFFMANGEL", "Fleet commander: BISMARCK making for Brest. Short of fuel."),
+                        P("ALLE VERFUEGBAREN U BOOTE ZUR UNTERSTUETZUNG BISMARCK", "All available U-boats to support BISMARCK."));
+                if (In(d, 1942, 2, 1, 1942, 2, 14))
+                    Now(P("UNTERNEHMEN CERBERUS SCHARNHORST GNEISENAU PRINZ EUGEN DURCH DEN KANAL", "Operation CERBERUS: SCHARNHORST, GNEISENAU and PRINZ EUGEN through the Channel."),
+                        P("SPERRBRECHER UND MINENSUCHER WEG KANAL FREIHALTEN", "Sperrbrecher and minesweepers to keep the Channel route clear."));
+                if (In(d, 1942, 6, 25, 1942, 7, 12))
+                    Now(P("GELEITZUG PQ SIEBZEHN GESICHTET UNTERNEHMEN ROESSELSPRUNG", "Convoy PQ 17 sighted. Operation RÖSSELSPRUNG."),
+                        P("TIRPITZ AUSGELAUFEN ALTENFJORD", "TIRPITZ has sailed from Altenfjord."),
+                        P("GELEITZUG AUFGELOEST EINZELFAHRER ANGREIFEN", "The convoy has scattered. Attack the single ships."));
+                break;
             }
             case Net.Shark:
             {
                 var sq = Square(r);
-                var group = Pick(r, new[] { P("RAUFBOLD", "RAUFBOLD"), P("VORWAERTS", "VORWÄRTS"), P("PFEIL", "PFEIL"), P("LUCHS", "LUCHS"), P("WOTAN", "WOTAN"), P("TRUTZ", "TRUTZ") });
+                var group = d.Year >= 1943
+                    ? Pick(r, new[] { P("RAUBGRAF", "RAUBGRAF"), P("STUERMER", "STÜRMER"), P("DRAENGER", "DRÄNGER"), P("FINK", "FINK") })
+                    : Pick(r, new[] { P("PFEIL", "PFEIL"), P("LUCHS", "LUCHS"), P("WOTAN", "WOTAN"), P("TRUTZ", "TRUTZ"), P("STEINBRINCK", "STEINBRINCK") });
                 int course = r.Next(0, 36) * 10, speed = r.Next(6, 11);
-                return Pick(r, new[]
-                {
-                    P($"GELEITZUG {sq.de} KURS {Digits(course)} FAHRT {Digits(speed)} SEEMEILEN {Digits(a)} DAMPFER", $"Convoy in {sq.en}, course {course}, speed {speed} knots, {a} steamers."),
+                Add(P($"GELEITZUG {sq.de} KURS {Digits(course)} FAHRT {Digits(speed)} SEEMEILEN {Digits(a)} DAMPFER", $"Convoy in {sq.en}, course {course}, speed {speed} knots, {a} steamers."),
                     P($"GRUPPE {group.de} OPERIEREN AUF GELEITZUG {sq.de} ANGRIFF FREI", $"Group {group.en} to operate against the convoy in {sq.en}. Free to attack."),
                     P($"WETTERKURZSIGNAL {sq.de} LUFTDRUCK {Digits(990 + b)} WIND {Digits(course)} STAERKE {Digits(b % 9 + 1)}", $"Short weather signal, {sq.en}: pressure {990 + b} mb, wind {course}° force {b % 9 + 1}."),
                     P($"BRENNSTOFF {Digits(a)} KUBIKMETER ERBITTE VERSORGUNG DURCH U {Digits(r.Next(459, 464))}", $"Fuel {a} cubic metres. Request refuelling from a supply U-boat."),
-                    P($"ZWO DAMPFER VERSENKT {Digits(a * 1000)} BRT ABGEDRAENGT", $"Sank two steamers, {a * 1000} GRT. Driven off."),
-                });
+                    P($"ZWO DAMPFER VERSENKT {Digits(a * 1000)} BRT ABGEDRAENGT", $"Sank two steamers, {a * 1000} GRT. Driven off."));
+                if (In(d, 1942, 1, 13, 1942, 7, 31))
+                    Now(P($"VOR KAP HATTERAS {Digits(b % 4 + 1)} TANKER VERSENKT KUESTE NICHT VERDUNKELT", $"Off Cape Hatteras: {b % 4 + 1} tankers sunk. The coast is not blacked out."),
+                        P("OPERATIONSGEBIET AMERIKANISCHE OSTKUESTE FREIGEGEBEN", "Operational area: the American east coast, released."));
+                if (In(d, 1942, 11, 1, 1942, 11, 30))
+                    Now(P("ALLE BOOTE MIT BRENNSTOFF AUF GIBRALTAR ZU MAXIMALE FAHRT", "All boats with enough fuel to close Gibraltar at maximum speed."));
+                if (In(d, 1943, 3, 10, 1943, 3, 25))
+                    Now(P("GELEITZUEGE HX ZWO ZWO NEUN UND SC EINS ZWO ZWO ANGREIFEN GRUPPEN RAUBGRAF STUERMER DRAENGER", "Attack convoys HX 229 and SC 122: groups RAUBGRAF, STÜRMER and DRÄNGER."));
+                if (In(d, 1943, 5, 1, 1943, 5, 31))
+                    Now(P("STAENDIGE LUFTUEBERWACHUNG DURCH TRAEGERFLUGZEUGE VERLUSTE SCHWER", "Constant air cover from carrier aircraft. Losses heavy."),
+                        P("BDU AN ALLE GRUPPEN NORDATLANTIK RAEUMEN", "BdU to all groups: withdraw from the North Atlantic."));
+                break;
             }
             case Net.Police:
             {
-                var place = Pick(r, new[] { P("KRAKAU", "Kraków"), P("WARSCHAU", "Warsaw"), P("LUBLIN", "Lublin"), P("RADOM", "Radom"), P("POSEN", "Poznań"), P("TSCHENSTOCHAU", "Częstochowa") });
                 int bn = r.Next(1, 320);
-                return Pick(r, new[]
-                {
-                    P($"POLIZEIBATAILLON {Digits(bn)} STAERKE {Digits(b)} OFFIZIERE {Digits(a * 12)} MANN KRANK {Digits(c)}", $"Police Battalion {bn} strength: {b} officers, {a * 12} men; {c} sick."),
+                var place = d < new DateOnly(1941, 6, 22)
+                    ? Pick(r, new[] { P("KRAKAU", "Kraków"), P("WARSCHAU", "Warsaw"), P("LUBLIN", "Lublin"), P("RADOM", "Radom"), P("POSEN", "Poznań"), P("TSCHENSTOCHAU", "Częstochowa") })
+                    : Pick(r, new[] { P("BIALYSTOK", "Białystok"), P("MINSK", "Minsk"), P("SHITOMIR", "Zhytomyr"), P("RIGA", "Riga"), P("KIEW", "Kiev"), P("BERDITSCHEW", "Berdichev") });
+                Add(P($"POLIZEIBATAILLON {Digits(bn)} STAERKE {Digits(b)} OFFIZIERE {Digits(a * 12)} MANN KRANK {Digits(c)}", $"Police Battalion {bn} strength: {b} officers, {a * 12} men; {c} sick."),
                     P($"POLIZEIBATAILLON {Digits(bn)} VERLEGT NACH {place.de} ANKUNFT AM {Digits(c)}", $"Police Battalion {bn} moving to {place.en}, arriving on the {c}th."),
-                    P($"IN {place.de} {Digits(a)} FESTNAHMEN", $"{a} arrests in {place.en}."),
                     P($"ERBITTE {Digits(a * 20)} PAAR STIEFEL UND {Digits(b * 10)} MAENTEL", $"Request {a * 20} pairs of boots and {b * 10} greatcoats."),
-                    P($"FUNKVERBINDUNG MIT {place.de} GESTOERT ERBITTE NEUE SCHLUESSELUNTERLAGEN", $"Wireless link with {place.en} disrupted. Request new key tables."),
-                });
+                    P($"FUNKVERBINDUNG MIT {place.de} GESTOERT ERBITTE NEUE SCHLUESSELUNTERLAGEN", $"Wireless link with {place.en} disrupted. Request new key tables."));
+                if (d < new DateOnly(1940, 1, 1))
+                    Now(P("NACH KAPITULATION WARSCHAU SICHERUNG DER STADT DURCH POLIZEIREGIMENT", "After the capitulation of Warsaw, the city to be secured by a police regiment."),
+                        P($"IN {place.de} {Digits(a)} FESTNAHMEN", $"{a} arrests in {place.en}."));
+                if (In(d, 1940, 4, 9, 1940, 6, 30))
+                    Now(P($"POLIZEIBATAILLON {Digits(bn)} NACH OSLO IN MARSCH", $"Police Battalion {bn} on its way to Oslo."),
+                        P($"POLIZEIBATAILLON {Digits(bn)} NACH DEN HAAG", $"Police Battalion {bn} to The Hague."));
+                if (In(d, 1941, 7, 1, 1941, 12, 31))
+                    // What the police decrypts of 1941 actually told Bletchley; Churchill called it a crime without a name.
+                    Now(P($"POLIZEIBATAILLON {Digits(bn)} MELDET SAEUBERUNGSAKTION {place.de} {Digits(a * 30)} JUDEN ERSCHOSSEN", $"Police Battalion {bn} reports a 'cleansing action' at {place.en}: {a * 30} Jews shot."),
+                        P($"HOEHERER SS UND POLIZEIFUEHRER RUSSLAND MITTE MELDET {Digits(a * 50)} EXEKUTIONEN", $"Higher SS and Police Leader, Russia Centre, reports {a * 50} executions."));
+                break;
             }
             case Net.Abwehr:
             {
-                var agent = Pick(r, new[] { P("ARABEL", "ARABEL"), P("IVAN", "IVAN"), P("LEONHARD", "LEONHARD"), P("HAMLET", "HAMLET"), P("GELATINE", "GELATINE") });
-                return Pick(r, new[]
-                {
-                    P($"AGENT {agent.de} MELDET GELEITZUG {Digits(a)} SCHIFFE AUSLAUF GIBRALTAR AM {Digits(c)}", $"Agent {agent.en} reports a convoy of {a} ships leaving Gibraltar on the {c}th."),
-                    P($"MELDUNG VON {agent.de} ERHALTEN BEURTEILUNG ZUVERLAESSIG", $"Report from {agent.en} received. Assessed as reliable."),
+                var agent = d < new DateOnly(1942, 4, 1)
+                    ? Pick(r, new[] { P("IVAN", "IVAN"), P("LEONHARD", "LEONHARD"), P("GELATINE", "GELATINE"), P("ARABEL", "ARABEL") })
+                    : Pick(r, new[] { P("ARABEL", "ARABEL"), P("IVAN", "IVAN"), P("HAMLET", "HAMLET"), P("HUBERT", "HUBERT") });
+                Add(P($"MELDUNG VON {agent.de} ERHALTEN BEURTEILUNG ZUVERLAESSIG", $"Report from {agent.en} received. Assessed as reliable."),
                     P($"FUER {agent.de} {Digits(a * 100)} DOLLAR UEBERWIESEN", $"{a * 100} dollars transferred for {agent.en}."),
                     P($"FLUGZEUGTRAEGER IM HAFEN GIBRALTAR DAZU {Digits(b)} ZERSTOERER", $"Aircraft carrier in Gibraltar harbour, with {b} destroyers."),
-                    P($"FUNKER FUER {agent.de} AUSGEBILDET ABREISE {Digits(c)}", $"Wireless operator for {agent.en} trained; departs on the {c}th."),
-                });
+                    P($"AGENT {agent.de} MELDET GELEITZUG {Digits(a)} SCHIFFE AUSLAUF GIBRALTAR AM {Digits(c)}", $"Agent {agent.en} reports a convoy of {a} ships leaving Gibraltar on the {c}th."));
+                if (d < new DateOnly(1940, 6, 1))
+                    Now(P("VERBINDUNG ZU AGENT JOHNNY UEBER FUNK LONDON HERGESTELLT", "Wireless contact established with agent JOHNNY in London."));
+                if (In(d, 1940, 9, 1, 1940, 11, 30))
+                    Now(P("UNTERNEHMEN LENA AGENTEN GELANDET BISHER KEINE MELDUNG", "Operation LENA: agents landed. No report from them yet."),
+                        P($"AGENT {agent.de} MELDET LUFTSCHUTZ LONDON SCHWACH", $"Agent {agent.en} reports London's air defences weak."));
+                if (In(d, 1942, 10, 15, 1942, 11, 10))
+                    Now(P("GROSSER GELEITZUG IN GIBRALTAR ZIEL VERMUTLICH MALTA ODER DAKAR", "Large convoy at Gibraltar, destination probably Malta or Dakar."),
+                        P($"AGENT {agent.de} BESTAETIGT LANDUNG IN NORWEGEN GEPLANT", $"Agent {agent.en} confirms a landing in Norway is planned."));
+                break;
             }
             case Net.Tunny:
             {
-                var place = Pick(r, new[] { P("KURSK", "Kursk"), P("ORJOL", "Orel"), P("BJELGOROD", "Belgorod"), P("CHARKOW", "Kharkov"), P("NORMANDIE", "Normandy"), P("PAS DE CALAIS", "the Pas de Calais") });
-                return Pick(r, new[]
-                {
-                    P($"PANZERLAGE EINSATZBEREIT {Digits(a * 10)} IN KURZFRISTIGER INSTANDSETZUNG {Digits(c * 3)}", $"Tank state: {a * 10} serviceable, {c * 3} in short-term repair."),
-                    P($"BEGINN UNTERNEHMEN ZITADELLE {Digits(c % 9 + 1)} TAGE NACH STICHWORT", $"Operation ZITADELLE to begin {c % 9 + 1} days after the code word."),
-                    P($"FEINDBEURTEILUNG STAERKERE FEINDLICHE KRAEFTE RAUM {place.de} ERKANNT", $"Appreciation: stronger enemy forces identified in the {place.en} area."),
-                    P($"LANDUNG IM RAUM {place.de} WIRD ERWARTET", $"A landing is expected in {place.en}."),
+                var place = Pick(r, new[] { P("KURSK", "Kursk"), P("ORJOL", "Orel"), P("BJELGOROD", "Belgorod"), P("CHARKOW", "Kharkov") });
+                Add(P($"PANZERLAGE EINSATZBEREIT {Digits(a * 10)} IN KURZFRISTIGER INSTANDSETZUNG {Digits(c * 3)}", $"Tank state: {a * 10} serviceable, {c * 3} in short-term repair."),
                     P($"MUNITIONSLAGE {Digits(b)} AUSSTATTUNGEN VORHANDEN", $"Ammunition: {b} issues on hand."),
-                });
+                    P($"FEINDBEURTEILUNG STAERKERE FEINDLICHE KRAEFTE RAUM {place.de} ERKANNT", $"Appreciation: stronger enemy forces identified in the {place.en} area."));
+                if (d < new DateOnly(1943, 7, 13))
+                    Now(P($"BEGINN UNTERNEHMEN ZITADELLE {Digits(c % 9 + 1)} TAGE NACH STICHWORT", $"Operation ZITADELLE to begin {c % 9 + 1} days after the code word."),
+                        P("ZITADELLE ANGRIFFSRAUM ORJOL BJELGOROD PANTHER NOCH NICHT EINSATZBEREIT", "ZITADELLE: attack from the Orel and Belgorod areas. Panthers not yet ready."));
+                if (In(d, 1943, 7, 10, 1943, 8, 17))
+                    Now(P("LANDUNG FEINDLICHER KRAEFTE AUF SIZILIEN", "Enemy forces have landed in Sicily."));
+                if (In(d, 1943, 9, 3, 1943, 10, 31))
+                    Now(P("LANDUNG BEI SALERNO GEGENANGRIFF ANGESETZT", "Landing at Salerno. Counter-attack ordered."));
+                if (d >= new DateOnly(1943, 11, 1))
+                    Now(P("OB WEST ERWARTET HAUPTLANDUNG IM RAUM PAS DE CALAIS", "C-in-C West expects the main landing in the Pas de Calais."),
+                        P("ATLANTIKWALL AUSBAU NORMANDIE VERSTAERKEN", "Strengthen the Atlantic Wall works in Normandy."));
+                break;
             }
         }
-        return P("KEINE BESONDEREN VORKOMMNISSE", "Nothing to report.");
+        return pool.Count > 0 ? pool[r.Next(pool.Count)] : P("KEINE BESONDEREN VORKOMMNISSE", "Nothing to report.");
     }
 }
 

@@ -1104,3 +1104,28 @@ public class InterceptTests
         Assert.Contains("\n", g.Intercept(g.Archive[^1]).English);
     }
 }
+
+public class WartimeInterceptTests
+{
+    static System.Collections.Generic.List<InterceptText> Many(Net net, DateOnly date) =>
+        Enumerable.Range(0, 300).Select(i => Intercepts.For(11, i, net, 5, date, 600, false)).ToList();
+
+    [Fact]
+    public void TheTrafficFitsTheDate()
+    {
+        var phoney = Many(Net.Red, new DateOnly(1939, 10, 15));
+        Assert.DoesNotContain(phoney, x => x.German.Contains("LONDON") || x.German.Contains("CHARTRES") || x.German.Contains("DUENKIRCHEN"));
+        Assert.Contains(phoney, x => x.German.Contains("SCAPA FLOW"));
+
+        var coventry = Many(Net.Red, new DateOnly(1940, 11, 12));
+        Assert.Contains(coventry, x => x.German.Contains("MONDSCHEINSONATE") && x.English.Contains("Moonlight Sonata"));
+
+        var eagle = Many(Net.Red, new DateOnly(1940, 8, 18));
+        Assert.Contains(eagle, x => x.German.Contains("BIGGIN HILL") || x.German.Contains("KENLEY") || x.German.Contains("MANSTON"));
+
+        Assert.Contains(Many(Net.Dolphin, new DateOnly(1941, 5, 25)), x => x.German.Contains("BISMARCK"));
+        Assert.DoesNotContain(Many(Net.Dolphin, new DateOnly(1941, 9, 1)), x => x.German.Contains("BISMARCK"));
+        Assert.Contains(Many(Net.Chaffinch, new DateOnly(1942, 11, 10)), x => x.English.Contains("Algeria"));
+        Assert.DoesNotContain(Many(Net.Chaffinch, new DateOnly(1941, 6, 1)), x => x.English.Contains("Algeria"));
+    }
+}
