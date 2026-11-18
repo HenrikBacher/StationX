@@ -138,8 +138,19 @@ public sealed class AutoPlayer
         }
         if (g.MaxSuspicion > 60) g.SetPolicy(Policy.Cautious);
         else if (g.MaxSuspicion < 30) g.SetPolicy(Policy.Standard);
-        foreach (var n in new[] { Net.Dolphin, Net.Shark })
-            if (g.Funds > 3000 && g.CanGarden(n) == null && g.Day % 3 == 0) g.Garden(n);
+        // Stations the act's goals ask for come first; save up for them rather than spend elsewhere.
+        bool saving = false;
+        foreach (var goal in g.Act.Goals.Where(x => x.Kind == GoalKind.Build && !x.Done(g) && x.Station != null))
+        {
+            var gt = goal.Station!.Value;
+            if (!g.StationUnlocked(gt, out _)) continue;
+            // Keep half a week's wages in hand: an overdraft costs reputation every day.
+            if (g.Funds >= Defs.Station(gt).Cost + (g.WeeklyWages + g.WeeklyUpkeep) / 2) TryBuild(gt);
+            else saving = true;
+        }
+        if (!saving)
+            foreach (var n in new[] { Net.Dolphin, Net.Shark })
+                if (g.Funds > 3000 && g.CanGarden(n) == null && g.Day % 3 == 0) g.Garden(n);
 
         // Research: whatever the act asks for first, then anything affordable.
         foreach (var goal in g.Act.Goals.Where(x => x.Kind == GoalKind.Research))
@@ -166,7 +177,7 @@ public sealed class AutoPlayer
                 if (!g.Stations.Any(s => s.Type == StationType.Tube && z.InOuter(s.X, s.Y)) && g.Funds > 1500)
                     TryBuildIn(StationType.Tube, z);
         // Outstation Bombes when rich.
-        if (g.CanBuyOutstation() == null && g.OutstationBombes < 3 && g.Funds > 4500) g.BuyOutstation();
+        if (!saving && g.CanBuyOutstation() == null && g.OutstationBombes < 3 && g.Funds > 4500) g.BuyOutstation();
 
         // A stove in every working timber hut before winter.
         if (g.Date.Month is >= 10 or <= 3)

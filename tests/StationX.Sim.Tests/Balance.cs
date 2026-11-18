@@ -13,7 +13,9 @@ namespace StationX.Tests;
 public class Balance(ITestOutputHelper output)
 {
     // Twenty seeds per difficulty: six were too few to tell a real change from luck.
-    static readonly int[] Seeds = System.Linq.Enumerable.Range(0, 20).Select(i => 3 + i * 37).ToArray();
+    // BALANCE_SEEDS=40 for a finer reading when tuning.
+    static readonly int[] Seeds = System.Linq.Enumerable.Range(0, int.TryParse(Environment.GetEnvironmentVariable("BALANCE_SEEDS"), out var n) ? n : 20)
+                                                       .Select(i => 3 + i * 37).ToArray();
 
     [Fact]
     public void Report()

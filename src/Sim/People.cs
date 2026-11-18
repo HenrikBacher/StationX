@@ -319,6 +319,7 @@ public sealed partial class GameState
     void DailyPeople()
     {
         MaybeCallUp();
+        MaybeRuthless();
         SpreadIllness();
         AssignBillets();
         var headed = HeadedZones();

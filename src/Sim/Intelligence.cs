@@ -78,6 +78,45 @@ public sealed partial class GameState
     /// <summary>A sample decision for screenshots and tests.</summary>
     public Dilemma DebugDilemma() => IntelDilemma(ActiveNets.Count > 0 ? ActiveNets.First() : Net.Red);
 
+    const string RuthlessTitle = "Operation Ruthless";
+
+    /// <summary>Autumn 1940: Ian Fleming's plan to pinch naval Enigma material with a captured bomber. Never mounted; here, a gamble.</summary>
+    void MaybeRuthless()
+    {
+        if (ActIndex != Defs.RuthlessAct || Mode == GameMode.FreePlay || Dilemmas.Count > 0) return;
+        if (!Stats.ScriptedDone.Add("ruthless")) return;
+        RaiseDilemma(new Dilemma
+        {
+            Service = Service.Kriegsmarine, Title = RuthlessTitle,
+            Text = "Lieutenant Commander Ian Fleming of Naval Intelligence has a plan. A captured Heinkel, crewed by German-speaking airmen in " +
+                   "Luftwaffe uniform, ditches in the Channel; when a German rescue boat comes, they overpower the crew and bring back its " +
+                   "Enigma settings. Hut 8 is desperate for naval material. It might work. It might also tell the Kriegsmarine exactly what we want.",
+            Options =
+            {
+                new() { Label = "Mount the operation", Funds = -Defs.RuthlessCost,
+                    Outcome = "A Heinkel is found and a crew trained. Everyone waits for a German rescue boat to take the bait." },
+                new() { Label = "Shelve it",
+                    Outcome = "Operation Ruthless is quietly shelved. Frank Birch writes that Turing and Twinn came to him 'like undertakers cheated of a nice corpse'." },
+            },
+        });
+    }
+
+    void RuthlessOutcome()
+    {
+        if (Rng.Chance(Defs.RuthlessSuccess))
+        {
+            Points += Defs.RuthlessPoints;
+            AdjustRep(3, "Decisions");
+            Emit(EventKind.Good, $"Operation Ruthless works. A rescue boat's key tables and a bigram table are in Hut 8 by morning. +{Defs.RuthlessPoints} breakthroughs.");
+        }
+        else
+        {
+            AddSuspicion(Service.Kriegsmarine, Defs.RuthlessSuspicion);
+            AdjustRep(-2, "Decisions");
+            Emit(EventKind.Bad, "Operation Ruthless goes wrong: the 'downed' Heinkel is spotted being towed out. The Kriegsmarine tightens up, suspicious.");
+        }
+    }
+
     public bool ResolveDilemma(int id, int option)
     {
         var d = Dilemmas.Find(x => x.Id == id);
@@ -97,6 +136,7 @@ public sealed partial class GameState
         }
         Stats.DilemmasResolved++;
         Emit(o.Rep < 0 || o.Suspicion > 10 ? EventKind.Bad : EventKind.Info, o.Outcome);
+        if (d.Title == RuthlessTitle && option == 0) RuthlessOutcome();
         return true;
     }
 

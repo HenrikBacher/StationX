@@ -1005,3 +1005,32 @@ public class PriorityTests
         Assert.Equal(9002, g.DebugMostUrgent(new() { 9001, 9002 }));
     }
 }
+
+public class RuthlessTests
+{
+    [Fact]
+    public void OperationRuthlessIsOfferedOnceAndIsAGamble()
+    {
+        int successes = 0, failures = 0;
+        for (int seed = 1; seed <= 12; seed++)
+        {
+            var g = GameState.NewGame(seed);
+            g.DebugSkipToAct(Defs.RuthlessAct);
+            g.Dilemmas.Clear();
+            for (int i = 0; i < 5 && !g.Dilemmas.Any(d => d.Title == "Operation Ruthless"); i++)
+            {
+                g.Dilemmas.RemoveAll(d => d.Title != "Operation Ruthless");
+                g.Advance(Defs.MinutesPerDay);
+            }
+            var r = g.Dilemmas.Single(d => d.Title == "Operation Ruthless");
+            int points = g.Points;
+            double sus = g.SuspicionOf(Service.Kriegsmarine);
+            Assert.True(g.ResolveDilemma(r.Id, 0));
+            if (g.Points >= points + Defs.RuthlessPoints) successes++;
+            else { Assert.True(g.SuspicionOf(Service.Kriegsmarine) > sus); failures++; }
+            g.Advance(3 * Defs.MinutesPerDay);
+            Assert.DoesNotContain(g.Dilemmas, d => d.Title == "Operation Ruthless");
+        }
+        Assert.True(successes > 0 && failures > 0);
+    }
+}
