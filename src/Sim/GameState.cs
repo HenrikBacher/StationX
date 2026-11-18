@@ -311,7 +311,7 @@ public sealed partial class GameState
 
     void WorkStations(double dt)
     {
-        var headed = HeadedZones();
+        _heads = HeadsToday();
         foreach (var st in Stations)
         {
             if (st.Def.Operator == null)
@@ -368,7 +368,7 @@ public sealed partial class GameState
             }
 
             if (st.Wears && WearAndMaybeBreak(st, dt)) { ReleaseOperator(st); continue; }
-            double head = headed.Count > 0 && Grid.ZoneAt(st.X, st.Y) is { } hz && headed.Contains(hz) ? Defs.HeadBonus : 1;
+            double head = _heads.Count > 0 && Grid.ZoneAt(st.X, st.Y) is { } hz && _heads.TryGetValue(hz, out var hs) ? hs.Work : 1;
             st.WorkDone += dt * op.WorkRate * RaidWorkFactor * head * OvertimeFactor * RivalryFactor(op, dt);
             st.LastWorked = Now;
             if (st.WorkDone >= st.WorkTotal)
@@ -377,7 +377,8 @@ public sealed partial class GameState
                 st.Current = null;
                 st.WorkDone = st.WorkTotal = 0;
                 st.Processed++;
-                GainExperience(op, st.Def.Minutes);
+                op.LastZone = Grid.ZoneAt(st.X, st.Y)?.Id;
+                GainExperience(op, st.Def.Minutes * (HeadOfLastZone(op)?.Learn ?? 1));
                 Complete(st, op, m);
             }
         }
@@ -419,6 +420,7 @@ public sealed partial class GameState
     /// <summary>Adds wear for dt minutes of work. Returns true if the machine broke down.</summary>
     bool WearAndMaybeBreak(Station st, double dt)
     {
+        if (_heads.Count > 0 && Grid.ZoneAt(st.X, st.Y) is { } wz && _heads.TryGetValue(wz, out var wh)) dt *= wh.Wear;
         st.Wear = Math.Min(1.5, st.Wear + dt / Defs.WearLife(st.Type));
         double p = Defs.BreakdownHazard * st.Wear * st.Wear * dt * Defs.Difficulties[Difficulty].WearMult;
         if (!Rng.Chance(p)) return false;

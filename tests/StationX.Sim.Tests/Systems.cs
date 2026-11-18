@@ -1459,3 +1459,38 @@ public class StoryTests
         Assert.False(g.WithRival(a));
     }
 }
+
+public class HeadStyleTests
+{
+    [Fact]
+    public void StylesChangeTheirHut()
+    {
+        var g = TestUtil.BombeLine(61, true);
+        var crypt = TestUtil.Add(g, Role.Cryptanalyst, 22.5, 4.5);
+        crypt.Skill = 3;
+        Assert.True(g.AppointHead(crypt.Id, "hut6"));
+        Assert.Equal(HeadStyle.Teacher, crypt.HeadStyle);   // skill 3, no stronger hint
+        Assert.True(g.SetHeadStyle(crypt.Id, HeadStyle.Driver));
+        Assert.Equal(1.18, g.HeadIn(g.Grid.Zone("hut6"))!.Work);
+        Assert.Null(g.HeadIn(g.Grid.Zone("mansion")));
+    }
+
+    [Fact]
+    public void AShepherdLiftsTheirHutsMorale()
+    {
+        var g = TestUtil.BombeLine(61, true);
+        var crypt = TestUtil.Add(g, Role.Cryptanalyst, 22.5, 4.5);
+        crypt.Skill = 3;
+        g.AppointHead(crypt.Id, "hut6");
+        g.SetHeadStyle(crypt.Id, HeadStyle.Shepherd);
+        var a = TestUtil.Add(g, Role.Linguist);
+        var b = TestUtil.Add(g, Role.Linguist);
+        a.LastZone = "hut6";
+        b.LastZone = "mansion";
+        g.Advance(Defs.MinutesPerDay - g.MinuteOfDay - 1);
+        a.Morale = b.Morale = 0.5;
+        a.LastZone = "hut6"; b.LastZone = "mansion";
+        g.Advance(3);
+        Assert.True(a.Morale > b.Morale + 0.03, $"{a.Morale} vs {b.Morale}");
+    }
+}

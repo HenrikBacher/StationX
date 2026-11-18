@@ -91,6 +91,7 @@ public sealed partial class GameState
                 if (s.Has(Trait.Tireless)) drain *= 0.7;
                 if (AllHands && !OnWatch(s)) drain *= Defs.AllHandsDrain;
                 if (Overtime) drain *= Defs.OvertimeDrain;
+                if (_heads.Count > 0 && Grid.ZoneAt((int)s.X, (int)s.Y) is { } dz && _heads.TryGetValue(dz, out var dh)) drain *= dh.Drain;
                 if (night && s.Has(Trait.NightOwl)) drain *= 0.67;
                 s.Energy = Math.Max(0, s.Energy - drain * dt);
                 if (s.Energy < s.LowToday) s.LowToday = s.Energy;
@@ -324,13 +325,14 @@ public sealed partial class GameState
         MaybeCallUp();
         MaybeRuthless();
         SpreadIllness();
+        _heads = HeadsToday(inNow: false);
         DailyStrain();
         DailyRivalries();
         AssignBillets();
-        var headed = HeadedZones();
-        if (headed.Count > 0)
-            foreach (var s in Staff.Where(s => !s.Away && s.HeadOf == null && headed.Contains(Grid.ZoneAt((int)s.X, (int)s.Y)!)))
-                s.Morale = Math.Min(1, s.Morale + Defs.HeadMoralePerDay);
+        // Heads of section: each person feels the head of the hut they last worked in.
+        _heads = HeadsToday(inNow: false);
+        foreach (var s in Staff.Where(s => s.HeadOf == null))
+            if (HeadOfLastZone(s) is { } h) s.Morale = Math.Clamp(s.Morale + h.Morale, 0, 1);
         foreach (var s in Staff.Where(s => s.FarBillet)) s.Morale = Math.Max(0, s.Morale - Defs.FarBilletMoralePerDay);
         if (Overcrowded > 0 && Day % 3 == 0)
             Emit(EventKind.Bad, $"{Overcrowded} of the staff are billeted miles away and bussed in. They're slower and unhappy. Requisition more billets from the Staff panel.");
@@ -447,9 +449,10 @@ public sealed partial class GameState
             var z = Grid.Zone(zoneId);
             if (z is not { Unlocked: true }) return false;
             if (HeadOfZone(zoneId) is { } old && old != s) old.HeadOf = null;
+            if (s.HeadOf == null) s.HeadStyle = StyleFor(s);
             s.HeadOf = zoneId;
             s.Pinned = null;
-            Emit(EventKind.Info, $"{s.Name} is now head of {z.Name}. They'll manage rather than work a desk: everyone working there goes faster.");
+            Emit(EventKind.Info, $"{s.Name} is now head of {z.Name}, a {Defs.HeadStyles[s.HeadStyle].Name.ToLowerInvariant()} by temperament. They'll manage rather than work a desk.");
         }
         else s.HeadOf = null;
         return true;

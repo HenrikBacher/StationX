@@ -28,6 +28,7 @@ public sealed partial class GameState
             double d = low < 0.15 ? 0.12 : low < 0.3 ? 0.05 : low < 0.45 ? 0.0 : -0.06;
             if (d > 0 && s.Has(Trait.Tireless)) d *= 0.5;
             if (d > 0 && Overtime) d += 0.04;
+            d += HeadOfLastZone(s)?.Strain ?? 0;
             s.Strain = Math.Clamp(s.Strain + d, 0, 1);
             if (s.Strain < 0.5) s.StrainWarned = false;
             if (s.Leaving) continue;

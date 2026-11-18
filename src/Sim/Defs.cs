@@ -75,7 +75,7 @@ public sealed record ResearchDef(ResearchId Id, string Name, string Blurb, int C
 public sealed record RoleDef(Role Role, string Name, string Plural, int Salary, string Blurb);
 
 /// <summary>All tunable numbers live here.</summary>
-public static class Defs
+public static partial class Defs
 {
     // ---- Time ----
     public const double MinutesPerDay = 1440;
@@ -157,8 +157,6 @@ public static class Defs
     public const double TrafficPerAct = 0.06;
     public static double TrafficScale(int act) => 1 + TrafficPerAct * Math.Max(0, act);
     // ---- Heads of huts ----
-    public const double HeadBonus = 1.1;
-    public const double HeadMoralePerDay = 0.02;
     // ---- Wrens ----
     /// <summary>From the Bombe build-up of 1940 until 'Action this day', only one Wren a week comes forward.</summary>
     public const int WrenShortageFrom = 5;

@@ -145,6 +145,9 @@ public sealed class Staff
     public bool FarBillet { get; set; }
     /// <summary>The zone this person heads: they manage it rather than work a desk.</summary>
     public string? HeadOf { get; set; }
+    public HeadStyle HeadStyle { get; set; }
+    /// <summary>The building they last finished a job in: their hut, for the head's daily effects.</summary>
+    public string? LastZone { get; set; }
     /// <summary>Off sick until this time; they don't come back on watch before it.</summary>
     public double SickUntil { get; set; }
     /// <summary>Worked in a freezing hut today (reset each midnight).</summary>
