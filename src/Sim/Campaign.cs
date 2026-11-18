@@ -221,7 +221,8 @@ public static class Campaign
                 "intelligence staff.\n\n" +
                 "Welchman has had an idea for wiring the Bombes that should make each run much shorter. Look at it when you can.\n\n" +
                 "From now on we work three watches: day, evening and night. Keys change at midnight, so a night watch that " +
-                "can break them early gives the day watch a flying start.",
+                "can break them early gives the day watch a flying start.\n\n" +
+                "One warning: the WRNS can spare us very few women. Expect about one Wren a week. Look after the ones you have.",
             Goals = new[]
             {
                 new Goal(GoalKind.ZoneOpen, 1, "Open Hut 3", Tag: "hut3"),
@@ -334,7 +335,7 @@ public static class Campaign
                 "Turing, Welchman, Alexander and Milner-Barry have written directly to the Prime Minister about our shortage of " +
                 "typists, Wrens and Bombes. Mr Churchill's reply was: 'Action this day. Make sure they have all they want on extreme " +
                 "priority.'\n\n" +
-                "The money has arrived. Use it to expand: more Bombes, more Wrens, more of everything.",
+                "The money has arrived, and the Admiralty is sending Wrens at last. Use it to expand: more Bombes, more Wrens, more of everything.",
             Goals = new[]
             {
                 new Goal(GoalKind.Contracts, 6, "Complete 6 requests"),
@@ -491,6 +492,7 @@ public static class Campaign
 
     /// <summary>The act whose completion breaks SHARK and wins the main campaign.</summary>
     public const int EnigmaFinale = 11;
+    public static readonly int ActionThisDay = Array.FindIndex(Acts, a => a.Title == "Action This Day");
 
     public const string TunnyEpilogue =
         "On 1 June 1944 the improved Colossus Mark 2 started work. On 5 June, as the invasion fleet waited for the weather, " +

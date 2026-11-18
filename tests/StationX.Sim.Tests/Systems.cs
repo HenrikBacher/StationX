@@ -913,3 +913,22 @@ public class MinistryTests
         Assert.True(g.Reputation <= rep - Defs.NeglectRep + 0.01);
     }
 }
+
+public class WrenShortageTests
+{
+    [Fact]
+    public void FewWrensUntilActionThisDay()
+    {
+        int Wrens(int act)
+        {
+            var g = GameState.NewGame(53);
+            g.ActIndex = act;
+            g.DebugRefreshCandidates();
+            return g.Candidates.Count(c => c.Role == Role.Wren && c.Notable == null);
+        }
+        Assert.Equal(2, Wrens(3));
+        Assert.Equal(1, Wrens(Defs.WrenShortageFrom));
+        Assert.Equal(1, Wrens(Campaign.ActionThisDay - 1));
+        Assert.Equal(3, Wrens(Campaign.ActionThisDay));
+    }
+}

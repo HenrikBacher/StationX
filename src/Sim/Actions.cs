@@ -184,12 +184,17 @@ public sealed partial class GameState
         };
     }
 
+    /// <summary>For tests.</summary>
+    public void DebugRefreshCandidates() => RefreshCandidates();
+
     void RefreshCandidates()
     {
         Candidates.RemoveAll(c => c.Notable == null);
         var roles = new List<Role> { Role.Clerk, Role.Cryptanalyst, Role.Linguist, Role.Clerk };
         if (ActIndex >= 1) roles.Add(Role.Messenger);
-        if (ActIndex >= 2) { roles.Add(Role.Wren); roles.Add(Role.Wren); }
+        // The WRNS could spare few women for Bletchley until Churchill's 'Action this day' in October 1941.
+        int wrens = ActIndex < 2 ? 0 : Mode == GameMode.FreePlay ? 2 : ActIndex < Defs.WrenShortageFrom ? 2 : ActIndex < Campaign.ActionThisDay ? 1 : 3;
+        for (int i = 0; i < wrens; i++) roles.Add(Role.Wren);
         if (ActIndex >= 5) roles.Add(Role.Messenger);
         foreach (var r in roles)
         {

@@ -71,6 +71,7 @@ Godot lives in `~/.local/opt/godot/` and is linked as `~/.local/bin/godot`. Expo
 - **Ministries.** The War Office, Air Ministry, Admiralty and SIS each expect something. A ministry that has been sending requests but has had nothing completed for 10 days complains to the Foreign Office at the weekly accounts (−3 reputation, and again each week). The Needs attention list warns from 6 days.
 - **Stale cribs.** From 1941 the Germans now and then change a habit a crib relied on. For 3–5 days that network's menus take 60% longer and its Bombe runs 30% longer (the key panel says so). Gardening still plants a crib for naval keys.
 - **All hands.** When a deadline is slipping, call everyone off watch back in for four hours from the Staff panel: £6 overtime each, a morale hit for all, and those called in tire faster. Once a week at most.
+- **The Wren shortage.** From the Battle of Britain until Churchill's "Action this day" (October 1941), the WRNS can spare about one Wren a week. Afterwards three a week come forward. Plan your Bombes around the Wrens you have.
 - **Vetting.** New recruits are interviewed, vetted and put on a train: they report about 16 hours after you hire them (messengers, local lads, in 6; half that on Easy). Hire ahead of need. The famous names report at once.
 - **Billets.** The Park starts with lodgings for 20. Anyone beyond that (the newest arrivals) is billeted miles away and bussed in: 10% slower and steadily unhappier. Requisition 10 more billets at a time (£400) from the Staff panel.
 - **Call-up papers.** From the Phoney War until 1942 the Ministry of Labour calls up men on the staff, and it has an eye for the ones you can least spare. Fight for a deferment (reputation), get the post made a reserved occupation (£150), or let him go.
@@ -89,7 +90,7 @@ Godot lives in `~/.local/opt/godot/` and is linked as `~/.local/bin/godot`. Expo
 - **Free play.** No objectives and no closure. Start at any chapter, with everything before it already built and researched. The war moves on every ten days.
 - **Difficulty.** Easy, Normal and Hard change starting funds, the grant, deadlines, how fast suspicion grows and how much a missed deadline costs.
 
-A **Needs attention** list under the Enigma keys shows broken or badly worn machines, freezing huts, unanswered flash requests, an overdraft, and desks nobody on the staff can work. Click one to go to it.
+A **Needs attention** list under the Enigma keys shows broken or badly worn machines, freezing huts, unanswered flash requests, an overdraft, desks nobody on the staff can work, air raids, overcrowded billets, illness and ministries left waiting. Click one to go to it.
 
 At the end of a campaign you get a **score** (decrypts, requests, reputation and speed, less missed deadlines and shipping lost; ×0.75 on Easy, ×1.4 on Hard) and an honour, from "Thanked by the Director" to Churchill's "geese that laid the golden eggs". The best score on each difficulty is kept in `user://records.cfg`.
 
