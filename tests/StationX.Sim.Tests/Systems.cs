@@ -1035,3 +1035,71 @@ public class RuthlessTests
         Assert.True(successes > 0 && failures > 0);
     }
 }
+
+public class InterceptTests
+{
+    [Fact]
+    public void EnigmaMatchesTheKnownTestVector()
+    {
+        var m = new Enigma(new[] { 0, 1, 2 }, new[] { 0, 0, 0 }, System.Array.Empty<(char, char)>());
+        m.SetPositions("AAA");
+        Assert.Equal("BDZGO", m.Encipher("AAAAA"));
+    }
+
+    [Fact]
+    public void EnigmaDoubleStepsTheMiddleRotor()
+    {
+        // Rotors I II III at ADU: the middle rotor steps twice in a row (ADU -> ADV -> AEW -> BFX).
+        var m = new Enigma(new[] { 0, 1, 2 }, new[] { 0, 0, 0 }, System.Array.Empty<(char, char)>());
+        m.SetPositions("ADU");
+        Assert.Equal("EQIBM", m.Encipher("AAAAA"));
+    }
+
+    [Theory]
+    [InlineData(Net.Red)]
+    [InlineData(Net.Shark)]
+    public void TheSameSettingsDecipherWhatTheyEncipher(Net net)
+    {
+        const string text = "ANBDUXGELEITZUGQUADRATAJEINSZWODREIVIER";
+        var a = Enigma.DailyKey(5, net, 12); a.SetPositions("QWE");
+        var c = a.Encipher(text);
+        Assert.NotEqual(text, c);
+        Assert.DoesNotContain(c.Where((ch, i) => ch == text[i]), _ => true);   // Enigma never enciphers a letter as itself
+        var b = Enigma.DailyKey(5, net, 12); b.SetPositions("QWE");
+        Assert.Equal(text, b.Encipher(c));
+    }
+
+    [Fact]
+    public void EveryNetworkReadsTheSameEachTimeAndHasAllThreeTexts()
+    {
+        var g = GameState.NewGame(3);
+        foreach (var net in Enum.GetValues<Net>())
+        {
+            var m = new Message { Id = 4242, Net = net, Day = 3, Created = 3 * Defs.MinutesPerDay + 600 };
+            var x = g.Intercept(m);
+            var y = g.Intercept(m);
+            Assert.Equal(x, y);
+            Assert.False(string.IsNullOrWhiteSpace(x.Cipher));
+            Assert.False(string.IsNullOrWhiteSpace(x.German));
+            Assert.False(string.IsNullOrWhiteSpace(x.English));
+            Assert.Contains("1000", x.Log);   // time of intercept
+        }
+    }
+
+    [Fact]
+    public void DeliveredMessagesAreArchivedAndStagesAdvance()
+    {
+        var m = new Message { Next = StationType.Typex };
+        Assert.Equal(ReadStage.Intercept, Intercepts.StageOf(m));
+        m.Next = StationType.Translation;
+        Assert.Equal(ReadStage.Decrypted, Intercepts.StageOf(m));
+        m.Next = StationType.Dispatch;
+        Assert.Equal(ReadStage.Translated, Intercepts.StageOf(m));
+
+        var g = GameState.NewGame(9);
+        var ai = new AutoPlayer(g);
+        for (int i = 0; i < 6 * 24; i++) { if (g.ActCompletePending) g.ContinueAfterAct(); ai.Think(); g.Advance(60); }
+        Assert.InRange(g.Archive.Count, 1, GameState.ArchiveSize);
+        Assert.Contains("\n", g.Intercept(g.Archive[^1]).English);
+    }
+}

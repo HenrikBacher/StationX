@@ -691,9 +691,18 @@ public sealed partial class GameState
         st.Input.Insert(0, m.Id);
     }
 
+    /// <summary>The last delivered messages, kept so they can still be read.</summary>
+    public List<ArchivedMsg> Archive { get; set; } = new();
+    public const int ArchiveSize = 30;
+
+    public InterceptText Intercept(Message m) => Intercepts.For(Seed, m.Id, m.Net, m.Day, DateOf(m.Day), m.Created, m.Garbled);
+    public InterceptText Intercept(ArchivedMsg a) => Intercepts.For(Seed, a.Id, a.Net, a.Day, DateOf(a.Day), a.Created, a.Garbled);
+
     void Deliver(Message m)
     {
         m.Loc = Loc.Done;
+        Archive.Add(new ArchivedMsg { Id = m.Id, Net = m.Net, Day = m.Day, Created = m.Created, Garbled = m.Garbled });
+        if (Archive.Count > ArchiveSize) Archive.RemoveRange(0, Archive.Count - ArchiveSize);
         Messages.Remove(m.Id);
         var net = Defs.NetOf(m.Net);
         Stats.DeliveredTotal++;

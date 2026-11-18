@@ -626,6 +626,7 @@ public partial class Main : Node3D
             case Key.F: ShowFlows = !ShowFlows; Hud.Toast(ShowFlows ? "Flow view: lines show where paper goes; rings show how long it waits." : "Flow view off."); break;
             case Key.I: Hud.TogglePanel("intel"); break;
             case Key.K: Hud.TogglePanel("stats"); break;
+            case Key.N: Hud.TogglePanel("intercepts"); break;
             case Key.M when SelectedStation is int ms: BeginMove(ms); break;
             case Key.F5: SaveTo("quick"); break;
             case Key.F8: LoadFrom("quick"); break;

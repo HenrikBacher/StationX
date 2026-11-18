@@ -276,6 +276,13 @@ public partial class Hud
             case "dilemma" when S.Dilemmas.Count > 0: ShowDilemma(S.Dilemmas[0]); break;
             case "dilemma": S.RaiseDilemma(S.DebugDilemma()); ShowDilemma(S.Dilemmas[0]); break;
             case "end": ShowEnd(true); break;
+            case "intercept" when S.Archive.Count > 0:
+                var a = S.Archive[^1];
+                ShowIntercept(S.Intercept(a), ReadStage.Translated, a.Net, a.Day, false, null);
+                break;
+            case "cipher" when S.Messages.Values.FirstOrDefault(m => Intercepts.StageOf(m) == ReadStage.Intercept) is { } live:
+                ShowIntercept(S.Intercept(live), ReadStage.Intercept, live.Net, live.Day, live.Garbled, live.Next);
+                break;
         }
     }
 
