@@ -66,6 +66,7 @@ Godot lives in `~/.local/opt/godot/` and is linked as `~/.local/bin/godot`. Expo
 - **Flash requests.** From early 1940, every few days a MOST IMMEDIATE request lands: a handful of messages due within hours, at three times the pay. Answer within three hours. Ignoring one costs reputation, declining costs a little less, and missing one after accepting costs a lot. Take them when you're already reading that network today. Every desk works on the most urgent message in its tray first.
 - **Weather.** Each day brings English weather: mostly grey. Rain and snow close the rounders pitch, snow and gales slow everyone walking between the huts, and storms garble far more intercepts. Snow and rain fall on the park, and fog hangs over it.
 - **Winter.** From November to March the timber huts are freezing. People in a hut without a **coke stove** (£60, £4 a week in coke) tire 40% faster and slowly lose heart. The Mansion and Block F have central heating.
+- **The Blitz.** From late August 1940 to May 1941 the sirens go on about one night in five. Until the all-clear, desk work runs at half pace in the blackout; the Bombes run on. Searchlights sweep the sky. Now and then a stray bomb falls on the Park (as it really did in November 1940), knocking a machine off its mountings and shaking everyone in that hut.
 - **Billets.** The Park starts with lodgings for 20. Anyone beyond that (the newest arrivals) is billeted miles away and bussed in: 10% slower and steadily unhappier. Requisition 10 more billets at a time (£400) from the Staff panel.
 - **Call-up papers.** From the Phoney War until 1942 the Ministry of Labour calls up men on the staff, and it has an eye for the ones you can least spare. Fight for a deferment (reputation), get the post made a reserved occupation (£150), or let him go.
 - **Pinning.** You can pin a person to a station; they work there first and don't run errands.
@@ -153,7 +154,7 @@ Optional flags:
 - `--panel=requests|build|staff|research|huts|intel|stats`
 - `--modal=pause|settings|save|load|newgame|dilemma|end`
 - `--select=bombe`, `--briefing`, `--title`, `--build=Registration`
-- `--weather=fine|overcast|rain|fog|snow|storm`
+- `--weather=fine|overcast|rain|fog|snow|storm`, `--raid`
 - `--quarter=0..3`, `--flows`, `--breakdown` (breaks the first machine and wears another)
 - `--seed=N`, `--difficulty=easy|normal|hard`, `--freeplay --act=N`
 - `--load=slot1|slot2|slot3|quick|auto`

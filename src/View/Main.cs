@@ -26,6 +26,7 @@ public partial class Main : Node3D
     DirectionalLight3D _sun = null!;
     WeatherFx _weather = null!;
     float _snowCover;
+    bool _wasRaid;
     double _snowClock = double.NaN;
     WorldEnvironment _env = null!;
     MeshInstance3D _selRing = null!;
@@ -177,6 +178,7 @@ public partial class Main : Node3D
                     State.Events.Clear();
                 }
             }
+            if (args.ContainsKey("raid")) State.RaidUntil = State.Now + 120;
             if (args.TryGetValue("weather", out var wx)) State.Weather = Enum.Parse<Weather>(wx, true);
             if (args.TryGetValue("zoom", out var z)) Rig.Cam.Size = 18f / float.Parse(z);
             if (args.TryGetValue("center", out var c))
@@ -441,7 +443,12 @@ public partial class Main : Node3D
         env.AdjustmentContrast = 1.06f - 0.22f * haze;
         env.AdjustmentSaturation = 0.82f - 0.3f * haze;
         env.AdjustmentBrightness = 1f + 0.08f * haze * (1 - night);
-        _weather.Sync(w, Rig.Target);
+        _weather.Sync(w, Rig.Target, State.RaidOn && night > 0.3f);
+        if (State.RaidOn != _wasRaid)
+        {
+            _wasRaid = State.RaidOn;
+            if (_shotPath == null) Sound.Play(_wasRaid ? "siren" : "allclear", 0.7f, 0f);
+        }
         // Snow settles over a few hours and melts over most of a day.
         double dtMin = double.IsNaN(_snowClock) ? 0 : Math.Clamp(State.Now - _snowClock, 0, 600);
         _snowClock = State.Now;

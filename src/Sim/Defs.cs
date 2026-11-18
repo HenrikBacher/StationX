@@ -110,6 +110,10 @@ public static class Defs
     public const double ExpectationBase = 0.5;
     /// <summary>Above this balance at the weekly accounts, the Treasury claws back part of the grant.</summary>
     public const int TreasuryComfortable = 2500;
+    // ---- The Blitz ----
+    public const double RaidChance = 0.22;
+    public const double RaidBombChance = 0.06;
+    public const double RaidWorkRate = 0.5;
     // ---- Billets ----
     public const int StartBillets = 20;
     public const int BilletBlock = 10;
@@ -121,7 +125,7 @@ public static class Defs
     public const double FlashOfferHours = 3;
     public const double FlashIgnoredRep = 2;
     public const double TreasuryClawback = 0.4;
-    public const double ExpectationPerAct = 0.2;
+    public const double ExpectationPerAct = 0.17;
     public const double SellRefund = 0.5;
     public const int MaxOffers = 3;
     public const double OfferLifetimeDays = 1.5;

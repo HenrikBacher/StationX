@@ -93,9 +93,15 @@ public sealed class AutoPlayer
         if (!NeedsBombe(net)) return true;
         var nets = g.Contracts.Where(x => x.State == ContractState.Active && Defs.NetOf(x.Net).Family != Family.Hand)
                               .Select(x => x.Net).ToHashSet();
-        if (nets.Contains(net)) return true;
         int bombes = g.Stations.Count(s => s.Type is StationType.Bombe or StationType.Bombe4 && !s.PendingRemoval) + g.OutstationBombes;
-        return nets.Count(NeedsBombe) < bombes;
+        // Keep Bombe time free for networks the chapter's goals still need.
+        bool IsGoal(Net n) => g.Act.Goals.Any(x => x.Net == n && !x.Done(g));
+        int starved = g.Act.Goals.Where(x => x.Net is { } n && !x.Done(g) && NeedsBombe(n) && !nets.Contains(n))
+                                 .Select(x => x.Net).Distinct().Count();
+        int busy = nets.Count(NeedsBombe);
+        if (!IsGoal(net) && starved > 0 && busy + starved >= bombes) return false;
+        if (nets.Contains(net)) return true;
+        return busy + (IsGoal(net) ? 0 : starved) < bombes;
     }
 
     static readonly StationType[] BuildOrder =

@@ -35,6 +35,19 @@ public partial class Sound : Node
         _clips["stop"] = Make(0.9f, (t, r) => (Noise(r) * Env(t, 0.015f) * 0.7f + Mathf.Sin(t * Mathf.Tau * 1175) * Env(t - 0.06f, 0.3f) * Step(t, 0.06f) * 0.4f));
         _clips["paper"] = Make(0.4f, (t, r) => Noise(r) * Mathf.Sin(Mathf.Pi * t / 0.4f) * (0.5f + 0.5f * Mathf.Sin(t * 90)) * 0.35f, highpass: true);
 
+        // Air-raid siren: the rising and falling wail of the alert, and the steady note of the all-clear.
+        _clips["siren"] = Make(7f, (t, r) =>
+        {
+            float phase = Mathf.Tau * 480 * t - 210 * Mathf.Cos(Mathf.Tau * t / 3.5f);
+            float env = Mathf.Clamp(t / 1.2f, 0, 1) * Mathf.Clamp((7 - t) / 1.5f, 0, 1);
+            return (Mathf.Sin(phase) * 0.6f + Mathf.Sin(phase * 2) * 0.18f + Mathf.Sin(phase * 3) * 0.08f) * env * 0.35f;
+        });
+        _clips["allclear"] = Make(4f, (t, r) =>
+        {
+            float env = Mathf.Clamp(t / 0.8f, 0, 1) * Mathf.Clamp((4 - t) / 1.2f, 0, 1);
+            float ph = Mathf.Tau * 640 * t;
+            return (Mathf.Sin(ph) * 0.6f + Mathf.Sin(ph * 2) * 0.15f) * env * 0.3f;
+        });
         _clips["room"] = Loop(6f, RoomTone);
         _clips["teleprinter"] = Loop(3f, Teleprinter);
         _clips["hum"] = Loop(2f, BombeHum);

@@ -107,6 +107,7 @@ public sealed partial class GameState
         MoveStaff(dt);
         WorkStations(dt);
         TickRemote();
+        TickRaids();
 
         if (Now >= NextScheduleAt)
         {
@@ -123,6 +124,7 @@ public sealed partial class GameState
     {
         RecordDay();
         RollWeather();
+        PlanRaid();
         DailyPeople();
         DailyIntelligence();
         foreach (var k in Flows.Keys.ToList())
@@ -338,7 +340,7 @@ public sealed partial class GameState
             }
 
             if (st.Wears && WearAndMaybeBreak(st, dt)) { ReleaseOperator(st); continue; }
-            st.WorkDone += dt * op.WorkRate;
+            st.WorkDone += dt * op.WorkRate * RaidWorkFactor;
             st.LastWorked = Now;
             if (st.WorkDone >= st.WorkTotal)
             {

@@ -725,3 +725,32 @@ public class BilletTests
         Assert.True(copy.Billets >= 27);
     }
 }
+
+public class RaidTests
+{
+    [Fact]
+    public void TheNovember1940BombsFallAndRaidsSlowTheDesks()
+    {
+        var g = GameState.NewGame(19);
+        g.ActDate = new DateOnly(1940, 11, 19);
+        bool sawRaid = false;
+        for (int i = 0; i < 2 * 24 * 4; i++)
+        {
+            g.Advance(15);
+            if (g.RaidOn) { sawRaid = true; Assert.Equal(Defs.RaidWorkRate, g.RaidWorkFactor); }
+        }
+        Assert.True(sawRaid);
+        Assert.Contains("bombs1940", g.Stats.ScriptedDone);
+        Assert.Contains(g.Events, e => e.Text.Contains("stray stick"));
+        Assert.False(g.RaidOn);
+        Assert.Equal(1, g.RaidWorkFactor);
+    }
+
+    [Fact]
+    public void NoRaidsOutsideTheBlitz()
+    {
+        var g = GameState.NewGame(19);
+        g.ActDate = new DateOnly(1942, 6, 1);
+        for (int i = 0; i < 20; i++) { g.Advance(Defs.MinutesPerDay); Assert.False(g.RaidOn); Assert.True(g.NextRaidAt < 0); }
+    }
+}

@@ -178,6 +178,7 @@ public partial class Hud : CanvasLayer
             : m < 9 * 60 ? "night watch" : m < 16 * 60 ? "day watch" : "evening watch";
         string mode = S.Mode == GameMode.FreePlay ? " · free play" : "";
         string sky = S.Weather switch { Weather.Fine => "fine", Weather.Overcast => "overcast", Weather.Rain => "rain", Weather.Fog => "fog", Weather.Snow => "snow", _ => "gale" };
+        if (S.RaidOn) sky += " · AIR RAID";
         _time.Text = $"{m / 60:00}:{m % 60:00} · {sky} · {shift} · {S.OnDutyCount}/{S.Staff.Count} on duty{mode}";
         _pauseBtn.SetPressedNoSignal(_main.Paused);
         _flowBtn.SetPressedNoSignal(_main.ShowFlows);
