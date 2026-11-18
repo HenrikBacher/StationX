@@ -653,3 +653,23 @@ public class ExperienceTests
         Assert.Equal(3, s.Skill);
     }
 }
+
+public class ScoreTests
+{
+    [Fact]
+    public void ScoreRewardsDeliveryAndSpeedAndHonoursAreOrdered()
+    {
+        var g = GameState.NewGame(16);
+        int baseline = g.Score();
+        g.Stats.DeliveredTotal += 100;
+        Assert.Equal(baseline + 1000, g.Score());
+        g.Stats.ContractsFailed += 1;
+        Assert.Equal(baseline + 920, g.Score());
+        var hard = GameState.NewGame(16, Difficulty.Hard);
+        hard.Stats.DeliveredTotal = 100;
+        var easy = GameState.NewGame(16, Difficulty.Easy);
+        easy.Stats.DeliveredTotal = 100;
+        Assert.True(hard.Score() > easy.Score());
+        Assert.Equal(GameState.Honours.OrderBy(h => h.min).Select(h => h.min), GameState.Honours.Select(h => h.min));
+    }
+}

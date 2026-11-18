@@ -174,6 +174,18 @@ public partial class Hud
             $"Requests completed: {S.Stats.ContractsCompleted} · missed: {S.Stats.ContractsFailed}\n" +
             $"Staff at the end: {S.Staff.Count}\n" +
             (S.TonnageLost > 0 ? $"Shipping lost during the SHARK blackout: {S.TonnageLost:N0} tons" : ""), 14));
+        if (S.Mode == GameMode.Campaign)
+        {
+            int score = S.Score();
+            var (honour, citation) = S.Honour();
+            int previous = Records.Submit(S.Difficulty, score);
+            string best = score > previous && previous > 0 ? $"A new best on {Defs.Difficulties[S.Difficulty].Name} (was {previous:N0})."
+                        : previous > 0 ? $"Best on {Defs.Difficulties[S.Difficulty].Name}: {previous:N0}." : "";
+            v.AddChild(new HSeparator());
+            v.AddChild(Ink($"Score {score:N0}", 22, Fonts.Heading));
+            v.AddChild(Ink(won ? honour : "No honours", 18, Fonts.Heading, UiTheme.Stamp));
+            v.AddChild(Ink((won ? citation : "Lost campaigns score half.") + (best != "" ? "  " + best : ""), 13));
+        }
         var row = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.End };
         row.AddThemeConstantOverride("separation", 12);
         if (won && S.CanContinue)

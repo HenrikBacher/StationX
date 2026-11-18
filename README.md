@@ -83,6 +83,8 @@ Godot lives in `~/.local/opt/godot/` and is linked as `~/.local/bin/godot`. Expo
 
 A **Needs attention** list under the Enigma keys shows broken or badly worn machines, freezing huts, unanswered flash requests, an overdraft, and desks nobody on the staff can work. Click one to go to it.
 
+At the end of a campaign you get a **score** (decrypts, requests, reputation and speed, less missed deadlines and shipping lost; ×0.75 on Easy, ×1.4 on Hard) and an honour, from "Thanked by the Director" to Churchill's "geese that laid the golden eggs". The best score on each difficulty is kept in `user://records.cfg`.
+
 The game autosaves every morning. It also has three save slots and a quicksave.
 
 ### Controls

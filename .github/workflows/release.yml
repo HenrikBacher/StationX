@@ -72,6 +72,7 @@ jobs:
           shot staff --days=16 --hour=11 --panel=staff
           shot winter --days=80 --hour=10 --zoom=1.5 --center=26,6
           shot alerts --days=30 --hour=11 --breakdown
+          shot end --days=3 --modal=end
           ls -l shots
 
       - uses: actions/upload-artifact@v4

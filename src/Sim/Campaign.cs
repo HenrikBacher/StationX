@@ -600,6 +600,36 @@ public sealed partial class GameState
     }
 
     /// <summary>Called by the UI after the player has read the act summary.</summary>
+    /// <summary>The campaign score: what was delivered, how fast, and at what cost.</summary>
+    public int Score()
+    {
+        double s = Stats.DeliveredTotal * 10
+                   + Stats.ContractsCompleted * 50
+                   - Stats.ContractsFailed * 80
+                   + Reputation * 20
+                   + Math.Max(0, 120 - Day) * 25
+                   - TonnageLost / 1000;
+        double mult = Difficulty switch { Difficulty.Easy => 0.75, Difficulty.Hard => 1.4, _ => 1.0 };
+        return Status == GameStatus.Lost ? (int)Math.Max(0, s * mult * 0.5) : (int)Math.Max(0, s * mult);
+    }
+
+    public static readonly (int min, string honour, string citation)[] Honours =
+    {
+        (0, "Thanked by the Director", "Commander Denniston thanks you for your efforts."),
+        (5000, "Mentioned in despatches", "Your name appears, briefly, in a report nobody outside the Park will read for thirty years."),
+        (8000, "MBE", "Member of the Order of the British Empire, for services that cannot be described."),
+        (11000, "OBE", "Officer of the Order of the British Empire, like Turing and Welchman."),
+        (14000, "CBE", "Commander of the Order of the British Empire. The citation says only 'Foreign Office'."),
+        (17000, "The geese that laid the golden eggs", "Churchill's own words for the Park, and for you: 'and never cackled'."),
+    };
+
+    public (string honour, string citation) Honour()
+    {
+        int sc = Score();
+        var h = Honours.Last(x => sc >= x.min);
+        return (h.honour, h.citation);
+    }
+
     public void ContinueAfterAct()
     {
         if (!ActCompletePending) return;
