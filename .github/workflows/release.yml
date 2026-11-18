@@ -71,6 +71,7 @@ jobs:
           shot breakdown --days=30 --hour=11 --zoom=1.8 --breakdown --select=bombe
           shot staff --days=16 --hour=11 --panel=staff
           shot winter --days=80 --hour=10 --zoom=1.5 --center=26,6
+          shot alerts --days=30 --hour=11 --breakdown
           ls -l shots
 
       - uses: actions/upload-artifact@v4

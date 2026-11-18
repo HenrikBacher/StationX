@@ -80,6 +80,8 @@ Godot lives in `~/.local/opt/godot/` and is linked as `~/.local/bin/godot`. Expo
 - **Free play.** No objectives and no closure. Start at any chapter, with everything before it already built and researched. The war moves on every ten days.
 - **Difficulty.** Easy, Normal and Hard change starting funds, the grant, deadlines, how fast suspicion grows and how much a missed deadline costs.
 
+A **Needs attention** list under the Enigma keys shows broken or badly worn machines, freezing huts, unanswered flash requests, an overdraft, and desks nobody on the staff can work. Click one to go to it.
+
 The game autosaves every morning. It also has three save slots and a quicksave.
 
 ### Controls

@@ -55,7 +55,7 @@ public partial class Hud : CanvasLayer
 
     public void Reset()
     {
-        _objSig = _keySig = _sideSig = _inspSig = "";
+        _objSig = _keySig = _sideSig = _inspSig = _alertSig = "";
         foreach (var c in _feed?.GetChildren() ?? new Godot.Collections.Array<Node>()) c.QueueFree();
         ClosePanel();
         CloseModal();
@@ -73,6 +73,7 @@ public partial class Hud : CanvasLayer
         RefreshTopBar();
         RefreshObjectives();
         RefreshKeys();
+        RefreshAlerts();
         RefreshSidePanel();
         RefreshInspector();
         RefreshHints();
@@ -245,6 +246,7 @@ public partial class Hud : CanvasLayer
         _keyBox.AddThemeConstantOverride("separation", 5);
         keys.AddChild(_keyBox);
         col.AddChild(keys);
+        BuildAlerts(col);
     }
 
     void RefreshObjectives()

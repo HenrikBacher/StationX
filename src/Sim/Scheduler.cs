@@ -122,7 +122,7 @@ public sealed partial class GameState
     }
 
     /// <summary>False when everyone of the right role is pinned to other stations.</summary>
-    bool CanBeStaffed(Station st)
+    public bool CanBeStaffed(Station st)
     {
         if (st.Def.Operator is not Role role) return true;
         foreach (var s in Staff)
