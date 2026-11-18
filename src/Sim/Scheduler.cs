@@ -70,7 +70,8 @@ public sealed partial class GameState
         // 3. Messages sitting in out-trays that need carrying onwards.
         var waiting = Messages.Values
             .Where(m => m.Loc == Loc.Output && m.Next != null && !m.Reserved)
-            .OrderBy(m => ContractById(m.ContractId)?.Due ?? double.MaxValue)
+            .OrderBy(Rank)
+            .ThenBy(m => ContractById(m.ContractId)?.Due ?? double.MaxValue)
             .ThenBy(m => m.Id)
             .ToList();
         if (waiting.Count == 0) return;

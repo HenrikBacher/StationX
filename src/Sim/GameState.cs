@@ -387,12 +387,15 @@ public sealed partial class GameState
     int MostUrgent(List<int> tray)
     {
         int best = tray[0];
-        double bestDue = double.MaxValue;
+        (int, double) bestKey = (int.MaxValue, double.MaxValue);
         foreach (var id in tray)
         {
-            // Only live requests set the order: work for a request already missed or met waits until the rest is done.
-            double due = Messages.TryGetValue(id, out var m) && ContractById(m.ContractId) is { State: ContractState.Active } c ? c.Due : double.MaxValue;
-            if (due < bestDue) { bestDue = due; best = id; }
+            if (!Messages.TryGetValue(id, out var m)) continue;
+            // Networks put First come first; then only live requests set the order: work for a request already
+            // missed or met waits until the rest is done.
+            double due = ContractById(m.ContractId) is { State: ContractState.Active } c ? c.Due : double.MaxValue;
+            var key = (Rank(m), due);
+            if (key.CompareTo(bestKey) < 0) { bestKey = key; best = id; }
         }
         return best;
     }
@@ -831,6 +834,7 @@ public sealed partial class GameState
             var (net, day) = g.Key;
             if (KeyBroken(net, day)) { foreach (var m in g) m.Next = Defs.DecryptStep(net); continue; }
             if (KeyState(net, day) == KeyStatus.Attempting) continue;
+            if (KeyOrderOf(net) == KeyOrder.Hold) continue;
             var route = KeyRoute(net);
             if (route == null) continue;
             var carrier = g.OrderBy(m => m.Created).First();

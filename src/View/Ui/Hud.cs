@@ -299,7 +299,7 @@ public partial class Hud : CanvasLayer
         {
             int waiting = S.Messages.Values.Count(m => m.Net == n && m.Next == null);
             var state = S.KeyBroken(n, S.Day) ? "broken" : S.KeyState(n, S.Day).ToString();
-            return $"{n}:{state}:{waiting}:{S.KeyRouteProblem(n)}";
+            return $"{n}:{state}:{waiting}:{S.KeyRouteProblem(n)}:{S.KeyOrderOf(n)}";
         }).ToList();
         var sig = S.Day + "|" + string.Join(";", lines);
         if (sig == _keySig) return;
@@ -329,6 +329,7 @@ public partial class Hud : CanvasLayer
             if (free) { status = "Pinched keys: readable"; col = Gfx.Good; }
             else if (S.KeyState(n, S.Day) == KeyStatus.Broken) { status = "Today's key broken"; col = Gfx.Good; }
             else if (S.KeyState(n, S.Day) == KeyStatus.Attempting) { status = "Breaking today's key…"; col = Gfx.Warn; }
+            else if (S.KeyOrderOf(n) == KeyOrder.Hold) { status = "On hold: not attempted"; col = Gfx.Warn; }
             else if (S.KeyRouteProblem(n) is string prob) { status = prob; col = Gfx.Bad; }
             else { status = "Waiting for today's first message"; col = UiTheme.TextDim; }
             texts.AddChild(UiTheme.Label(status, 12, col));
@@ -348,6 +349,21 @@ public partial class Hud : CanvasLayer
                 w.TooltipText = "Registered messages waiting for their day's key";
                 w.MouseFilter = Control.MouseFilterEnum.Pass;
                 row.AddChild(w);
+            }
+            if (!free)
+            {
+                var order = S.KeyOrderOf(n);
+                var net = n;
+                var ob = UiTheme.Button(order switch { KeyOrder.First => "First", KeyOrder.Hold => "Hold", _ => "Normal" },
+                    () => { S.SetKeyOrder(net, GameState.NextOrder(S.KeyOrderOf(net))); _keySig = ""; },
+                    tooltip: "Bombe time is short. First: this key jumps the queue at crib desks and Bombes, and its traffic is carried first.\n" +
+                             "Hold: don't attempt this key; its traffic waits and the Bombes work for the others.\nClick to change.");
+                ob.CustomMinimumSize = new Vector2(64, 26);
+                ob.AddThemeFontSizeOverride("font_size", 11);
+                if (order == KeyOrder.First) ob.AddThemeColorOverride("font_color", Gfx.Good);
+                if (order == KeyOrder.Hold) ob.AddThemeColorOverride("font_color", Gfx.Warn);
+                ob.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
+                row.AddChild(ob);
             }
             _keyBox.AddChild(row);
         }

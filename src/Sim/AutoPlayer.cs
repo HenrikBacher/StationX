@@ -138,6 +138,12 @@ public sealed class AutoPlayer
                 : 1;
             g.ResolveDilemma(d.Id, pick);
         }
+        // What the key-priority tip teaches: when keys queue for the Bombes, the most pressing request's network goes first.
+        foreach (var n in g.KeyOrders.Keys.ToList()) g.SetKeyOrder(n, KeyOrder.Normal);
+        if (g.KeysQueueing &&
+            g.Contracts.Where(c => c.State == ContractState.Active && Defs.NetOf(c.Net).Family != Family.Hand && !g.KeyBroken(c.Net, g.Day))
+                       .OrderBy(c => c.Due).FirstOrDefault() is { } urgent)
+            g.SetKeyOrder(urgent.Net, KeyOrder.First);
         if (g.MaxSuspicion > 60) g.SetPolicy(Policy.Cautious);
         else if (g.MaxSuspicion < 30) g.SetPolicy(Policy.Standard);
         // Stations the act's goals ask for come first; save up for them rather than spend elsewhere.

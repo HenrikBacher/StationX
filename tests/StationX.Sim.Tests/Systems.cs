@@ -1338,3 +1338,37 @@ public class WarMapTests
         Assert.Equal(g.OperationFor(c.Id)!.Name, back.OperationFor(c.Id)!.Name);
     }
 }
+
+public class KeyOrderTests
+{
+    [Fact]
+    public void HeldKeysAreNotAttempted()
+    {
+        var g = TestUtil.BombeLine(12, checking: true);
+        g.SetKeyOrder(Net.Red, KeyOrder.Hold);
+        g.AddScripted(Net.Red, 4, 4, 0, 0, "t", "t", "t");
+        TestUtil.Run(g, 0.6);
+        Assert.Equal(KeyStatus.None, g.KeyState(Net.Red, g.Day));
+        Assert.Equal(0, Stats.Get(g.Stats.KeyBreaks, Net.Red));
+        g.SetKeyOrder(Net.Red, KeyOrder.Normal);
+        Assert.Empty(g.KeyOrders);
+        TestUtil.Run(g, 1.5);
+        Assert.True(Stats.Get(g.Stats.KeyBreaks, Net.Red) > 0);
+    }
+
+    [Fact]
+    public void FirstJumpsTheBombeQueue()
+    {
+        // Two networks' key attempts sit in one Bombe's tray: the one put First is run first,
+        // even though the other's request is due sooner.
+        var g = TestUtil.BombeLine(12, checking: true);
+        var bombe = g.Stations.First(s => s.Type == StationType.Bombe);
+        var a = new Message { Id = g.NextId++, Net = Net.Red, Day = g.Day, Carrier = true, Loc = Loc.Input, LocId = bombe.Id, Next = StationType.Bombe };
+        var b = new Message { Id = g.NextId++, Net = Net.LightBlue, Day = g.Day, Carrier = true, Loc = Loc.Input, LocId = bombe.Id, Next = StationType.Bombe };
+        g.Messages[a.Id] = a; g.Messages[b.Id] = b;
+        bombe.Input.Add(a.Id); bombe.Input.Add(b.Id);
+        g.SetKeyOrder(Net.LightBlue, KeyOrder.First);
+        for (int i = 0; i < 200 && bombe.Current == null; i++) g.Advance(1);
+        Assert.Equal(b.Id, bombe.Current);
+    }
+}
