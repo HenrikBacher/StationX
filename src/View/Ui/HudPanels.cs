@@ -240,7 +240,7 @@ public partial class Hud
             _sideBox.AddChild(head);
             foreach (var p in people)
             {
-                string doing = p.Arriving(S.Now) ? "arriving" : p.IsSick(S.Now) ? "off sick" : p.Away ? "off watch"
+                string doing = p.Arriving(S.Now) ? "arriving" : p.IsSick(S.Now) ? (p.OffReason switch { "leave" => "on leave", "breakdown" => "broken down", _ => "off sick" }) : p.Away ? "off watch"
                     : p.HeadOf != null && p.Task == null ? $"head of {S.Grid.Zone(p.HeadOf)?.Name}" : p.Task?.Kind switch
                 {
                     null => "idle",
@@ -444,7 +444,7 @@ public partial class Hud
 
         string sig = st != null
             ? $"st{st.Id}{st.Input.Count}{st.Output.Count}{st.OperatorId}{st.OperatorPresent}{st.Current}{(int)(st.Progress * 20)}{st.PendingRemoval}{st.X},{st.Y}|{string.Join(",", S.PinnedTo(st.Id).Select(p => p.Id))}|{S.Funds >= Defs.MoveCost}|{(int)(st.Wear * 20)}{st.IsDown(S.Now)}{S.Funds >= Defs.ServiceCost}|{(st.Receives == null ? "all" : string.Join(",", st.Receives))}{S.ActiveNets.Count}"
-            : sf != null ? $"sf{sf.Id}{sf.Task?.Kind}{sf.Task?.Dest}{sf.Leaving}{sf.Decrypts}{sf.Away}{sf.IsSick(S.Now)}{sf.Shift}{sf.Pinned}{sf.Posted}{sf.HeadOf}{S.Grid.Zones.Count(z => z.Unlocked)}{(int)(sf.Energy * 10)}{(int)(sf.Morale * 10)}{sf.CarelessKnown}{(int)(sf.Experience / 60)}{sf.Skill}"
+            : sf != null ? $"sf{sf.Id}{sf.Task?.Kind}{sf.Task?.Dest}{sf.Leaving}{sf.Decrypts}{sf.Away}{sf.IsSick(S.Now)}{sf.Shift}{sf.Pinned}{sf.Posted}{sf.HeadOf}{S.Grid.Zones.Count(z => z.Unlocked)}{(int)(sf.Energy * 10)}{(int)(sf.Morale * 10)}{(int)(sf.Strain * 10)}{sf.Rival}{(sf.Rival != null && S.WithRival(sf))}{sf.OffReason}{sf.CarelessKnown}{(int)(sf.Experience / 60)}{sf.Skill}"
             : $"z{z!.Id}{z.Unlocked}{S.Funds >= z.Cost}{S.ColdZones()?.Contains(z.Id)}";
         if (sig == _inspSig) return;
         _inspSig = sig;
@@ -600,7 +600,7 @@ public partial class Hud
             var l = UiTheme.Label($"{td.Name}: {td.Blurb}", 12, td.Good ? UiTheme.Accent : Gfx.Bad);
             _inspBox.AddChild(l);
         }
-        string doing = s.Arriving(S.Now) ? $"On the way: vetting and the train to Bletchley. Reports in about {Math.Max(1, Math.Round((s.ArrivesAt - S.Now) / 60))} h" : s.IsSick(S.Now) ? $"Off sick: back in about {Math.Max(1, Math.Round((s.SickUntil - S.Now) / Defs.MinutesPerDay))} days" : s.Away ? $"Off watch, back at the billets until {Defs.Shifts[s.Shift].StartHour:00}:00" : s.Task switch
+        string doing = s.Arriving(S.Now) ? $"On the way: vetting and the train to Bletchley. Reports in about {Math.Max(1, Math.Round((s.ArrivesAt - S.Now) / 60))} h" : s.IsSick(S.Now) ? $"{(s.OffReason switch { "leave" => "On leave", "breakdown" => "Sent home after a breakdown", _ => "Off sick" })}: back in about {Math.Max(1, Math.Round((s.SickUntil - S.Now) / Defs.MinutesPerDay))} days" : s.Away ? $"Off watch, back at the billets until {Defs.Shifts[s.Shift].StartHour:00}:00" : s.Task switch
         {
             { Kind: TaskKind.Operate } t => $"Working at the {S.StationById(t.Dest)?.Def.Name.ToLowerInvariant()}",
             { Kind: TaskKind.Carry, Phase: 0 } => "Fetching messages",
@@ -612,14 +612,21 @@ public partial class Hud
         _inspBox.AddChild(UiTheme.Label(doing, 13));
         var bars = new GridContainer { Columns = 2 };
         bars.AddThemeConstantOverride("h_separation", 8);
-        foreach (var (what, val) in new[] { ("Energy", s.Energy), ("Morale", s.Morale) })
+        foreach (var (what, val) in new[] { ("Energy", s.Energy), ("Morale", s.Morale), ("Nerves", 1 - s.Strain) })
         {
+            if (what == "Nerves" && s.Strain < 0.15) continue;
             bars.AddChild(UiTheme.Label(what, 12, UiTheme.TextDim, wrap: false));
             var pb = new ProgressBar { MinValue = 0, MaxValue = 1, Value = val, ShowPercentage = false, CustomMinimumSize = new Vector2(200, 8), SizeFlagsVertical = Control.SizeFlags.ShrinkCenter };
             pb.AddThemeStyleboxOverride("fill", UiTheme.Box(val < 0.25 ? Gfx.Bad : val < 0.5 ? Gfx.Warn : Gfx.Good, new Color(0, 0, 0, 0), 2, 0));
             bars.AddChild(pb);
         }
         _inspBox.AddChild(bars);
+        if (s.Strain >= 0.15)
+            _inspBox.AddChild(UiTheme.Label(s.Strain >= Defs.StrainWarnAt ? "Close to breaking down: give them easier days or send them on leave."
+                                            : "Strain builds on days they end exhausted and eases on easier ones.", 11, s.Strain >= Defs.StrainWarnAt ? Gfx.Bad : UiTheme.TextDim));
+        if (s.Rival is int rid && S.StaffById(rid) is { } rival)
+            _inspBox.AddChild(UiTheme.Label($"Has fallen out with {rival.Name}{(S.WithRival(s) ? ": in the same room now, both are slower and grumpier." : ". Keep them in different rooms.")}", 12,
+                                            S.WithRival(s) ? Gfx.Bad : Gfx.Warn));
         var id = s.Id;
         if (S.WatchesAvailable)
         {

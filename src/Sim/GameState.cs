@@ -369,7 +369,7 @@ public sealed partial class GameState
 
             if (st.Wears && WearAndMaybeBreak(st, dt)) { ReleaseOperator(st); continue; }
             double head = headed.Count > 0 && Grid.ZoneAt(st.X, st.Y) is { } hz && headed.Contains(hz) ? Defs.HeadBonus : 1;
-            st.WorkDone += dt * op.WorkRate * RaidWorkFactor * head * OvertimeFactor;
+            st.WorkDone += dt * op.WorkRate * RaidWorkFactor * head * OvertimeFactor * RivalryFactor(op, dt);
             st.LastWorked = Now;
             if (st.WorkDone >= st.WorkTotal)
             {

@@ -144,6 +144,16 @@ public sealed class AutoPlayer
             g.Contracts.Where(c => c.State == ContractState.Active && Defs.NetOf(c.Net).Family != Family.Hand && !g.KeyBroken(c.Net, g.Day))
                        .OrderBy(c => c.Due).FirstOrDefault() is { } urgent)
             g.SetKeyOrder(urgent.Net, KeyOrder.First);
+        // What the rivalry message says: post one of a feuding pair to another building with work for them.
+        foreach (var a in g.Staff.Where(x => x.Rival != null && x.Posted == null && g.WithRival(x)).ToList())
+        {
+            var rival = g.StaffById(a.Rival!.Value);
+            var here = rival != null ? g.Grid.ZoneAt(rival.TilePos.x, rival.TilePos.y)?.Id : null;
+            var other = g.Stations.Where(st => st.Def.Operator == a.Role && !st.Obsolete)
+                .Select(st => g.Grid.ZoneAt(st.X, st.Y)?.Id).FirstOrDefault(z => z != null && z != here);
+            if (other != null) g.Post(a.Id, other);
+        }
+        foreach (var a in g.Staff.Where(x => x.Rival == null && x.Posted != null)) g.Post(a.Id, null);
         if (g.MaxSuspicion > 60) g.SetPolicy(Policy.Cautious);
         else if (g.MaxSuspicion < 30) g.SetPolicy(Policy.Standard);
         // Stations the act's goals ask for come first; save up for them rather than spend elsewhere.

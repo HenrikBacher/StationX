@@ -150,6 +150,16 @@ public sealed class Staff
     /// <summary>Worked in a freezing hut today (reset each midnight).</summary>
     public bool Chilled { get; set; }
     public bool IsSick(double now) => SickUntil > now;
+    /// <summary>Why they're away from the Park while SickUntil runs: null for illness, or "leave" / "breakdown".</summary>
+    public string? OffReason { get; set; }
+    /// <summary>Strain built up over days of exhaustion (0 to 1). Near the top they risk breaking down.</summary>
+    public double Strain { get; set; }
+    /// <summary>The lowest energy reached today; feeds strain at midnight.</summary>
+    public double LowToday { get; set; } = 1;
+    public bool StrainWarned { get; set; }
+    /// <summary>Someone they've fallen out with; both work worse in the same room. Ends on RivalUntilDay.</summary>
+    public int? Rival { get; set; }
+    public int RivalUntilDay { get; set; }
     /// <summary>A new recruit still being vetted and on the train to Bletchley; 0 once they've arrived.</summary>
     public double ArrivesAt { get; set; }
     public bool Arriving(double now) => ArrivesAt > now;

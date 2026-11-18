@@ -1412,3 +1412,50 @@ public class CrisisTests
         Assert.False(g.Overtime);
     }
 }
+
+public class StoryTests
+{
+    [Fact]
+    public void StrainWarnsThenRestHelps()
+    {
+        var g = TestUtil.BombeLine(12, checking: true);
+        var s = g.Staff.First(x => x.Role == Role.Cryptanalyst);
+        s.Strain = 0.7;
+        s.LowToday = 0.05;
+        g.Advance(Defs.MinutesPerDay - g.MinuteOfDay + 1);
+        var d = g.Dilemmas.Single(x => x.StaffId == s.Id);
+        Assert.True(s.StrainWarned);
+        g.ResolveDilemma(d.Id, 0);
+        Assert.True(s.IsSick(g.Now));
+        Assert.Equal("leave", s.OffReason);
+        Assert.True(s.Strain < 0.5);
+    }
+
+    [Fact]
+    public void KeptOnTheyBreakDown()
+    {
+        var g = TestUtil.BombeLine(12, checking: true);
+        var s = g.Staff.First(x => x.Role == Role.Cryptanalyst);
+        s.StrainWarned = true;
+        for (int day = 0; day < 20 && s.OffReason != "breakdown"; day++)
+        {
+            s.Strain = 0.95; s.LowToday = 0.05;
+            g.Advance(Defs.MinutesPerDay);
+            g.Dilemmas.Clear();
+        }
+        Assert.Equal("breakdown", s.OffReason);
+        Assert.True(s.SickUntil - g.Now > (Defs.BreakdownDays - 1.1) * Defs.MinutesPerDay);
+    }
+
+    [Fact]
+    public void RivalsInOneRoomWorkSlower()
+    {
+        var g = TestUtil.BombeLine(12, checking: true);
+        var a = TestUtil.Add(g, Role.Cryptanalyst, 21.5, 4.5);
+        var b = TestUtil.Add(g, Role.Cryptanalyst, 22.5, 4.5);
+        a.Rival = b.Id; b.Rival = a.Id; a.RivalUntilDay = b.RivalUntilDay = g.Day + 30;
+        Assert.True(g.WithRival(a));
+        b.X = 4.5; b.Y = 4.5;   // across the Park in the Mansion
+        Assert.False(g.WithRival(a));
+    }
+}

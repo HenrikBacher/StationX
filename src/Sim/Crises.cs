@@ -108,10 +108,15 @@ public sealed partial class GameState
         }
     }
 
-    void CrisisAction(string action)
+    void CrisisAction(string action, Dilemma d)
     {
+        var who = d.StaffId is int sid ? StaffById(sid) : null;
         switch (action)
         {
+            case "rest" when who != null:
+                SendOff(who, Defs.RestLeaveDays, "leave");
+                who.Strain = 0.2;
+                break;
             case "generator" when PowerCut:
                 Generator = true;
                 break;

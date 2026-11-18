@@ -129,6 +129,10 @@ public static class Defs
     public const double CrisisChance = 0.07;            // per day, scaled by difficulty's wear multiplier
     public const int GeneratorCost = 250, OvertimeCost = 200;
     public const double OvertimeRate = 1.25, OvertimeDrain = 1.35, OvertimeMorale = -0.06, OvertimeDays = 2;
+    // Burnout: strain rises on days someone ends exhausted, falls on easy days.
+    public const double StrainWarnAt = 0.75, StrainBreakChance = 0.3, RestLeaveDays = 4, BreakdownDays = 10;
+    // Rivalries between cryptanalysts working in the same room.
+    public const double RivalChance = 0.025, RivalWorkRate = 0.85, RivalMoralePerMinute = 0.00006;
     public const double CrowdSlow = 0.15;
     public const double CrowdFloor = 0.6;
 

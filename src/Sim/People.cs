@@ -93,6 +93,7 @@ public sealed partial class GameState
                 if (Overtime) drain *= Defs.OvertimeDrain;
                 if (night && s.Has(Trait.NightOwl)) drain *= 0.67;
                 s.Energy = Math.Max(0, s.Energy - drain * dt);
+                if (s.Energy < s.LowToday) s.LowToday = s.Energy;
                 if (s.Energy < Defs.Exhausted) s.Morale = Math.Max(0, s.Morale - 0.0004 * dt);
             }
 
@@ -308,6 +309,7 @@ public sealed partial class GameState
                        * (s.Energy < 0.3 ? Defs.SickTiredMult : 1);
             if (!Rng.Chance(p)) continue;
             s.SickUntil = Now + Rng.Range(2.0, 5.0) * (bay ? Defs.SickBayDuration : 1) * Defs.MinutesPerDay;
+            s.OffReason = null;
             fallen.Add(s);
         }
         if (fallen.Count == 1)
@@ -322,6 +324,8 @@ public sealed partial class GameState
         MaybeCallUp();
         MaybeRuthless();
         SpreadIllness();
+        DailyStrain();
+        DailyRivalries();
         AssignBillets();
         var headed = HeadedZones();
         if (headed.Count > 0)
