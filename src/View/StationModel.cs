@@ -538,7 +538,7 @@ public partial class StationModel : Node3D
             Mesh3.Box(_fault, new Vector3(0.34f, 0.14f, 0.16f), new Vector3(-0.35f, 0.07f, 0.75f), new Color("7a2e22"));
             Mesh3.Box(_fault, new Vector3(0.22f, 0.03f, 0.03f), new Vector3(-0.35f, 0.17f, 0.75f), new Color("2a2622"));
             for (int i = 0; i < 4; i++)
-                _smoke.Add(Mesh3.Sphere(_fault, 0.12f, new Vector3(0, top, 0), new Color(0.32f, 0.31f, 0.3f)));
+                _smoke.Add(Mesh3.Sphere(_fault, 0.17f, new Vector3(0, top, 0), new Color(0.62f, 0.6f, 0.57f)));
         }
         _fault.Visible = true;
         bool broken = down && !st.Servicing;
@@ -556,8 +556,8 @@ public partial class StationModel : Node3D
             if (!broken) continue;
             float t = (_time * 0.5f + i / (float)_smoke.Count) % 1f;
             puff.Position = new Vector3(-0.1f + Mathf.Sin(t * 5 + i) * 0.15f, top2 + t * 1.4f, 0.1f * i - 0.15f);
-            puff.Scale = Vector3.One * (0.5f + t * 1.6f);
-            puff.Transparency = t;
+            puff.Scale = Vector3.One * (0.6f + t * 2.2f);
+            puff.Transparency = 0.15f + 0.85f * t * t;
         }
     }
 

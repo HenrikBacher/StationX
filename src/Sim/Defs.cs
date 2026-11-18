@@ -104,6 +104,9 @@ public static class Defs
     public const double GrantPerRep = 7;
     /// <summary>Whitehall gets used to miracles: reputation slips this much a day, plus a bit more each act.</summary>
     public const double ExpectationBase = 0.5;
+    /// <summary>Above this balance at the weekly accounts, the Treasury claws back part of the grant.</summary>
+    public const int TreasuryComfortable = 2500;
+    public const double TreasuryClawback = 0.4;
     public const double ExpectationPerAct = 0.2;
     public const double SellRefund = 0.5;
     public const int MaxOffers = 3;

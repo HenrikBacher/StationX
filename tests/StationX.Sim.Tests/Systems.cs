@@ -591,3 +591,18 @@ public class WinterTests
         Assert.Null(g.ColdZones());
     }
 }
+
+public class TreasuryTests
+{
+    [Fact]
+    public void HoardingCostsPartOfTheGrant()
+    {
+        var g = GameState.NewGame(12);
+        g.Funds = 1000;
+        Assert.Equal(0, g.TreasuryCut(g.WeeklyGrant));
+        g.Funds = Defs.TreasuryComfortable + 1000;
+        Assert.Equal((int)(1000 * Defs.TreasuryClawback), g.TreasuryCut(10000));
+        g.Funds = 100000;
+        Assert.Equal(g.WeeklyGrant, g.TreasuryCut(g.WeeklyGrant));
+    }
+}

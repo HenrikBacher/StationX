@@ -234,11 +234,22 @@ public sealed partial class GameState
     void WeeklyAccounts()
     {
         int grant = WeeklyGrant, wages = WeeklyWages, upkeep = WeeklyUpkeep;
+        int cut = TreasuryCut(grant);
+        if (cut > 0)
+        {
+            grant -= cut;
+            Emit(EventKind.Bad, $"The Treasury notices GC&CS's healthy balance and trims this week's grant by £{cut}. Money in the bank is money not spent on the war.");
+        }
         Funds += grant - wages - upkeep;
         Emit(grant >= wages + upkeep ? EventKind.Info : EventKind.Bad,
             $"Weekly accounts: Treasury grant £{grant}, wages £{wages}, upkeep £{upkeep}." +
             (DailyExpectation > 0 ? " Whitehall expects more every month; reputation slips unless you keep delivering." : ""));
     }
+
+    /// <summary>How much of the grant the Treasury withholds because the balance is large. Never more than the grant.</summary>
+    public int TreasuryCut(int grant) =>
+        Mode == GameMode.FreePlay || Funds <= Defs.TreasuryComfortable ? 0
+        : (int)Math.Min(grant, (Funds - Defs.TreasuryComfortable) * Defs.TreasuryClawback);
 
     public int WeeklyWages => Staff.Sum(s => s.Salary);
     /// <summary>Reputation lost each morning, before difficulty: what have you done for us lately?</summary>
