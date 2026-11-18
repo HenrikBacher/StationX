@@ -248,7 +248,7 @@ public partial class Hud
                     _ => "running",
                 };
                 string shift = S.WatchesAvailable ? $" · {Defs.Shifts[p.Shift].Name.Split(' ')[0].ToLowerInvariant()}" : "";
-                string pin = p.Pinned != null ? " · 📌" : "";
+                string pin = (p.Pinned != null ? " · 📌" : "") + (p.Posted is string po && S.Grid.Zone(po) is { } pz ? $" · {pz.Name}" : "");
                 var b = UiTheme.Button($"{p.Name}   {Stars(p.Skill)}   {doing}{shift}{pin}",
                     () => { _main.Select(null, p.Id); if (!p.Away) _main.CenterOnTile((float)p.X, (float)p.Y); });
                 b.Alignment = HorizontalAlignment.Left;
@@ -441,8 +441,8 @@ public partial class Hud
         if (!_inspector.Visible) { _inspSig = ""; return; }
 
         string sig = st != null
-            ? $"st{st.Id}{st.Input.Count}{st.Output.Count}{st.OperatorId}{st.OperatorPresent}{st.Current}{(int)(st.Progress * 20)}{st.PendingRemoval}{st.X},{st.Y}|{string.Join(",", S.PinnedTo(st.Id).Select(p => p.Id))}|{S.Funds >= Defs.MoveCost}|{(int)(st.Wear * 20)}{st.IsDown(S.Now)}{S.Funds >= Defs.ServiceCost}"
-            : sf != null ? $"sf{sf.Id}{sf.Task?.Kind}{sf.Task?.Dest}{sf.Leaving}{sf.Decrypts}{sf.Away}{sf.IsSick(S.Now)}{sf.Shift}{sf.Pinned}{sf.HeadOf}{S.Grid.Zones.Count(z => z.Unlocked)}{(int)(sf.Energy * 10)}{(int)(sf.Morale * 10)}{sf.CarelessKnown}{(int)(sf.Experience / 60)}{sf.Skill}"
+            ? $"st{st.Id}{st.Input.Count}{st.Output.Count}{st.OperatorId}{st.OperatorPresent}{st.Current}{(int)(st.Progress * 20)}{st.PendingRemoval}{st.X},{st.Y}|{string.Join(",", S.PinnedTo(st.Id).Select(p => p.Id))}|{S.Funds >= Defs.MoveCost}|{(int)(st.Wear * 20)}{st.IsDown(S.Now)}{S.Funds >= Defs.ServiceCost}|{(st.Receives == null ? "all" : string.Join(",", st.Receives))}{S.ActiveNets.Count}"
+            : sf != null ? $"sf{sf.Id}{sf.Task?.Kind}{sf.Task?.Dest}{sf.Leaving}{sf.Decrypts}{sf.Away}{sf.IsSick(S.Now)}{sf.Shift}{sf.Pinned}{sf.Posted}{sf.HeadOf}{S.Grid.Zones.Count(z => z.Unlocked)}{(int)(sf.Energy * 10)}{(int)(sf.Morale * 10)}{sf.CarelessKnown}{(int)(sf.Experience / 60)}{sf.Skill}"
             : $"z{z!.Id}{z.Unlocked}{S.Funds >= z.Cost}{S.ColdZones()?.Contains(z.Id)}";
         if (sig == _inspSig) return;
         _inspSig = sig;
@@ -454,6 +454,29 @@ public partial class Hud
         if (st != null) InspectStation(st);
         else if (sf != null) InspectStaff(sf);
         else InspectZone(z!);
+    }
+
+    /// <summary>Which networks' intercepts come in on this teleprinter. Unrouted networks go to any teleprinter.</summary>
+    void InspectTeleprinter(Station st)
+    {
+        var nets = Enum.GetValues<Net>().Where(n => S.ActiveNets.Contains(n) || st.Receives?.Contains(n) == true).ToList();
+        if (nets.Count == 0) return;
+        _inspBox.AddChild(UiTheme.Label(st.Receives == null ? "Receives every network. Untick one to send it to another teleprinter." : "Receives:", 12, UiTheme.TextDim));
+        var grid = new GridContainer { Columns = 3 };
+        int sid = st.Id;
+        foreach (var n in nets)
+        {
+            var cb = new CheckBox { Text = Defs.NetOf(n).Name, ButtonPressed = st.ReceivesNet(n), FocusMode = Control.FocusModeEnum.None };
+            cb.AddThemeFontSizeOverride("font_size", 12);
+            cb.AddThemeColorOverride("font_color", Gfx.NetColor(n));
+            var net = n;
+            cb.Toggled += on => { S.SetReceives(sid, net, on); _inspSig = ""; };
+            grid.AddChild(cb);
+        }
+        _inspBox.AddChild(grid);
+        int others = S.Stations.Count(x => x.Type == StationType.Inbox && x.Id != st.Id);
+        if (others == 0)
+            _inspBox.AddChild(UiTheme.Label("With one teleprinter everything comes in here anyway. Build another in a hut to split the traffic.", 11, UiTheme.TextDim));
     }
 
     void InspectStation(Station st)
@@ -523,6 +546,7 @@ public partial class Hud
             };
             _inspBox.AddChild(pick);
         }
+        if (st.Type == StationType.Inbox) InspectTeleprinter(st);
         if (st.Type == StationType.Inbox && S.Stations.Count(s => s.Type == StationType.Inbox) <= 1)
             return;
         var id2 = st.Id;
@@ -606,6 +630,21 @@ public partial class Hud
             }
             shift.ItemSelected += idx => { S.SetShift(id, (Shift)shift.GetItemId((int)idx)); _inspSig = ""; };
             _inspBox.AddChild(Row(UiTheme.Label("Watch", 12, UiTheme.TextDim), shift));
+        }
+        if (!s.Leaving && s.HeadOf == null)
+        {
+            // Posting: keep this person to one building. Messengers and anyone left on "anywhere" do the walking between.
+            var post = new OptionButton { FocusMode = Control.FocusModeEnum.None, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+            post.AddItem("Anywhere needed", -1);
+            var open = S.Grid.Zones.Where(z => z.Unlocked).ToList();
+            for (int i = 0; i < open.Count; i++)
+            {
+                post.AddItem(open[i].Name, i);
+                if (s.Posted == open[i].Id) post.Select(post.ItemCount - 1);
+            }
+            post.TooltipText = "Posted staff work, carry and wait only in that building.";
+            post.ItemSelected += idx => { int v = post.GetItemId((int)idx); S.Post(id, v < 0 ? null : open[v].Id); _inspSig = ""; };
+            _inspBox.AddChild(Row(UiTheme.Label("Posted to", 12, UiTheme.TextDim), post));
         }
         var stations = S.Stations.Where(st => st.Def.Operator == s.Role && !st.IsRest).ToList();
         if (stations.Count > 0)

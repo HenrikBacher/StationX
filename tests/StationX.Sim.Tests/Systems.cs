@@ -1257,3 +1257,52 @@ public class IndexTests
         Assert.True(Stats.Get(g.Stats.Delivered, Net.Red) > 0);
     }
 }
+
+public class PostingTests
+{
+    [Fact]
+    public void PostedStaffStayInTheirBuilding()
+    {
+        var g = TestUtil.BombeLine(12, checking: true);
+        var clerk = g.Staff.First(s => s.Role == Role.Clerk);
+        Assert.True(g.Post(clerk.Id, "hut6"));
+        Assert.False(g.Post(clerk.Id, "blockf"));   // not open
+        TestUtil.Add(g, Role.Messenger);
+        g.AddScripted(Net.Red, 8, 4, 0, 0, "t", "t", "t");
+        int outside = 0;
+        for (int t = 0; t < 3 * Defs.MinutesPerDay; t += 5)
+        {
+            g.Advance(5);
+            g.Events.Clear();
+            if (!clerk.Away && clerk.Task != null && clerk.Path.Count == 0 && g.Grid.ZoneAt(clerk.TilePos.x, clerk.TilePos.y)?.Id is string z && z != "hut6") outside++;
+        }
+        Assert.Equal(0, outside);
+        Assert.True(Stats.Get(g.Stats.Delivered, Net.Red) > 0, "the rest of the Park still gets RED through");
+        Assert.True(g.Post(clerk.Id, null));
+        Assert.Null(clerk.Posted);
+    }
+
+    [Fact]
+    public void TeleprintersTakeTheNetworksRoutedToThem()
+    {
+        var g = TestUtil.BombeLine(12, checking: true);
+        var hut6Tp = g.Place(StationType.Inbox, 28, 3, 0, free: true)!;
+        var mansionTp = g.Stations.First(s => s.Type == StationType.Inbox && s != hut6Tp);
+        foreach (var n in Enum.GetValues<Net>()) g.SetReceives(mansionTp.Id, n, n != Net.Red);
+        foreach (var n in Enum.GetValues<Net>()) g.SetReceives(hut6Tp.Id, n, n == Net.Red);
+        Assert.True(hut6Tp.ReceivesNet(Net.Red) && !hut6Tp.ReceivesNet(Net.Police));
+        g.AddScripted(Net.Red, 6, 4, 0, 0, "t", "t", "t");
+        g.AddScripted(Net.Police, 4, 4, 0, 0, "t", "t", "t");
+        TestUtil.Run(g, 0.5);
+        var red = g.Messages.Values.Where(m => m.Net == Net.Red).ToList();
+        var police = g.Messages.Values.Where(m => m.Net == Net.Police).ToList();
+        Assert.NotEmpty(red);
+        Assert.NotEmpty(police);
+        // Where each first came in: messages carry no history, so check none of the RED is in the Mansion teleprinter's tray.
+        Assert.DoesNotContain(mansionTp.Output, id => g.Messages[id].Net == Net.Red);
+        Assert.DoesNotContain(hut6Tp.Output, id => g.Messages[id].Net == Net.Police);
+        // Ticking every network back on means "everything" again.
+        foreach (var n in Enum.GetValues<Net>()) g.SetReceives(hut6Tp.Id, n, true);
+        Assert.Null(hut6Tp.Receives);
+    }
+}

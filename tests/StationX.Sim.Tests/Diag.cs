@@ -158,3 +158,30 @@ public class PileDiag(ITestOutputHelper output)
             output.WriteLine($"  {r}: {g.Staff.Count(s => s.Role == r)} idle {g.Staff.Count(s => s.Role == r && s.Idle)} away {g.Staff.Count(s => s.Role == r && s.Away)}");
     }
 }
+
+public class MoveDiag(ITestOutputHelper output)
+{
+    [Fact]
+    public void Moves()
+    {
+        if (Environment.GetEnvironmentVariable("SAVE") is not string save || Environment.GetEnvironmentVariable("MOVE") != "1") return;
+        var g = SaveGame.Load(File.ReadAllText(save));
+        var rooms = new Dictionary<int, HashSet<string>>();
+        var stillSince = new Dictionary<int, double>();
+        int delivered0 = g.Stats.DeliveredTotal;
+        for (int i = 0; i < 24 * 60; i++)
+        {
+            if (g.ActCompletePending) g.ContinueAfterAct();
+            g.Advance(1); g.Events.Clear();
+            foreach (var s in g.Staff.Where(s => !s.Away))
+            {
+                var r = g.Grid.RoomAt(s.TilePos.x, s.TilePos.y);
+                (rooms.TryGetValue(s.Id, out var set) ? set : rooms[s.Id] = new()).Add(r?.Name ?? (g.Grid.ZoneAt(s.TilePos.x, s.TilePos.y)?.Id ?? "outside"));
+                if (s.Path.Count > 0 && g.Now % 60 == 0)
+                    output.WriteLine($"{g.Day} {g.MinuteOfDay / 60:00}:{g.MinuteOfDay % 60:00} {s.Id} {s.Role} at {s.TilePos} {s.Task?.Kind}/{s.Task?.Phase} next {s.Path[0]} len {s.Path.Count} -> {s.Path[^1]}");
+            }
+        }
+        foreach (var kv in rooms) output.WriteLine($"staff {kv.Key}: {string.Join(", ", kv.Value)}");
+        output.WriteLine($"delivered {g.Stats.DeliveredTotal - delivered0}");
+    }
+}

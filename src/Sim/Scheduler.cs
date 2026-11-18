@@ -28,7 +28,7 @@ public sealed partial class GameState
             if (st.IsMachine && st.Current != null) continue;
             if (st.IsDown(Now)) continue;
             var who = FindIdle(st.UseTile, s => s.Pinned == st.Id)
-                      ?? FindIdle(st.UseTile, s => s.Role == role.Value && s.Pinned == null);
+                      ?? FindIdle(st.UseTile, s => s.Role == role.Value && s.Pinned == null && MayWorkAt(s, st.UseTile));
             if (who == null) continue;
             if (!SendTo(who, st.UseTile)) continue;
             who.Task = new StaffTask { Kind = TaskKind.Operate, Dest = st.Id };
@@ -42,6 +42,7 @@ public sealed partial class GameState
             if (s.Task is not { Kind: TaskKind.Carry, Phase: 1, Dest: -1 } t) continue;
             var next = Messages[t.Msgs[0]].Next;
             Station? dest = next is StationType n ? BestDestination(n, s.TilePos, t.Msgs.Count) : null;
+            if (dest != null && !MayWorkAt(s, dest.UseTile)) dest = null;
             if (dest != null && SendTo(s, dest.UseTile))
             {
                 t.Dest = dest.Id;
@@ -49,10 +50,11 @@ public sealed partial class GameState
                 if (s.Path.Count == 0) OnArrive(s);
                 continue;
             }
-            if (next == null || t.Msgs.Any(id => Messages[id].Next != next))
+            // Someone posted to a building puts paper bound elsewhere down in a tray there, for a runner to take on.
+            if (next == null || t.Msgs.Any(id => Messages[id].Next != next) || s.Posted != null)
             {
                 // Put them down in the nearest tray to wait.
-                var tray = Stations.Where(x => x.Def.Operator != null)
+                var tray = Stations.Where(x => x.Def.Operator != null && MayWorkAt(s, x.UseTile))
                     .OrderBy(x => Manhattan(x.UseTile, s.TilePos)).FirstOrDefault();
                 if (tray != null && SendTo(s, tray.UseTile))
                 {
@@ -85,9 +87,11 @@ public sealed partial class GameState
             if (src.Type != StationType.Tube && TubeVia(src, dest) is { } tube) dest = tube;
 
             // Messengers first, then clerks, then anyone whose own desks are quiet.
-            var runner = FindIdle(src.UseTile, s => s.Role == Role.Messenger)
-                         ?? FindIdle(src.UseTile, s => s.Role == Role.Clerk && s.Pinned == null)
-                         ?? FindIdle(src.UseTile, s => !RoleNeeded(s.Role) && s.Pinned == null);
+            // People posted to a building only carry within it.
+            bool may(Staff s) => MayWorkAt(s, src.UseTile) && MayWorkAt(s, dest.UseTile);
+            var runner = FindIdle(src.UseTile, s => s.Role == Role.Messenger && may(s))
+                         ?? FindIdle(src.UseTile, s => s.Role == Role.Clerk && s.Pinned == null && may(s))
+                         ?? FindIdle(src.UseTile, s => !RoleNeeded(s.Role) && s.Pinned == null && may(s));
             if (runner == null) continue;
             if (!SendTo(runner, src.UseTile)) continue;
 
@@ -116,7 +120,7 @@ public sealed partial class GameState
             if (!s.Idle || s.Path.Count > 0 || s.HeadOf != null || !OnDuty(s) || s.Arriving(Now)) continue;
             var here = s.TilePos;
             var zone = Grid.ZoneAt(here.x, here.y);
-            bool inTheWay = zone == null || Stations.Any(st => st.UseTile == here) || Grid.NearDoorway(here.x, here.y) ||
+            bool inTheWay = zone == null || (s.Posted != null && zone.Id != s.Posted) || Stations.Any(st => st.UseTile == here) || Grid.NearDoorway(here.x, here.y) ||
                             zone.InsideDoor == here || Grid.RoomAt(here.x, here.y) is { Corridor: true };
             if (!inTheWay || !Rng.Chance(0.15)) continue;
             if (WaitingSpot(s) is { } spot) SendTo(s, spot);
@@ -127,10 +131,14 @@ public sealed partial class GameState
     {
         // Near the desks they work at; anyone else (and messengers) near the desks that make the most paper.
         var work = Stations.Where(st => st.Id == s.Pinned).ToList();
+        if (work.Count == 0 && s.Posted != null)
+            work = Stations.Where(st => st.Def.Operator == s.Role && !st.Obsolete && MayWorkAt(s, st.UseTile)).ToList();
         if (work.Count == 0) work = Stations.Where(st => st.Def.Operator == s.Role && !st.Obsolete).ToList();
         if (work.Count == 0) work = Stations.Where(st => st.Def.Operator != null).ToList();
         var anchor = work.OrderBy(st => Manhattan(st.UseTile, s.TilePos)).FirstOrDefault();
-        var zone = anchor != null ? Grid.ZoneAt(anchor.UseTile.x, anchor.UseTile.y) : Grid.Zone("mansion");
+        var zone = s.Posted != null ? Grid.Zone(s.Posted)
+                 : anchor != null ? Grid.ZoneAt(anchor.UseTile.x, anchor.UseTile.y) : Grid.Zone("mansion");
+        if (anchor != null && zone != null && Grid.ZoneAt(anchor.UseTile.x, anchor.UseTile.y) != zone) anchor = null;
         if (zone == null) return null;
         var from = anchor?.UseTile ?? zone.InsideDoor;
         var standing = new HashSet<(int, int)>(Staff.Where(o => o != s && !o.Away).Select(o => o.Path.Count > 0 ? o.Path[^1] : o.TilePos));
@@ -214,7 +222,7 @@ public sealed partial class GameState
     {
         if (st.Def.Operator is not Role role) return true;
         foreach (var s in Staff)
-            if (!s.Leaving && s.HeadOf == null && (s.Pinned == st.Id || (s.Pinned == null && s.Role == role))) return true;
+            if (!s.Leaving && s.HeadOf == null && (s.Pinned == st.Id || (s.Pinned == null && s.Role == role && MayWorkAt(s, st.UseTile)))) return true;
         return false;
     }
 

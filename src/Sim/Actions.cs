@@ -543,8 +543,10 @@ public sealed partial class GameState
                 case ContractState.Active:
                     while (c.Spawned < c.Quantity && c.SpawnTimes[c.Spawned] <= Now)
                     {
-                        inbox ??= Stations.Where(s => s.Type == StationType.Inbox && !s.PendingRemoval)
-                            .OrderBy(s => s.Output.Count).FirstOrDefault();
+                        // The teleprinters this network is routed to; if none, any teleprinter, so nothing is lost.
+                        inbox = Stations.Where(s => s.Type == StationType.Inbox && !s.PendingRemoval && s.ReceivesNet(c.Net))
+                                    .OrderBy(s => s.Output.Count).FirstOrDefault()
+                                ?? Stations.Where(s => s.Type == StationType.Inbox && !s.PendingRemoval).OrderBy(s => s.Output.Count).FirstOrDefault();
                         if (inbox == null) break;
                         double hour = MinuteOfDay / 60;
                         var m = new Message

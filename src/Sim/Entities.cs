@@ -67,6 +67,10 @@ public sealed class Station
     }
 
     /// <summary>Whether this station takes messages that need the given step next.</summary>
+    /// <summary>For a teleprinter: the networks routed to it, or null for all of them.</summary>
+    public List<Net>? Receives { get; set; }
+    public bool ReceivesNet(Net n) => Receives == null || Receives.Contains(n);
+
     public bool Accepts(StationType next) =>
         !Obsolete && !PendingRemoval &&
         (Type == next || (Type == StationType.Bombe4 && next == StationType.Bombe));
@@ -105,6 +109,8 @@ public sealed class Staff
     public bool CarelessKnown { get; set; }
     public Shift Shift { get; set; } = Shift.Office;
     public int? Pinned { get; set; }
+    /// <summary>The building this person is posted to (zone id), or null to work wherever they're needed.</summary>
+    public string? Posted { get; set; }
     public double Energy { get; set; } = 1;
     public double Morale { get; set; } = Defs.MoraleBaseline;
     public bool Away { get; set; }

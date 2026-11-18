@@ -388,6 +388,37 @@ public sealed partial class GameState
             if (st == null || st.Def.Operator != s.Role) return false;
         }
         s.Pinned = stationId;
+        // Pinning to a desk in another building ends a posting elsewhere.
+        if (stationId is int sid && StationById(sid) is { } pst && s.Posted != null && Grid.ZoneAt(pst.X, pst.Y)?.Id != s.Posted) s.Posted = null;
+        return true;
+    }
+
+    /// <summary>Posts someone to one building (or back to anywhere with null). They work, carry and wait only there.</summary>
+    public bool Post(int staffId, string? zoneId)
+    {
+        var s = StaffById(staffId);
+        if (s == null) return false;
+        if (zoneId != null && Grid.Zone(zoneId) is not { Unlocked: true }) return false;
+        s.Posted = zoneId;
+        if (zoneId != null && s.Pinned is int pid && StationById(pid) is { } pst && Grid.ZoneAt(pst.X, pst.Y)?.Id != zoneId) s.Pinned = null;
+        // Someone working or carrying outside their new building finishes nothing there: they're sent over.
+        if (zoneId != null && s.Task is { Kind: TaskKind.Operate } t && StationById(t.Dest) is { } st && Grid.ZoneAt(st.X, st.Y)?.Id != zoneId && st.OperatorId == s.Id)
+            ReleaseOperator(st);
+        return true;
+    }
+
+    /// <summary>True if this person may work at, or carry within, the building at a tile.</summary>
+    public bool MayWorkAt(Staff s, (int x, int y) tile) => s.Posted == null || Grid.ZoneAt(tile.x, tile.y)?.Id == s.Posted;
+
+    /// <summary>Routes a network to a teleprinter, or stops routing it there. All on, or all off, means "everything".</summary>
+    public bool SetReceives(int stationId, Net net, bool on)
+    {
+        var st = StationById(stationId);
+        if (st == null || st.Type != StationType.Inbox) return false;
+        var list = st.Receives ?? Enum.GetValues<Net>().ToList();
+        list.Remove(net);
+        if (on) list.Add(net);
+        st.Receives = list.Count == Enum.GetValues<Net>().Length ? null : list;
         return true;
     }
 
