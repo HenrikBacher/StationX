@@ -607,7 +607,7 @@ public sealed partial class GameState
                    + Stats.ContractsCompleted * 50
                    - Stats.ContractsFailed * 80
                    + Reputation * 20
-                   + Math.Max(0, 120 - Day) * 25
+                   + (Status == GameStatus.Won ? Math.Max(0, 120 - Day) * 25 : 0)
                    - TonnageLost / 1000;
         double mult = Difficulty switch { Difficulty.Easy => 0.75, Difficulty.Hard => 1.4, _ => 1.0 };
         return Status == GameStatus.Lost ? (int)Math.Max(0, s * mult * 0.5) : (int)Math.Max(0, s * mult);
