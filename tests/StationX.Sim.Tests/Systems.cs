@@ -886,3 +886,30 @@ public class StaleCribTests
         Assert.NotEmpty(g.StaleUntil);
     }
 }
+
+public class MinistryTests
+{
+    [Fact]
+    public void AMinistryLeftWaitingComplainsAndCostsReputation()
+    {
+        var g = GameState.NewGame(47);
+        g.ActIndex = 3;
+        g.Contracts.Clear();
+        g.Contracts.Add(new Contract { Id = 5000, Issuer = Issuer.AirMinistry, Net = Net.Red, OfferedAt = g.Now, State = ContractState.Expired });
+        g.Now += 7 * Defs.MinutesPerDay;
+        Assert.Contains(g.NeglectedMinistries(), x => x.issuer == Issuer.AirMinistry);
+        Assert.DoesNotContain(g.NeglectedMinistries(), x => x.issuer == Issuer.Admiralty);
+
+        // Served recently: no complaint.
+        g.LastServed[Issuer.AirMinistry] = g.Now - Defs.MinutesPerDay;
+        Assert.DoesNotContain(g.NeglectedMinistries(), x => x.issuer == Issuer.AirMinistry);
+
+        // Ignored past the limit: the weekly accounts bring a complaint.
+        g.LastServed.Clear();
+        g.Now += 4 * Defs.MinutesPerDay;
+        double rep = g.Reputation;
+        g.DebugWeeklyAccounts();
+        Assert.Contains(g.Events, e => e.Text.Contains("complains to the Foreign Office"));
+        Assert.True(g.Reputation <= rep - Defs.NeglectRep + 0.01);
+    }
+}

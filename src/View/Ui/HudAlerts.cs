@@ -36,6 +36,8 @@ public partial class Hud
             Station(st, $"{st.Def.Name} #{st.Id} broken down", Gfx.Bad);
         if (S.RaidOn)
             list.Add(new Alert($"Air raid: desk work at half pace until the all-clear ({Math.Max(1, (int)((S.RaidUntil - S.Now) / 60 + 0.5))} h)", Gfx.Bad, () => { }));
+        foreach (var (issuer, days) in S.NeglectedMinistries())
+            list.Add(new Alert($"{Defs.IssuerNames[issuer]}: nothing from us for {days:0} days", days >= Defs.NeglectDays - 2 ? Gfx.Bad : Gfx.Warn, () => OpenPanel("requests")));
         if (S.SickCount >= 3)
             list.Add(new Alert($"{S.SickCount} staff off sick", Gfx.Warn, () => OpenPanel("staff")));
         if (S.Overcrowded > 0)

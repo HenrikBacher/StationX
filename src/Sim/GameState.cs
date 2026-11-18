@@ -25,6 +25,8 @@ public sealed partial class GameState
     public Dictionary<Net, int> GardenUntil { get; set; } = new();
     /// <summary>Days on which a network's usual cribs have dried up.</summary>
     public Dictionary<Net, int> StaleUntil { get; set; } = new();
+    /// <summary>When each ministry last had a request completed.</summary>
+    public Dictionary<Issuer, double> LastServed { get; set; } = new();
     public List<DayRecord> History { get; set; } = new();
     /// <summary>Recent message movements between stations, "from>to" → messages, for the flow overlay.</summary>
     public SortedDictionary<string, double> Flows { get; set; } = new();

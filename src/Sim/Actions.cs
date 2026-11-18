@@ -242,6 +242,9 @@ public sealed partial class GameState
         Emit(EventKind.Info, $"{s.Name} has left Bletchley Park.");
     }
 
+    /// <summary>For tests.</summary>
+    public void DebugWeeklyAccounts() => WeeklyAccounts();
+
     void WeeklyAccounts()
     {
         int grant = WeeklyGrant, wages = WeeklyWages, upkeep = WeeklyUpkeep;
@@ -252,9 +255,30 @@ public sealed partial class GameState
             Emit(EventKind.Bad, $"The Treasury notices GC&CS's healthy balance and trims this week's grant by £{cut}. Money in the bank is money not spent on the war.");
         }
         Funds += grant - wages - upkeep;
+        foreach (var (issuer, days) in NeglectedMinistries().Where(x => x.days >= Defs.NeglectDays).ToList())
+        {
+            AdjustRep(-Defs.NeglectRep);
+            LastServed[issuer] = Now - (Defs.NeglectDays - 7) * Defs.MinutesPerDay;   // they complain again next week if still ignored
+            Emit(EventKind.Bad, $"The {Defs.IssuerNames[issuer]} complains to the Foreign Office that Bletchley has done nothing for it in {days:0} days. Reputation falls.");
+        }
         Emit(grant >= wages + upkeep ? EventKind.Info : EventKind.Bad,
             $"Weekly accounts: Treasury grant £{grant}, wages £{wages}, upkeep £{upkeep}." +
             (DailyExpectation > 0 ? " Whitehall expects more every month; reputation slips unless you keep delivering." : ""));
+    }
+
+    /// <summary>Ministries that have been asking (an offer in the last fortnight) and had nothing completed, with days since they last had something.</summary>
+    public IEnumerable<(Issuer issuer, double days)> NeglectedMinistries()
+    {
+        if (ActIndex < 2 || Mode == GameMode.FreePlay) yield break;
+        foreach (var i in Enum.GetValues<Issuer>())
+        {
+            var asked = Contracts.Where(c => c.Issuer == i && Now - c.OfferedAt < 14 * Defs.MinutesPerDay).ToList();
+            if (asked.Count == 0) continue;
+            // Count from whichever is later: their last completed request, or their first request in this stretch.
+            double since = Math.Max(LastServed.TryGetValue(i, out var t) ? t : double.MinValue, asked.Min(c => c.OfferedAt));
+            double days = (Now - since) / Defs.MinutesPerDay;
+            if (days >= Defs.NeglectWarnDays) yield return (i, days);
+        }
     }
 
     /// <summary>How much of the grant the Treasury withholds because the balance is large. Never more than the grant.</summary>
@@ -528,6 +552,7 @@ public sealed partial class GameState
                         AdjustRep(c.Rep * pol.Rep);
                         ChangeMorale(0.02);
                         Stats.ContractsCompleted++;
+                        LastServed[c.Issuer] = Now;
                         if (c.Tag != null) Stats.ScriptedDone.Add(c.Tag);
                         Emit(EventKind.Good, $"{Defs.IssuerNames[c.Issuer]} request complete: {c.Title}. +£{reward}");
                     }

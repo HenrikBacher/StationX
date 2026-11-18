@@ -110,6 +110,10 @@ public static class Defs
     public const double ExpectationBase = 0.5;
     /// <summary>Above this balance at the weekly accounts, the Treasury claws back part of the grant.</summary>
     public const int TreasuryComfortable = 2500;
+    // ---- Ministries ----
+    public const double NeglectDays = 10;
+    public const double NeglectWarnDays = 6;
+    public const double NeglectRep = 3;
     // ---- Stale cribs ----
     public const int StaleFromAct = 5;
     public const double StaleChance = 0.08;
