@@ -116,7 +116,7 @@ The game autosaves every morning. It also has three save slots and a quicksave.
 | F9 (debug builds) | +£5000, +50 breakthroughs |
 | F10 (debug builds) | skip to the next act |
 
-The settings (in the pause menu or on the title screen) cover volume, interface size, edge scrolling, chapter-1 hints, film grain and fullscreen. They are saved to `user://settings.cfg`. Saves go in `user://saves/`.
+The settings (in the pause menu or on the title screen) cover volume, interface size, edge scrolling, hints and tips (a chapter-1 walkthrough, then one tip the first time each later system comes up), film grain and fullscreen. They are saved to `user://settings.cfg`. Saves go in `user://saves/`.
 
 ## Layout
 

@@ -172,7 +172,7 @@ public partial class Hud
         _hint.AddChild(v);
         var head = Ink("A WORD FROM COMMANDER DENNISTON", 11, Fonts.BodyBold, UiTheme.Stamp, wrap: false);
         head.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-        var close = UiTheme.Button("Got it", () => { if (_hintId != null) _hintsDone.Add(_hintId); _hint.Visible = false; });
+        var close = UiTheme.Button("Got it", () => { if (_hintId != null) { _hintsDone.Add(_hintId); S.TipsDismissed.Add(_hintId); } _hint.Visible = false; });
         close.Flat = true;
         close.AddThemeColorOverride("font_color", UiTheme.Stamp);
         close.AddThemeFontSizeOverride("font_size", 12);
@@ -181,8 +181,40 @@ public partial class Hud
         v.AddChild(_hintText);
     }
 
+    (string id, string text)? NextHint() => Walkthrough() ?? Situation();
+
+    /// <summary>Tips for later systems, each shown once when its situation first comes up.</summary>
+    (string id, string text)? Situation()
+    {
+        IEnumerable<(string id, bool when, string text)> Tips()
+        {
+            yield return ("vetting", S.Staff.Any(s => s.Arriving(S.Now)),
+                "New recruits are vetted and put on a train: they take most of a day to report. Hire ahead of need, not when the pile is already on the desk.");
+            yield return ("raid", S.RaidOn,
+                "An air raid. Desk work runs at half pace in the blackout until the all-clear; the Bombes run on. In the Blitz, don't count on the night watch.");
+            yield return ("sick", S.SickCount > 0,
+                "Someone is off sick. Illness spreads, worst in winter. Stoves in the huts, enough billets and a sick bay in the Mansion keep it down.");
+            yield return ("billets", S.Overcrowded > 0,
+                "More staff than billets: the newest are lodged miles away, slower and unhappy. Requisition more billets from Staff (H).");
+            yield return ("cold", S.Winter && S.ColdZones() is { Count: > 0 },
+                "Winter. People in a timber hut without a coke stove tire faster and fall ill more. A stove is £60.");
+            yield return ("worn", S.Stations.Any(s => s.Wears && s.Wear > 0.7 && !s.IsDown(S.Now)),
+                "A machine is badly worn (the orange lamp). Service it from its panel while it's idle: an hour now saves five hours of breakdown later.");
+            yield return ("stale", S.ActiveNets.Any(n => S.Stale(n, S.Day)),
+                "The Germans have changed a habit and our cribs for one network are poor for a few days (see the key panel). Its Bombe runs take longer: give it more Bombe time or take fewer of its requests.");
+            yield return ("neglect", S.NeglectedMinistries().Any(),
+                "A ministry has had nothing from us for days. Leave one waiting ten days and it complains to the Foreign Office every week. Take one of its requests.");
+            yield return ("allhands", S.CanCallAllHands() == null && S.Contracts.Any(c => c.State == ContractState.Active && c.Due - S.Now < 6 * 60 && c.Quantity - c.Delivered >= 2),
+                "A request is about to be missed. In an emergency, Staff (H) → Call all hands brings everyone off watch back in for four hours. It costs overtime and morale, and works once a week.");
+        }
+        if (S.Mode == GameMode.FreePlay && S.ActIndex < 1) return null;
+        foreach (var (id, when, text) in Tips())
+            if (when && !S.TipsDismissed.Contains(id)) return (id, text);
+        return null;
+    }
+
     /// <summary>The first-chapter walkthrough: one suggestion at a time, from the state of the floor.</summary>
-    (string id, string text)? NextHint()
+    (string id, string text)? Walkthrough()
     {
         if (S.ActIndex > 1 || S.Mode == GameMode.FreePlay) return null;
         bool Has(StationType t) => S.Stations.Any(s => s.Type == t);
@@ -340,7 +372,7 @@ public partial class Hud
         Slider("Ambience", Settings.AmbienceVolume, 0, 1, 0.05f, x => Settings.AmbienceVolume = x, P);
         Slider("Interface size", Settings.UiScale, 0.75f, 1.75f, 0.05f, x => Settings.UiScale = x, P);
         Toggle("Scroll at screen edges", Settings.EdgeScroll, x => Settings.EdgeScroll = x);
-        Toggle("Hints in chapter 1", Settings.Hints, x => { Settings.Hints = x; _hintsDone.Clear(); });
+        Toggle("Hints and tips", Settings.Hints, x => { Settings.Hints = x; _hintsDone.Clear(); });
         Toggle("Film grain and vignette", Settings.FilmGrain, x => Settings.FilmGrain = x);
         Toggle("Fullscreen", Settings.Fullscreen, x => Settings.Fullscreen = x);
         var back = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.End };
