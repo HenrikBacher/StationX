@@ -636,3 +636,20 @@ public class FlashTests
         Assert.DoesNotContain(g.Contracts, c => c.Flash);
     }
 }
+
+public class ExperienceTests
+{
+    [Fact]
+    public void PractiseMakesPerfectAndCostsMore()
+    {
+        var g = TestUtil.BombeLine(15, false);
+        var s = g.Staff.First(x => x.Role == Role.Linguist);
+        s.Skill = 1; s.Experience = 0;
+        int pay = s.Salary;
+        for (int i = 0; i < 100 && s.Skill == 1; i++) g.DebugGainExperience(s, 60);
+        Assert.Equal(2, s.Skill);
+        Assert.True(s.Salary > pay);
+        for (int i = 0; i < 400; i++) g.DebugGainExperience(s, 60);
+        Assert.Equal(3, s.Skill);
+    }
+}

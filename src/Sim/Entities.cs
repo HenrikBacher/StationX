@@ -133,6 +133,9 @@ public sealed class Staff
         return v;
     }
 
+    /// <summary>Minutes of desk or machine work done; skill rises with it.</summary>
+    public double Experience { get; set; }
+
     /// <summary>How fast they're working right now: tired or unhappy people are slower.</summary>
     public double WorkRate =>
         (Energy >= 0.5 ? 1.0 : 0.6 + 0.8 * Energy) * (0.8 + 0.35 * Morale);

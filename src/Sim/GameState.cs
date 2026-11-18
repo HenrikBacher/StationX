@@ -340,6 +340,7 @@ public sealed partial class GameState
                 st.Current = null;
                 st.WorkDone = st.WorkTotal = 0;
                 st.Processed++;
+                GainExperience(op, st.Def.Minutes);
                 Complete(st, op, m);
             }
         }

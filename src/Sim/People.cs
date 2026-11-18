@@ -172,6 +172,20 @@ public sealed partial class GameState
         });
     }
 
+    public void DebugGainExperience(Staff s, double minutes) => GainExperience(s, minutes);
+
+    /// <summary>Practice makes perfect, and the perfect ask for more money.</summary>
+    void GainExperience(Staff s, double minutes)
+    {
+        s.Experience += minutes;
+        if (s.Skill >= 3 || s.Experience < Defs.ExperienceFor[s.Skill + 1]) return;
+        s.Skill++;
+        int raise = Defs.Roles[s.Role].Salary / 3;
+        s.Salary += raise;
+        s.Morale = Math.Min(1, s.Morale + 0.05);
+        Emit(EventKind.Good, $"{s.Name} has got the hang of it: now {new string('★', s.Skill)}, and {(s.Female ? "her" : "his")} pay goes up £{raise} a week.");
+    }
+
     public bool Winter => Date.Month is 11 or 12 or 1 or 2 or 3;
 
     /// <summary>True if this person is standing in one of the cold zones.</summary>

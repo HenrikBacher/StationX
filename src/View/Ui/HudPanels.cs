@@ -422,7 +422,7 @@ public partial class Hud
 
         string sig = st != null
             ? $"st{st.Id}{st.Input.Count}{st.Output.Count}{st.OperatorId}{st.OperatorPresent}{st.Current}{(int)(st.Progress * 20)}{st.PendingRemoval}{st.X},{st.Y}|{string.Join(",", S.PinnedTo(st.Id).Select(p => p.Id))}|{S.Funds >= Defs.MoveCost}|{(int)(st.Wear * 20)}{st.IsDown(S.Now)}{S.Funds >= Defs.ServiceCost}"
-            : sf != null ? $"sf{sf.Id}{sf.Task?.Kind}{sf.Task?.Dest}{sf.Leaving}{sf.Decrypts}{sf.Away}{sf.Shift}{sf.Pinned}{(int)(sf.Energy * 10)}{(int)(sf.Morale * 10)}{sf.CarelessKnown}"
+            : sf != null ? $"sf{sf.Id}{sf.Task?.Kind}{sf.Task?.Dest}{sf.Leaving}{sf.Decrypts}{sf.Away}{sf.Shift}{sf.Pinned}{(int)(sf.Energy * 10)}{(int)(sf.Morale * 10)}{sf.CarelessKnown}{(int)(sf.Experience / 60)}{sf.Skill}"
             : $"z{z!.Id}{z.Unlocked}{S.Funds >= z.Cost}{S.ColdZones()?.Contains(z.Id)}";
         if (sig == _inspSig) return;
         _inspSig = sig;
@@ -542,6 +542,8 @@ public partial class Hud
         var rd = Defs.Roles[s.Role];
         _inspBox.AddChild(UiTheme.Heading(s.Name, 18));
         _inspBox.AddChild(UiTheme.Label($"{rd.Name} · {Stars(s.Skill)} · £{s.Salary}/week", 13, UiTheme.Accent));
+        if (s.Skill < 3 && s.Role != Role.Messenger)
+            _inspBox.AddChild(UiTheme.Label($"Experience: {Hours(Defs.ExperienceFor[s.Skill + 1] - s.Experience)} more work to reach {Stars(s.Skill + 1)} (with a pay rise)", 11, UiTheme.TextDim));
         if (s.Bio != null) _inspBox.AddChild(UiTheme.Label(s.Bio, 12, UiTheme.Text));
         else _inspBox.AddChild(UiTheme.Label(rd.Blurb, 12, UiTheme.TextDim));
         if (s.Specialties.Count > 0)

@@ -95,6 +95,8 @@ public static class Defs
     public const double BreakUntil = 0.92;
     public const double Exhausted = 0.08;
     public const double MoraleBaseline = 0.6;
+    /// <summary>Working minutes needed to reach skill 2 and skill 3. Each step up brings a pay rise.</summary>
+    public static readonly double[] ExperienceFor = { 0, 0, 4000, 12000 };
     /// <summary>Act index from which the three-watch system is available.</summary>
     public const int WatchesFromAct = 5;
 
