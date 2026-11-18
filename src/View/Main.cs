@@ -51,6 +51,9 @@ public partial class Main : Node3D
 
     string? _shotPath;
     int _shotFrames = -1;
+    // --film=N: after the shot settles, run the game and save N frames, one every --every render frames.
+    int _film, _filmEvery = 8, _filmTick, _filmIdx;
+    bool _filming;
     bool _selfTest;
 
     /// <summary>The station being moved with the move tool, if any.</summary>
@@ -147,6 +150,8 @@ public partial class Main : Node3D
         var mode = args.ContainsKey("freeplay") ? GameMode.FreePlay : GameMode.Campaign;
         int startAct = args.TryGetValue("act", out var sa) ? int.Parse(sa) : 0;
         NewGame(seed, showTitle: _shotPath == null && !_selfTest && !args.ContainsKey("skip-title"), diff, mode, startAct);
+        // A save file by path (a copy, so the player's own saves are never opened for writing).
+        if (args.TryGetValue("loadfile", out var lf)) LoadState(SaveGame.Load(System.IO.File.ReadAllText(lf)));
         if (args.TryGetValue("load", out var slot))
         {
             if (Saves.Read(slot, out var err) is { } loaded) LoadState(loaded);
@@ -204,6 +209,9 @@ public partial class Main : Node3D
             if (args.ContainsKey("flows")) ShowFlows = true;
             if (args.TryGetValue("modal", out var modal)) Hud.ShowNamed(modal);
             _shotFrames = 30;
+            if (args.TryGetValue("film", out var fm)) _film = int.Parse(fm);
+            if (args.TryGetValue("every", out var ev)) _filmEvery = int.Parse(ev);
+            if (args.TryGetValue("speed", out var spd)) Speed = int.Parse(spd);
         }
     }
 
@@ -271,12 +279,21 @@ public partial class Main : Node3D
         float dt = (float)delta;
         if (_shotFrames >= 0 && _shotFrames-- == 0)
         {
-            GetViewport().GetTexture().GetImage().SavePng(_shotPath!);
-            GD.Print($"Saved screenshot to {_shotPath}");
-            GetTree().Quit();
+            if (_film > 0) _filming = true;
+            else
+            {
+                GetViewport().GetTexture().GetImage().SavePng(_shotPath!);
+                GD.Print($"Saved screenshot to {_shotPath}");
+                GetTree().Quit();
+            }
+        }
+        if (_filming && ++_filmTick % _filmEvery == 0)
+        {
+            GetViewport().GetTexture().GetImage().SavePng(_shotPath!.Replace(".png", $"-{_filmIdx:000}.png"));
+            if (++_filmIdx >= _film) GetTree().Quit();
         }
 
-        bool running = !Paused && !Hud.ModalOpen && _shotPath == null;
+        bool running = (!Paused && !Hud.ModalOpen && _shotPath == null) || _filming;
         if (running) State.Advance(delta * Defs.GameMinutesPerRealSecond * Speed);
         foreach (var e in State.Events)
         {

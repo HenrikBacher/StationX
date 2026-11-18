@@ -38,7 +38,7 @@ static class TestUtil
         g.Place(StationType.Registration, 5, 3, 0, free: true);
         g.Place(StationType.Translation, 11, 3, 0, free: true);
         g.Place(StationType.Typex, 22, 3, 0, free: true);
-        g.Place(StationType.Crib, 25, 3, 0, free: true);
+        g.Place(StationType.Crib, 21, 5, 0, free: true);   // Hut 6 Machine Room
         g.Place(StationType.Bombe, 36, 3, 0, free: true);
         if (checking) g.Place(StationType.Checking, 40, 3, 0, free: true);
         return g;
@@ -112,7 +112,7 @@ public class PeopleTests
         double until = (g.Day + 1) * Defs.MinutesPerDay + 60;
         while (g.Now < until) { g.Advance(30); g.Events.Clear(); }
         Assert.False(night.Away);
-        Assert.Equal(1.0, night.Energy, 2);
+        Assert.True(night.Energy > 0.9, $"rested: {night.Energy}");   // fresh, less the walk in
     }
 
     [Fact]
@@ -293,8 +293,8 @@ public class MachineTests(ITestOutputHelper output)
     {
         var g = TestUtil.BombeLine(12, checking: true);
         g.Researched.Add(ResearchId.PneumaticTubes);
-        g.Place(StationType.Tube, 4, 6, 0, free: true);
-        g.Place(StationType.Tube, 22, 6, 0, free: true);
+        g.Place(StationType.Tube, 4, 5, 0, free: true);
+        g.Place(StationType.Tube, 22, 5, 0, free: true);
         g.Place(StationType.Tube, 37, 6, 0, free: true);
         g.AddScripted(Net.Red, 10, 4, 0, 0, "t", "t", "t");
         TestUtil.Run(g, 3);
@@ -1132,12 +1132,12 @@ public class WartimeInterceptTests
 
 public class LayoutTests
 {
-    static GameState Run(int[] xs, out Contract c)
+    static GameState Run(int[] xs, out Contract c, int y = 3)
     {
         var g = GameState.NewGame(7);
-        Assert.NotNull(g.Place(StationType.Registration, xs[0], 3, 0));
-        Assert.NotNull(g.Place(StationType.HandCipher, xs[1], 3, 0));
-        Assert.NotNull(g.Place(StationType.Translation, xs[2], 3, 0));
+        Assert.NotNull(g.Place(StationType.Registration, xs[0], y, 0));
+        Assert.NotNull(g.Place(StationType.HandCipher, xs[1], y, 0));
+        Assert.NotNull(g.Place(StationType.Translation, xs[2], y, 0));
         g.Advance(1);
         c = g.Contracts.First(k => k.State == ContractState.Offered);
         Assert.True(g.Accept(c.Id));
@@ -1148,7 +1148,7 @@ public class LayoutTests
     [Fact]
     public void NeighbouringDesksHandWorkAcross()
     {
-        var tight = Run(new[] { 5, 7, 9 }, out var c);
+        var tight = Run(new[] { 11, 13, 15 }, out var c, y: 6);   // side by side in the Ballroom
         Assert.True(tight.Stats.HandOvers > 0, "desks side by side should pass paper across");
         Assert.Equal(ContractState.Completed, c.State);
 
@@ -1168,5 +1168,64 @@ public class LayoutTests
             var p = g.NewPerson(r, 1); p.X = 9.5; p.Y = 8.5; g.Staff.Add(p);
         }
         Assert.True(g.CrowdingAt(tile) < 0.8);
+    }
+}
+
+public class InteriorTests
+{
+    [Fact]
+    public void BuildingsHaveRoomsAndWalls()
+    {
+        var g = GameState.NewGame(7);
+        Assert.Equal("Library", g.Grid.RoomAt(4, 4)!.Name);
+        Assert.Equal("Decoding Room", g.Grid.RoomAt(28, 4)!.Name);
+        // Library and Drawing Room share a wall except at the doorway on row 5.
+        Assert.True(g.Grid.Blocked(7, 3, 8, 3));
+        Assert.False(g.Grid.Blocked(7, 5, 8, 5));
+        // Desks can't straddle a partition or sit in the hall.
+        Assert.Equal("Can't stand across a partition wall", g.CanPlace(StationType.Registration, 7, 3, 0));
+        Assert.Contains("clear", g.CanPlace(StationType.Registration, 8, 8, 0));
+        // Walking from Library to Ballroom goes through the doorways, never through a wall.
+        var path = Pathfinder.Find(g.Grid, (4, 3), (14, 3))!;
+        var prev = (4, 3);
+        foreach (var p in path) { Assert.False(g.Grid.Blocked(prev.Item1, prev.Item2, p.x, p.y)); prev = p; }
+        Assert.True(path.Count > 10);
+    }
+
+    [Fact]
+    public void OldSavesGetRoomsWithoutWallingInDesks()
+    {
+        var g = GameState.NewGame(7);
+        foreach (var z in g.Grid.Zones) { z.Rooms.Clear(); z.Partitions.Clear(); }
+        g.Grid.FitInteriors(g.Stations);   // reset walls
+        foreach (var z in g.Grid.Zones) { z.Rooms.Clear(); z.Partitions.Clear(); }
+        var st = g.Place(StationType.Registration, 7, 3, 0, free: true);   // across the future Library wall
+        Assert.NotNull(st);
+        var loaded = SaveGame.Load(SaveGame.Save(g));
+        Assert.NotEmpty(loaded.Grid.Zone("mansion")!.Rooms);
+        Assert.False(loaded.Grid.Blocked(7, 3, 8, 3));
+    }
+}
+
+public class TiredOperatorTests
+{
+    [Fact]
+    public void ATiredCryptanalystWithNoCanteenStillGetsBackToWork()
+    {
+        // A player's early Mansion: no canteen or common room yet.
+        var g = GameState.NewGame(7);
+        g.Place(StationType.Registration, 4, 3, 0, free: true);
+        var hand = g.Place(StationType.HandCipher, 6, 3, 0, free: true)!;
+        g.Place(StationType.Translation, 11, 3, 0, free: true);
+        Assert.DoesNotContain(g.Stations, s => s.IsRest);
+        var c = g.AddScripted(Net.Police, 4, 4, 0, 0, "t", "t", "t");
+        // Work arrives at the desk; then the cryptanalyst flags just as a message is finished.
+        for (int t = 0; t < 8 * 60 && hand.Input.Count == 0; t += 5) g.Advance(5);
+        Assert.NotEmpty(hand.Input);
+        foreach (var s in g.Staff.Where(s => s.Role == Role.Cryptanalyst)) s.Energy = Defs.BreakAt - 0.02;
+        hand.Current = null;
+        for (int t = 0; t < 3 * 60; t += 5) g.Advance(5);
+        Assert.True(hand.Processed > 0 || hand.WorkDone > 0, $"the hand-cipher desk never got going again: now {g.Now} in {hand.Input.Count} op {hand.OperatorId} " +
+            string.Join("; ", g.Staff.Select(s => $"{s.Role} E{s.Energy:0.00} {s.Task?.Kind} away {s.Away} at {s.TilePos}")) + " msgs " + string.Join(",", g.Messages.Values.Select(m => $"{m.Loc}/{m.Next}")) + $" contract {c.State}");
     }
 }

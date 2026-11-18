@@ -327,6 +327,7 @@ public partial class Park3D : Node3D
                     Mesh3.Box(n, new Vector3(WallThick + 0.06f, h + 0.06f, WallThick + 0.06f), new Vector3(cx, (h + 0.06f) / 2, cy), Gfx.Creosote);
             }
 
+        Partitions(z);
         if (mansion) MansionDetails(z);
         else if (z.Brick) BlockDetails(z);
         else HutDetails(z);
@@ -357,6 +358,55 @@ public partial class Park3D : Node3D
                 _buildings.AddChild(lamp);
                 Lamps.Add(lamp);
             }
+    }
+
+    /// <summary>
+    /// Inside walls on the tile edges: lower than the outer walls so the rooms can be seen into, with a dado rail and
+    /// skirting, door posts at each doorway, and the room's name painted on its floor.
+    /// </summary>
+    void Partitions(Zone z)
+    {
+        bool mansion = z.Id == "mansion";
+        float h = 0.62f, th = 0.07f;
+        var face = mansion ? new Color("cbbd9c") : z.Brick ? new Color("b9b39d") : new Color("a9a383");
+        var dado = mansion ? Gfx.OakDark : new Color("5d6448");
+        var paint = Mesh3.Mat(face);
+        foreach (var p in z.Partitions)
+        {
+            var spans = new List<(int a, int b)>();
+            int start = p.From;
+            for (int i = p.From; i <= p.To + 1; i++)
+                if (i > p.To || p.Gaps.Contains(i))
+                {
+                    if (i > start) spans.Add((start, i));
+                    start = i + 1;
+                }
+            foreach (var (a, b) in spans)
+            {
+                float len = b - a, mid = (a + b) / 2f;
+                var c = p.Vertical ? new Vector3(p.At, 0, mid) : new Vector3(mid, 0, p.At);
+                Vector3 Size(float l, float hh, float t) => p.Vertical ? new Vector3(t, hh, l) : new Vector3(l, hh, t);
+                Mesh3.Box(_buildings, Size(len, h, th), c + new Vector3(0, h / 2, 0), paint);
+                Mesh3.Box(_buildings, Size(len, 0.03f, th + 0.04f), c + new Vector3(0, h + 0.015f, 0), dado);           // capping
+                Mesh3.Box(_buildings, Size(len, 0.025f, th + 0.025f), c + new Vector3(0, h * 0.55f, 0), dado);          // dado rail
+                Mesh3.Box(_buildings, Size(len, 0.07f, th + 0.03f), c + new Vector3(0, 0.035f, 0), Gfx.OakDark);       // skirting
+            }
+            foreach (int gap in p.Gaps)
+                foreach (float e in new[] { gap + 0.03f, gap + 0.97f })
+                {
+                    var post = p.Vertical ? new Vector3(p.At, 0, e) : new Vector3(e, 0, p.At);
+                    Mesh3.Box(_buildings, new Vector3(0.09f, h + 0.06f, 0.09f), post + new Vector3(0, (h + 0.06f) / 2, 0), Gfx.OakDark);
+                }
+        }
+        foreach (var r in z.Rooms)
+        {
+            if (r.Corridor && r.H == 1 && r.W > 6) continue;
+            var label = Mesh3.Text(_buildings, r.Name.ToUpperInvariant(), new Vector3(r.X + r.W / 2f, 0.012f, r.Y + r.H - 0.32f), 34,
+                                   new Color(0.16f, 0.12f, 0.08f, 0.55f), Fonts.Heading, billboard: false);
+            label.RotationDegrees = new Vector3(-90, 0, 0);
+            label.PixelSize = 0.006f;
+            label.CastShadow = GeometryInstance3D.ShadowCastingSetting.Off;
+        }
     }
 
     /// <summary>A straight wall with a gap at the door and, on tall walls, taped-up windows.</summary>

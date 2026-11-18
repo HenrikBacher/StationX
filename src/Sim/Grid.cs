@@ -19,6 +19,8 @@ public sealed class Zone
     public bool Brick { get; set; }
     public bool Available { get; set; }
     public bool Unlocked { get; set; }
+    public List<Room> Rooms { get; set; } = new();
+    public List<Partition> Partitions { get; set; } = new();
 
     public bool InInterior(int x, int y) => x > X && x < X + W - 1 && y > Y && y < Y + H - 1;
     public bool InOuter(int x, int y) => x >= X && x < X + W && y >= Y && y < Y + H;
@@ -37,7 +39,7 @@ public sealed class Zone
 }
 
 /// <summary>The park: a tile map with walled zones (Mansion and huts).</summary>
-public sealed class Grid
+public sealed partial class Grid
 {
     public const int Width = 48;
     public const int Height = 32;
@@ -129,7 +131,9 @@ public sealed class Grid
 
     void AddZone(Zone z)
     {
+        if (z.Rooms.Count == 0) (z.Partitions, z.Rooms) = Interiors.For(z.Id);
         Zones.Add(z);
+        InvalidateWalls();
         for (int y = z.Y; y < z.Y + z.H; y++)
             for (int x = z.X; x < z.X + z.W; x++)
             {
@@ -191,7 +195,7 @@ public static class Pathfinder
             for (int i = 0; i < 4; i++)
             {
                 int nx = cx + Dx[i], ny = cy + Dy[i];
-                if (!g.Walkable(nx, ny)) continue;
+                if (!g.Walkable(nx, ny) || g.Blocked(cx, cy, nx, ny)) continue;
                 int ni = ny * Grid.Width + nx;
                 int nc = _cost[cur] + 1;
                 if (_stamp[ni] == _gen && _cost[ni] <= nc) continue;
@@ -223,7 +227,7 @@ public static class Pathfinder
             for (int i = 0; i < 4; i++)
             {
                 int nx = x + Dx[i], ny = y + Dy[i];
-                if (!g.Walkable(nx, ny)) continue;
+                if (!g.Walkable(nx, ny) || g.Blocked(x, y, nx, ny)) continue;
                 int ni = ny * Grid.Width + nx;
                 if (seen[ni]) continue;
                 seen[ni] = true;

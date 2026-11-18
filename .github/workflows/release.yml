@@ -19,6 +19,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # history and tags, for the release notes
 
       - uses: actions/setup-dotnet@v4
         with:
@@ -102,5 +104,20 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          # Release notes: the annotated tag's message (what's new, what's fixed), then every commit since the last tag.
+          git fetch --force --tags origin
+          prev=$(git describe --tags --abbrev=0 "$GITHUB_REF_NAME^" 2>/dev/null || true)
+          {
+            git tag -l --format='%(contents)' "$GITHUB_REF_NAME" | sed '1{/^v[0-9]/d}' | sed '/^-----BEGIN PGP/,$d'
+            echo
+            echo "### All changes${prev:+ since $prev}"
+            git log --no-merges --format='- %s' ${prev:+$prev..}"$GITHUB_REF_NAME"
+            echo
+            echo "### Downloads"
+            echo "- **Linux**: \`StationX-linux-x86_64.tar.gz\`"
+            echo "- **Windows**: \`StationX-windows-x86_64.zip\`"
+            echo "- **Both**: \`StationX-linux-windows.zip\`"
+          } > release-notes.md
+          cat release-notes.md
           gh release create "$GITHUB_REF_NAME" build/*.zip build/*.tar.gz \
-            --title "Station X $GITHUB_REF_NAME" --generate-notes
+            --title "Station X $GITHUB_REF_NAME" --notes-file release-notes.md

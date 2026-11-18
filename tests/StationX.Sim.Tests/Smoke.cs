@@ -86,7 +86,7 @@ public class PipelineTests
         Assert.Contains(g.Messages.Values, m => m.Net == Net.Red && m.Next == null);
         Assert.Equal("Build a Zygalski sheet table", g.KeyRouteProblem(Net.Red));
 
-        g.Place(StationType.Zygalski, 25, 3, 0);
+        Assert.NotNull(g.Place(StationType.Zygalski, 21, 3, 0));   // Hut 6 Machine Room
         Run(g, 3);
         Assert.True(Stats.Get(g.Stats.KeyBreaks, Net.Red) >= 1);
         Assert.True(Stats.Get(g.Stats.Delivered, Net.Red) >= 1);

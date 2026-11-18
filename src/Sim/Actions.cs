@@ -76,7 +76,8 @@ public sealed partial class GameState
                         if (zone != null && z != zone) return "Must be inside one hut";
                         if (zone == null && !Defs.AllowedIn(z.Id, t)) return BelongsIn(t);
                         zone = z;
-                        if (z.InsideDoor == (tx, ty)) return "Keep the doorway clear";
+                        if (z.InsideDoor == (tx, ty) || Grid.NearDoorway(tx, ty)) return "Keep the doorway clear";
+                        if (Grid.RoomAt(tx, ty) is { Corridor: true } cor) return $"Keep the {cor.Name.ToLowerInvariant()} clear";
                     }
                     if (Grid.OccupantAt(tx, ty) >= 0) return "Something is already there";
                     if (useTiles.Contains((tx, ty))) return "Blocks another station's working space";
@@ -85,6 +86,13 @@ public sealed partial class GameState
             var use = Station.UseTileFor(t, x, y, rot);
             if (!def.Outdoor && (zone == null || !zone.InInterior(use.x, use.y))) return "Needs working space in front, inside the hut";
             if (!Grid.Walkable(use.x, use.y)) return "Needs clear working space in front";
+            if (!def.Outdoor)
+            {
+                var foot = new Station { Type = t, X = x, Y = y, Rot = rot }.Footprint().ToList();
+                var room = Grid.RoomAt(foot[0].x, foot[0].y);
+                if (foot.Any(f => Grid.RoomAt(f.x, f.y) != room)) return "Can't stand across a partition wall";
+                if (Grid.RoomAt(use.x, use.y) != room) return "Needs working space in the same room";
+            }
 
             // Everything must stay reachable after placing.
             var fake = new Station { Id = int.MaxValue, Type = t, X = x, Y = y, Rot = rot };

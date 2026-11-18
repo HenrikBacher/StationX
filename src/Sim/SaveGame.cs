@@ -58,6 +58,7 @@ public static class SaveGame
         if (g.ActIndex >= 3 && g.Grid.Zone("hut1") is { Unlocked: false } hut1) hut1.Available = true;
         if (g.Billets <= 0) g.Billets = Math.Max(Defs.StartBillets, (g.Staff.Count + 9) / 10 * 10);
         g.Grid.RebuildOccupancy(g.Stations);
+        g.Grid.FitInteriors(g.Stations);
         return g;
     }
 

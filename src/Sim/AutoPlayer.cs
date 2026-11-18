@@ -285,7 +285,15 @@ public sealed class AutoPlayer
         }
     }
 
+    public int BuildFails, Builds;
     public bool TryBuild(StationType t)
+    {
+        bool ok = TryBuildInner(t);
+        if (ok) Builds++; else BuildFails++;
+        return ok;
+    }
+
+    bool TryBuildInner(StationType t)
     {
         if (Defs.Station(t).Outdoor) return TryBuildOutdoor(t);
         var zones = PreferredZones.TryGetValue(t, out var z) ? z : new[] { "mansion" };

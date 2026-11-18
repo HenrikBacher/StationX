@@ -63,6 +63,8 @@ public sealed partial class GameState
             }
         }
 
+        SettleIdle();
+
         // 3. Messages sitting in out-trays that need carrying onwards.
         var waiting = Messages.Values
             .Where(m => m.Loc == Loc.Output && m.Next != null && !m.Reserved)
@@ -104,6 +106,52 @@ public sealed partial class GameState
     }
 
     /// <summary>
+    /// People with nothing to do don't loiter on someone's working spot, outside a door or at the gate: they go and
+    /// wait by a wall in a room where their kind of work happens, so they're close when it comes.
+    /// </summary>
+    void SettleIdle()
+    {
+        foreach (var s in Staff)
+        {
+            if (!s.Idle || s.Path.Count > 0 || s.HeadOf != null || !OnDuty(s) || s.Arriving(Now)) continue;
+            var here = s.TilePos;
+            var zone = Grid.ZoneAt(here.x, here.y);
+            bool inTheWay = zone == null || Stations.Any(st => st.UseTile == here) || Grid.NearDoorway(here.x, here.y) ||
+                            zone.InsideDoor == here || Grid.RoomAt(here.x, here.y) is { Corridor: true };
+            if (!inTheWay || !Rng.Chance(0.15)) continue;
+            if (WaitingSpot(s) is { } spot) SendTo(s, spot);
+        }
+    }
+
+    (int x, int y)? WaitingSpot(Staff s)
+    {
+        // Near the desks they work at; anyone else (and messengers) near the desks that make the most paper.
+        var work = Stations.Where(st => st.Id == s.Pinned).ToList();
+        if (work.Count == 0) work = Stations.Where(st => st.Def.Operator == s.Role && !st.Obsolete).ToList();
+        if (work.Count == 0) work = Stations.Where(st => st.Def.Operator != null).ToList();
+        var anchor = work.OrderBy(st => Manhattan(st.UseTile, s.TilePos)).FirstOrDefault();
+        var zone = anchor != null ? Grid.ZoneAt(anchor.UseTile.x, anchor.UseTile.y) : Grid.Zone("mansion");
+        if (zone == null) return null;
+        var from = anchor?.UseTile ?? zone.InsideDoor;
+        var standing = new HashSet<(int, int)>(Staff.Where(o => o != s && !o.Away).Select(o => o.Path.Count > 0 ? o.Path[^1] : o.TilePos));
+        var uses = new HashSet<(int, int)>(Stations.Select(st => st.UseTile));
+        (int x, int y)? best = null;
+        int bestScore = int.MaxValue;
+        for (int y = zone.Y + 1; y < zone.Y + zone.H - 1; y++)
+            for (int x = zone.X + 1; x < zone.X + zone.W - 1; x++)
+            {
+                if (!Grid.Walkable(x, y) || uses.Contains((x, y)) || standing.Contains((x, y)) || Grid.NearDoorway(x, y) || zone.InsideDoor == (x, y)) continue;
+                if (Grid.RoomAt(x, y) is { Corridor: true }) continue;
+                // By a wall or partition, out of the way.
+                bool byWall = x == zone.X + 1 || y == zone.Y + 1 || x == zone.X + zone.W - 2 || y == zone.Y + zone.H - 2 ||
+                              Grid.Blocked(x, y, x + 1, y) || Grid.Blocked(x, y, x - 1, y) || Grid.Blocked(x, y, x, y + 1) || Grid.Blocked(x, y, x, y - 1);
+                int score = Manhattan((x, y), from) + (byWall ? 0 : 4) + (Grid.RoomAt(x, y) == Grid.RoomAt(from.x, from.y) ? 0 : 6);
+                if (score < bestScore) { bestScore = score; best = (x, y); }
+            }
+        return best;
+    }
+
+    /// <summary>
     /// Next-step desk within arm's reach in the same hut, with someone sitting at one of the two: the paper is passed
     /// across, no runner. This is what makes a well laid-out hut quicker than a scattered one.
     /// </summary>
@@ -118,6 +166,7 @@ public sealed partial class GameState
             if (st == src || !st.Accepts(next) || st.FreeInput < 1 || st.IsDown(Now) || !CanBeStaffed(st)) continue;
             if (Manhattan(st.UseTile, src.UseTile) > Defs.HandOverReach) continue;
             if (Grid.ZoneAt(st.UseTile.x, st.UseTile.y) != zone) continue;
+            if (Grid.RoomAt(st.UseTile.x, st.UseTile.y) != Grid.RoomAt(src.UseTile.x, src.UseTile.y)) continue;
             if (!srcManned && !(st.OperatorId != null && st.OperatorPresent)) continue;
             if (best == null || st.Input.Count < best.Input.Count) best = st;
         }
@@ -194,7 +243,9 @@ public sealed partial class GameState
         foreach (var s in Staff)
         {
             if (!s.Idle || s.HeadOf != null || !filter(s)) continue;
-            if (s.Tired && _restExists) continue;
+            // Tired people aren't sent back to work: with nowhere to rest they catch their breath where they stand
+            // (a few minutes), rather than being sat down and stood up again every tick.
+            if (s.Tired) continue;
             int d = Manhattan(s.TilePos, near);
             if (d < bestD) { bestD = d; best = s; }
         }
