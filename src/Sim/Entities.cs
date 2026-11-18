@@ -225,6 +225,8 @@ public sealed class Stats
     public Dictionary<Net, int> BombeBreaks { get; set; } = new();
     public int DilemmasResolved { get; set; }
     public HashSet<string> ScriptedDone { get; set; } = new();
+    /// <summary>Reputation gained and lost over the whole campaign, by cause.</summary>
+    public Dictionary<string, double> RepByCause { get; set; } = new();
     public int DeliveredTotal { get; set; }
     public int ContractsCompleted { get; set; }
     public int ContractsFailed { get; set; }
@@ -237,6 +239,7 @@ public sealed class Stats
         BombeBreaks = new(BombeBreaks),
         DilemmasResolved = DilemmasResolved,
         ScriptedDone = new(ScriptedDone),
+        RepByCause = new(RepByCause),
         DeliveredTotal = DeliveredTotal,
         ContractsCompleted = ContractsCompleted,
         ContractsFailed = ContractsFailed,

@@ -185,6 +185,10 @@ public partial class Hud
             v.AddChild(Ink($"Score {score:N0}", 22, Fonts.Heading));
             v.AddChild(Ink(won ? honour : "No honours", 18, Fonts.Heading, UiTheme.Stamp));
             v.AddChild(Ink((won ? citation : "Lost campaigns score half.") + (best != "" ? "  " + best : ""), 13));
+            // Where the reputation went: the lesson of a lost campaign, and a footnote to a won one.
+            var causes = S.Stats.RepByCause.Where(x => Math.Abs(x.Value) >= 0.5).OrderBy(x => x.Value).ToList();
+            if (causes.Count > 0)
+                v.AddChild(Ink("Reputation over the war: " + string.Join(" · ", causes.Select(x => $"{x.Key} {(x.Value > 0 ? "+" : "−")}{Math.Abs(x.Value):0}")), 12, Fonts.Body));
         }
         var row = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.End };
         row.AddThemeConstantOverride("separation", 12);

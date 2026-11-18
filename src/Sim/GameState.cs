@@ -902,6 +902,7 @@ public sealed partial class GameState
         Reputation = Math.Clamp(Reputation + delta, Mode == GameMode.FreePlay ? 5 : 0, 100);
         if (Reputation != before)
         {
+            Stats.RepByCause[reason] = Stats.RepByCause.GetValueOrDefault(reason) + (Reputation - before);
             var last = RepLog.Count > 0 ? RepLog[^1] : null;
             // Merge same-day entries with the same reason to keep the log (and saves) small.
             if (last != null && last.Reason == reason && (int)(last.At / Defs.MinutesPerDay) == Day) last.Delta += Reputation - before;
