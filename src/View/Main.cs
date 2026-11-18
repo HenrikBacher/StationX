@@ -25,6 +25,8 @@ public partial class Main : Node3D
     Node3D _stationRoot = null!, _peopleRoot = null!;
     DirectionalLight3D _sun = null!;
     WeatherFx _weather = null!;
+    float _snowCover;
+    double _snowClock = double.NaN;
     WorldEnvironment _env = null!;
     MeshInstance3D _selRing = null!;
 
@@ -437,6 +439,12 @@ public partial class Main : Node3D
         env.AdjustmentSaturation = 0.82f - 0.3f * haze;
         env.AdjustmentBrightness = 1f + 0.08f * haze * (1 - night);
         _weather.Sync(w, Rig.Target);
+        // Snow settles over a few hours and melts over most of a day.
+        double dtMin = double.IsNaN(_snowClock) ? 0 : Math.Clamp(State.Now - _snowClock, 0, 600);
+        _snowClock = State.Now;
+        if (_shotPath != null && w == Weather.Snow) _snowCover = 1;
+        _snowCover = Math.Clamp(_snowCover + (float)dtMin * (w == Weather.Snow ? 1 / 240f : -1 / 900f), 0, 1);
+        _park.SetSnow(_snowCover);
         foreach (var l in _park.Lamps) l.LightEnergy = night * 1.6f;
     }
 

@@ -18,6 +18,8 @@ public partial class Park3D : Node3D
     const float BackWall = 1.45f, FrontWall = 0.3f, WallThick = 0.18f;
 
     MeshInstance3D _ground = null!;
+    MeshInstance3D _snow = null!;
+    StandardMaterial3D _snowMat = null!;
     Node3D _buildings = null!;
     public readonly List<OmniLight3D> Lamps = new();
     string _sig = "";
@@ -38,8 +40,33 @@ public partial class Park3D : Node3D
             Position = new Vector3(Grid.Width / 2f, 0, Grid.Height / 2f),
         };
         AddChild(_ground);
+        // A sheet of snow just above the lawn: under the lake surface and the hut floors.
+        _snowMat = new StandardMaterial3D
+        {
+            AlbedoColor = new Color(0.93f, 0.94f, 0.96f, 0),
+            Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+            Roughness = 0.9f,
+        };
+        _snow = new MeshInstance3D
+        {
+            Mesh = new PlaneMesh { Size = new Vector2(Grid.Width, Grid.Height) },
+            Position = new Vector3(Grid.Width / 2f, 0.006f, Grid.Height / 2f),
+            MaterialOverride = _snowMat,
+            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+            Visible = false,
+        };
+        AddChild(_snow);
         _buildings = new Node3D { Name = "Buildings" };
         AddChild(_buildings);
+    }
+
+    /// <summary>0 = green, 1 = a full covering of snow.</summary>
+    public void SetSnow(float cover)
+    {
+        _snow.Visible = cover > 0.01f;
+        var c = _snowMat.AlbedoColor;
+        c.A = Mathf.Clamp(cover, 0, 1) * 0.82f;
+        _snowMat.AlbedoColor = c;
     }
 
     public override void _Process(double delta)
