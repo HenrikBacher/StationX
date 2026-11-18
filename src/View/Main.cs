@@ -463,6 +463,13 @@ public partial class Main : Node3D
         if (_shotPath != null && w == Weather.Snow) _snowCover = 1;
         _snowCover = Math.Clamp(_snowCover + (float)dtMin * (w == Weather.Snow ? 1 / 240f : -1 / 900f), 0, 1);
         _park.SetSnow(_snowCover);
+        _park.Lake.Set(
+            wind: w switch { Weather.Storm => 1f, Weather.Rain => 0.6f, Weather.Overcast or Weather.Snow => 0.45f, Weather.Fog => 0.1f, _ => 0.3f },
+            rain: w switch { Weather.Storm => 1f, Weather.Rain => 0.8f, _ => 0f },
+            ice: Mathf.Clamp((_snowCover - 0.4f) * 2f, 0, 1),
+            sky: env.AmbientLightColor.Lerp(_sun.LightColor, 0.35f) * Mathf.Lerp(1f, 0.3f, night),
+            sun: _sun.LightColor,
+            sunlight: (1 - night) * (1 - gloom));
         _park.SetHeads(State);
         // Blackout during a raid: shaded lamps, just enough to work by.
         foreach (var l in _park.Lamps) l.LightEnergy = night * (State.RaidOn ? 0.55f : 1.6f);

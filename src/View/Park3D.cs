@@ -21,6 +21,7 @@ public partial class Park3D : Node3D
     MeshInstance3D _snow = null!;
     readonly Dictionary<string, Label3D> _headLabels = new();
     StandardMaterial3D _snowMat = null!;
+    public Water Lake { get; private set; } = null!;
     Node3D _buildings = null!;
     public readonly List<OmniLight3D> Lamps = new();
     string _sig = "";
@@ -59,6 +60,8 @@ public partial class Park3D : Node3D
             Visible = false,
         };
         AddChild(_snow);
+        Lake = new Water { Name = "Lake" };
+        AddChild(Lake);
         _buildings = new Node3D { Name = "Buildings" };
         AddChild(_buildings);
     }
@@ -71,12 +74,22 @@ public partial class Park3D : Node3D
         for (int y = 0; y < Grid.Height; y++)
             for (int x = 0; x < Grid.Width; x++)
             {
-                float a = g.Get(x, y) switch { Tile.Lawn or Tile.Tree => 1f, Tile.Path => 0.55f, _ => 0f };
+                var tile = g.Get(x, y);
+                float a = tile switch { Tile.Lawn or Tile.Tree => 1f, Tile.Path => 0.55f, _ => 0f };
+                bool lakeTile = tile == Tile.Water;
                 for (int j = 0; j < px; j++)
                     for (int i = 0; i < px; i++)
                     {
-                        float n = a > 0 ? Gfx.Rand01(x * px + i, y * px + j, 913) * 0.18f : 0;
-                        img.SetPixel(x * px + i, y * px + j, new Color(1, 1, 1, Mathf.Clamp(a - n, 0, 1)));
+                        float a0 = a;
+                        // Around the lake, follow the water's real outline rather than whole tiles.
+                        if (lakeTile || a > 0)
+                        {
+                            float lx = (x + (i + 0.5f) / px - Water.CentreX) / Water.RadiusX, lz = (y + (j + 0.5f) / px - Water.CentreZ) / Water.RadiusZ;
+                            float d = Mathf.Sqrt(lx * lx + lz * lz);
+                            if (d < 1.3f) a0 = d < 0.95f ? 0f : 1f;
+                        }
+                        float n = a0 > 0 ? Gfx.Rand01(x * px + i, y * px + j, 913) * 0.18f : 0;
+                        img.SetPixel(x * px + i, y * px + j, new Color(1, 1, 1, Mathf.Clamp(a0 - n, 0, 1)));
                     }
             }
         return ImageTexture.CreateFromImage(img);
