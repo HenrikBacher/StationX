@@ -22,6 +22,7 @@ public partial class Park3D : Node3D
     readonly Dictionary<string, Label3D> _headLabels = new();
     StandardMaterial3D _snowMat = null!;
     public Water Lake { get; private set; } = null!;
+    public Countryside Fields { get; private set; } = null!;
     Node3D _buildings = null!;
     public readonly List<OmniLight3D> Lamps = new();
     string _sig = "";
@@ -32,9 +33,8 @@ public partial class Park3D : Node3D
 
     public override void _Ready()
     {
-        // The model sits on a big, scarred map table.
-        Mesh3.Box(this, new Vector3(160, 0.2f, 140), new Vector3(Grid.Width / 2f, -0.95f, Grid.Height / 2f), new Color("2a2017"));
-        Mesh3.Box(this, new Vector3(Grid.Width + 0.6f, 0.85f, Grid.Height + 0.6f), new Vector3(Grid.Width / 2f, -0.43f, Grid.Height / 2f), new Color("43301f"));
+        Fields = new Countryside { Name = "Countryside" };
+        AddChild(Fields);
 
         _ground = new MeshInstance3D
         {
@@ -110,6 +110,7 @@ public partial class Park3D : Node3D
     public void SetSnow(float cover)
     {
         _snow.Visible = cover > 0.01f;
+        Fields.SetSnow(Mathf.Clamp(cover, 0, 1) * 0.85f);
         var c = _snowMat.AlbedoColor;
         c.A = Mathf.Clamp(cover, 0, 1) * 0.78f;
         _snowMat.AlbedoColor = c;

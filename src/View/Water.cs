@@ -121,7 +121,7 @@ void fragment() {
     static MultiMeshInstance3D Reeds()
     {
         var blade = new CylinderMesh { TopRadius = 0.006f, BottomRadius = 0.03f, Height = 1f, RadialSegments = 4, Rings = 1 };
-        blade.Material = new StandardMaterial3D { VertexColorUseAsAlbedo = true, Roughness = 0.9f };
+        blade.Material = new StandardMaterial3D { VertexColorUseAsAlbedo = true, VertexColorIsSrgb = true, Roughness = 0.9f };
         var rng = new RandomNumberGenerator { Seed = 1939 };
         var xf = new System.Collections.Generic.List<(Transform3D t, Color c)>();
         for (int clump = 0; clump < 34; clump++)
