@@ -1,0 +1,23 @@
+; Engine configuration file.
+config_version=5
+
+[application]
+config/name="Station X"
+config/description="Run Bletchley Park, 1939–1942, and break Enigma."
+run/main_scene="res://scenes/main.tscn"
+config/features=PackedStringArray("4.7", "C#")
+
+[display]
+window/size/viewport_width=1600
+window/size/viewport_height=900
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+
+[dotnet]
+project/assembly_name="StationX"
+
+[rendering]
+renderer/rendering_method="forward_plus"
+anti_aliasing/quality/msaa_3d=2
+lights_and_shadows/directional_shadow/size=8192
+environment/defaults/default_clear_color=Color(0.16, 0.14, 0.11, 1)
