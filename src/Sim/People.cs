@@ -321,6 +321,10 @@ public sealed partial class GameState
         MaybeCallUp();
         SpreadIllness();
         AssignBillets();
+        var headed = HeadedZones();
+        if (headed.Count > 0)
+            foreach (var s in Staff.Where(s => !s.Away && s.HeadOf == null && headed.Contains(Grid.ZoneAt((int)s.X, (int)s.Y)!)))
+                s.Morale = Math.Min(1, s.Morale + Defs.HeadMoralePerDay);
         foreach (var s in Staff.Where(s => s.FarBillet)) s.Morale = Math.Max(0, s.Morale - Defs.FarBilletMoralePerDay);
         if (Overcrowded > 0 && Day % 3 == 0)
             Emit(EventKind.Bad, $"{Overcrowded} of the staff are billeted miles away and bussed in. They're slower and unhappy. Requisition more billets from the Staff panel.");
@@ -387,4 +391,30 @@ public sealed partial class GameState
     }
 
     public IEnumerable<Staff> PinnedTo(int stationId) => Staff.Where(s => s.Pinned == stationId);
+
+    // ---- Heads of huts: Welchman ran Hut 6, Turing Hut 8 ----
+    public Staff? HeadOfZone(string zoneId) => Staff.FirstOrDefault(s => s.HeadOf == zoneId && !s.Leaving);
+
+    public static bool CanHead(Staff s) => s.Role == Role.Cryptanalyst && (s.Skill >= 2 || s.Notable != null);
+
+    /// <summary>Zones whose head is in today and well: work there goes faster.</summary>
+    public HashSet<Zone> HeadedZones() =>
+        Staff.Where(s => s.HeadOf != null && !s.Leaving && !s.Away).Select(s => Grid.Zone(s.HeadOf!)).OfType<Zone>().ToHashSet();
+
+    public bool AppointHead(int staffId, string? zoneId)
+    {
+        var s = StaffById(staffId);
+        if (s == null || !CanHead(s)) return false;
+        if (zoneId != null)
+        {
+            var z = Grid.Zone(zoneId);
+            if (z is not { Unlocked: true }) return false;
+            if (HeadOfZone(zoneId) is { } old && old != s) old.HeadOf = null;
+            s.HeadOf = zoneId;
+            s.Pinned = null;
+            Emit(EventKind.Info, $"{s.Name} is now head of {z.Name}. They'll manage rather than work a desk: everyone working there goes faster.");
+        }
+        else s.HeadOf = null;
+        return true;
+    }
 }

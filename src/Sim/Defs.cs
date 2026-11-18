@@ -110,6 +110,9 @@ public static class Defs
     public const double ExpectationBase = 0.5;
     /// <summary>Above this balance at the weekly accounts, the Treasury claws back part of the grant.</summary>
     public const int TreasuryComfortable = 2500;
+    // ---- Heads of huts ----
+    public const double HeadBonus = 1.1;
+    public const double HeadMoralePerDay = 0.02;
     // ---- Wrens ----
     /// <summary>From the Bombe build-up of 1940 until 'Action this day', only one Wren a week comes forward.</summary>
     public const int WrenShortageFrom = 5;

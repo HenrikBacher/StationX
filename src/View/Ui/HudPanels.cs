@@ -439,7 +439,7 @@ public partial class Hud
 
         string sig = st != null
             ? $"st{st.Id}{st.Input.Count}{st.Output.Count}{st.OperatorId}{st.OperatorPresent}{st.Current}{(int)(st.Progress * 20)}{st.PendingRemoval}{st.X},{st.Y}|{string.Join(",", S.PinnedTo(st.Id).Select(p => p.Id))}|{S.Funds >= Defs.MoveCost}|{(int)(st.Wear * 20)}{st.IsDown(S.Now)}{S.Funds >= Defs.ServiceCost}"
-            : sf != null ? $"sf{sf.Id}{sf.Task?.Kind}{sf.Task?.Dest}{sf.Leaving}{sf.Decrypts}{sf.Away}{sf.IsSick(S.Now)}{sf.Shift}{sf.Pinned}{(int)(sf.Energy * 10)}{(int)(sf.Morale * 10)}{sf.CarelessKnown}{(int)(sf.Experience / 60)}{sf.Skill}"
+            : sf != null ? $"sf{sf.Id}{sf.Task?.Kind}{sf.Task?.Dest}{sf.Leaving}{sf.Decrypts}{sf.Away}{sf.IsSick(S.Now)}{sf.Shift}{sf.Pinned}{sf.HeadOf}{S.Grid.Zones.Count(z => z.Unlocked)}{(int)(sf.Energy * 10)}{(int)(sf.Morale * 10)}{sf.CarelessKnown}{(int)(sf.Experience / 60)}{sf.Skill}"
             : $"z{z!.Id}{z.Unlocked}{S.Funds >= z.Cost}{S.ColdZones()?.Contains(z.Id)}";
         if (sig == _inspSig) return;
         _inspSig = sig;
@@ -617,6 +617,21 @@ public partial class Hud
             }
             pin.ItemSelected += idx => { int v = pin.GetItemId((int)idx); S.Pin(id, v < 0 ? null : v); _inspSig = ""; };
             _inspBox.AddChild(Row(UiTheme.Label("Pinned to", 12, UiTheme.TextDim), pin));
+        }
+        if (GameState.CanHead(s))
+        {
+            var head = new OptionButton { FocusMode = Control.FocusModeEnum.None, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+            head.TooltipText = $"A head manages a hut instead of working a desk. Everyone working there goes {Defs.HeadBonus - 1:P0} faster and is a little happier.";
+            head.AddItem("Works a desk", -1);
+            var zones = S.Grid.Zones.Where(z => z.Unlocked).ToList();
+            for (int i = 0; i < zones.Count; i++)
+            {
+                var other = S.HeadOfZone(zones[i].Id);
+                head.AddItem(zones[i].Name + (other != null && other != s ? $" (instead of {other.Name})" : ""), i);
+                if (s.HeadOf == zones[i].Id) head.Select(head.ItemCount - 1);
+            }
+            head.ItemSelected += idx => { int v = head.GetItemId((int)idx); S.AppointHead(id, v < 0 ? null : zones[v].Id); _inspSig = ""; };
+            _inspBox.AddChild(Row(UiTheme.Label("Head of", 12, UiTheme.TextDim), head));
         }
         if (s.Leaving) _inspBox.AddChild(UiTheme.Label("Leaving once the current job is done.", 12, Gfx.Warn));
         else

@@ -963,3 +963,30 @@ public class TypexWearTests
         Assert.True(Defs.RepairMinutesFor(StationType.Typex) < Defs.RepairMinutesFor(StationType.Bombe));
     }
 }
+
+public class HeadOfHutTests
+{
+    [Fact]
+    public void AHeadSpeedsUpTheirHutAndWorksNoDesk()
+    {
+        var g = TestUtil.BombeLine(61, true);
+        var crypt = TestUtil.Add(g, Role.Cryptanalyst);
+        crypt.Skill = 3;
+        var clerk = TestUtil.Add(g, Role.Clerk);
+        clerk.Skill = 1;
+        Assert.False(g.AppointHead(clerk.Id, "hut6"));
+        Assert.True(g.AppointHead(crypt.Id, "hut6"));
+        Assert.Equal(crypt, g.HeadOfZone("hut6"));
+        Assert.Contains(g.Grid.Zone("hut6")!, g.HeadedZones());
+        Assert.Single(g.HeadedZones());
+
+        // A second appointment to the same hut replaces the first.
+        var crypt2 = TestUtil.Add(g, Role.Cryptanalyst);
+        crypt2.Skill = 2;
+        Assert.True(g.AppointHead(crypt2.Id, "hut6"));
+        Assert.Null(crypt.HeadOf);
+
+        // Heads never take a desk job.
+        for (int i = 0; i < 200; i++) { g.Advance(5); Assert.NotEqual(TaskKind.Operate, crypt2.Task?.Kind); }
+    }
+}

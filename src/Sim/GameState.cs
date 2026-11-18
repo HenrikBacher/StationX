@@ -293,6 +293,7 @@ public sealed partial class GameState
 
     void WorkStations(double dt)
     {
+        var headed = HeadedZones();
         foreach (var st in Stations)
         {
             if (st.Def.Operator == null)
@@ -348,7 +349,8 @@ public sealed partial class GameState
             }
 
             if (st.Wears && WearAndMaybeBreak(st, dt)) { ReleaseOperator(st); continue; }
-            st.WorkDone += dt * op.WorkRate * RaidWorkFactor;
+            double head = headed.Count > 0 && Grid.ZoneAt(st.X, st.Y) is { } hz && headed.Contains(hz) ? Defs.HeadBonus : 1;
+            st.WorkDone += dt * op.WorkRate * RaidWorkFactor * head;
             st.LastWorked = Now;
             if (st.WorkDone >= st.WorkTotal)
             {

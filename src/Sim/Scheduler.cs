@@ -14,6 +14,10 @@ public sealed partial class GameState
     void Schedule()
     {
         _restExists = Stations.Any(s => s.IsRest && RestOpen(s));
+        // Heads of huts walk back to their hut when they've nothing else on.
+        foreach (var h in Staff)
+            if (h.HeadOf != null && h.Idle && h.Path.Count == 0 && Grid.Zone(h.HeadOf) is { } hz && Grid.ZoneAt(h.TilePos.x, h.TilePos.y) != hz)
+                SendTo(h, hz.InsideDoor);
         // 1. Every station with work waiting needs an operator of the right role.
         //    Someone pinned to the station goes first; pinned people don't work anywhere else.
         foreach (var st in Stations)
@@ -126,7 +130,7 @@ public sealed partial class GameState
     {
         if (st.Def.Operator is not Role role) return true;
         foreach (var s in Staff)
-            if (!s.Leaving && (s.Pinned == st.Id || (s.Pinned == null && s.Role == role))) return true;
+            if (!s.Leaving && s.HeadOf == null && (s.Pinned == st.Id || (s.Pinned == null && s.Role == role))) return true;
         return false;
     }
 
@@ -154,7 +158,7 @@ public sealed partial class GameState
         int bestD = int.MaxValue;
         foreach (var s in Staff)
         {
-            if (!s.Idle || !filter(s)) continue;
+            if (!s.Idle || s.HeadOf != null || !filter(s)) continue;
             if (s.Tired && _restExists) continue;
             int d = Manhattan(s.TilePos, near);
             if (d < bestD) { bestD = d; best = s; }

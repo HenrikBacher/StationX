@@ -180,6 +180,19 @@ public sealed class AutoPlayer
         if (g.CanCallAllHands() == null && g.Contracts.Any(c => c.State == ContractState.Active && c.Due - g.Now < 8 * 60 && c.Quantity - c.Delivered >= 2))
             g.CallAllHands();
 
+        // Heads for the busy huts, from cryptanalysts the desks can spare.
+        if (g.ActIndex >= 3)
+            foreach (var zid in new[] { "hut6", "hut8" })
+            {
+                if (g.Grid.Zone(zid) is not { Unlocked: true } || g.HeadOfZone(zid) != null) continue;
+                int desks = g.Stations.Count(st => st.Def.Operator == Role.Cryptanalyst && !st.PendingRemoval);
+                var crypts = g.Staff.Where(x => x.Role == Role.Cryptanalyst && !x.Leaving && x.HeadOf == null).ToList();
+                // With three watches every desk needs someone on each of them.
+                if (crypts.Count <= desks * (g.WatchesAvailable ? 3 : 1) + 1) break;
+                var pick = crypts.Where(GameState.CanHead).OrderBy(x => x.Skill).FirstOrDefault();
+                if (pick != null) g.AppointHead(pick.Id, zid);
+            }
+
         // Billets ahead of hiring.
         if (g.Staff.Count >= g.Billets - 2 && g.Funds > Defs.BilletCost + 400) g.RequisitionBillets();
 
