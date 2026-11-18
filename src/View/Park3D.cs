@@ -19,6 +19,7 @@ public partial class Park3D : Node3D
 
     MeshInstance3D _ground = null!;
     MeshInstance3D _snow = null!;
+    readonly Dictionary<string, Label3D> _headLabels = new();
     StandardMaterial3D _snowMat = null!;
     Node3D _buildings = null!;
     public readonly List<OmniLight3D> Lamps = new();
@@ -81,6 +82,17 @@ public partial class Park3D : Node3D
         return ImageTexture.CreateFromImage(img);
     }
 
+    /// <summary>Shows each hut head's surname under the hut's name.</summary>
+    public void SetHeads(GameState g)
+    {
+        foreach (var (id, label) in _headLabels)
+        {
+            var head = g.HeadOfZone(id);
+            string text = head == null ? "" : "head: " + head.Name.Split(' ')[^1];
+            if (label.Text != text) label.Text = text;
+        }
+    }
+
     /// <summary>0 = green, 1 = a full covering of snow.</summary>
     public void SetSnow(float cover)
     {
@@ -140,6 +152,7 @@ public partial class Park3D : Node3D
 
         _snowMat.AlbedoTexture = SnowMask(g);
         foreach (var c in _buildings.GetChildren()) c.QueueFree();
+        _headLabels.Clear();
         Lamps.Clear();
         _sided.Clear();
 
@@ -310,6 +323,11 @@ public partial class Park3D : Node3D
         name.PixelSize = 0.0075f;
         name.OutlineSize = 16;
         name.OutlineModulate = new Color("d9cfb4");
+        var headLabel = Mesh3.Text(_buildings, "", name.Position + new Vector3(0, -0.42f, 0), 30, new Color("1d1a16"), Fonts.Body);
+        headLabel.PixelSize = 0.0075f;
+        headLabel.OutlineSize = 10;
+        headLabel.OutlineModulate = new Color("d9cfb4");
+        _headLabels[z.Id] = headLabel;
 
         for (int y = z.Y + 2; y < z.Y + z.H - 1; y += 4)
             for (int x = z.X + 2; x < z.X + z.W - 1; x += 5)

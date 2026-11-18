@@ -74,6 +74,7 @@ jobs:
           shot alerts --days=30 --hour=11 --breakdown
           shot end --days=3 --modal=end
           shot snow --days=80 --hour=11 --zoom=1.0 --center=24,14 --weather=snow
+          shot head --days=20 --hour=11 --zoom=1.5 --center=26,6 --head=hut6
           shot mansion --days=80 --hour=11 --zoom=1.7 --center=10,7
           shot raid --days=40 --hour=23 --zoom=0.7 --center=24,14 --raid
           shot rain --days=40 --hour=15 --zoom=1.0 --center=24,14 --weather=storm

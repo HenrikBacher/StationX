@@ -179,6 +179,8 @@ public partial class Main : Node3D
                 }
             }
             if (args.ContainsKey("raid")) State.RaidUntil = State.Now + 120;
+            if (args.TryGetValue("head", out var hz) && State.Staff.Where(GameState.CanHead).OrderByDescending(x => x.Skill).FirstOrDefault() is { } hd)
+                State.AppointHead(hd.Id, hz);
             if (args.TryGetValue("weather", out var wx)) State.Weather = Enum.Parse<Weather>(wx, true);
             if (args.TryGetValue("zoom", out var z)) Rig.Cam.Size = 18f / float.Parse(z);
             if (args.TryGetValue("center", out var c))
@@ -455,6 +457,7 @@ public partial class Main : Node3D
         if (_shotPath != null && w == Weather.Snow) _snowCover = 1;
         _snowCover = Math.Clamp(_snowCover + (float)dtMin * (w == Weather.Snow ? 1 / 240f : -1 / 900f), 0, 1);
         _park.SetSnow(_snowCover);
+        _park.SetHeads(State);
         // Blackout during a raid: shaded lamps, just enough to work by.
         foreach (var l in _park.Lamps) l.LightEnergy = night * (State.RaidOn ? 0.55f : 1.6f);
     }
