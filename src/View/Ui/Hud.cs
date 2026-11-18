@@ -183,6 +183,9 @@ public partial class Hud : CanvasLayer
         _funds.Text = $"£{S.Funds:N0}";
         _funds.AddThemeColorOverride("font_color", S.Funds < 0 ? Gfx.Bad : UiTheme.Text);
         _funds.TooltipText = $"Weekly Treasury grant £{S.WeeklyGrant:N0}, wages £{S.WeeklyWages:N0}. Paid every Sunday night.";
+        double slip = S.DailyExpectation * Defs.Difficulties[S.Difficulty].RepLossMult;
+        _rep.TooltipText = "Completed requests raise it, missed deadlines lower it. It sets the weekly Treasury grant. At zero, GC&CS is closed down." +
+                           (slip > 0 ? $"\n\nWhitehall soon gets used to miracles: it slips {slip:0.0} a day, and more as the war goes on." : "");
         _funds.MouseFilter = Control.MouseFilterEnum.Pass;
         _rep.Value = S.Reputation;
         var fill = UiTheme.Box(S.Reputation < 25 ? Gfx.Bad : S.Reputation < 45 ? Gfx.Warn : UiTheme.Accent, UiTheme.Accent, 3, 0);

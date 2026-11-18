@@ -125,6 +125,7 @@ public sealed partial class GameState
         if (Day % 7 == 0) WeeklyAccounts();
         if (Day % 7 == 3) RefreshCandidates();
         if (SharkBlackout) TonnageLost += Rng.Range(14000, 26000);
+        if (ActIndex >= 1) AdjustRep(-DailyExpectation);
         if (Funds < 0)
         {
             AdjustRep(-1.5);

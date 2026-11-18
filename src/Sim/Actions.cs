@@ -236,10 +236,13 @@ public sealed partial class GameState
         int grant = WeeklyGrant, wages = WeeklyWages, upkeep = WeeklyUpkeep;
         Funds += grant - wages - upkeep;
         Emit(grant >= wages + upkeep ? EventKind.Info : EventKind.Bad,
-            $"Weekly accounts: Treasury grant £{grant}, wages £{wages}, upkeep £{upkeep}.");
+            $"Weekly accounts: Treasury grant £{grant}, wages £{wages}, upkeep £{upkeep}." +
+            (DailyExpectation > 0 ? " Whitehall expects more every month; reputation slips unless you keep delivering." : ""));
     }
 
     public int WeeklyWages => Staff.Sum(s => s.Salary);
+    /// <summary>Reputation lost each morning, before difficulty: what have you done for us lately?</summary>
+    public double DailyExpectation => ActIndex < 1 ? 0 : Defs.ExpectationBase + Defs.ExpectationPerAct * ActIndex;
     public int WeeklyUpkeep => Stations.Sum(s => s.Def.Upkeep) + OutstationBombes * Defs.OutstationUpkeep;
     public int WeeklyGrant => (int)((Defs.GrantBase + Defs.GrantPerRep * Reputation) * Defs.Difficulties[Difficulty].GrantMult);
 

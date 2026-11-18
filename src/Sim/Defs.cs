@@ -101,6 +101,9 @@ public static class Defs
     public const double StartReputation = 50;
     public const int GrantBase = 200;
     public const double GrantPerRep = 7;
+    /// <summary>Whitehall gets used to miracles: reputation slips this much a day, plus a bit more each act.</summary>
+    public const double ExpectationBase = 0.5;
+    public const double ExpectationPerAct = 0.2;
     public const double SellRefund = 0.5;
     public const int MaxOffers = 3;
     public const double OfferLifetimeDays = 1.5;

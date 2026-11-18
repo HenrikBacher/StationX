@@ -62,6 +62,20 @@ public sealed class AutoPlayer
         };
     }
 
+    /// <summary>
+    /// Would the hand-cipher desks get through everything already promised, plus this request, before its deadline?
+    /// Counts working hours only (staff aren't at their desks round the clock).
+    /// </summary>
+    bool HandWorkFits(Contract c)
+    {
+        int desks = Math.Max(1, Math.Min(Have(StationType.HandCipher), g.Staff.Count(s => s.Role == Role.Cryptanalyst && !s.Leaving)));
+        double per = Defs.Station(StationType.HandCipher).Minutes;
+        int owed = g.Contracts.Where(x => x.State == ContractState.Active && Defs.NetOf(x.Net).Family == Family.Hand)
+                              .Sum(x => x.Quantity - x.Delivered);
+        double needMinutes = (owed + c.Quantity) * per / desks * 2.2;
+        return needMinutes < c.Days * Defs.MinutesPerDay * 0.85;
+    }
+
     static readonly StationType[] BuildOrder =
     {
         StationType.Registration, StationType.HandCipher, StationType.Translation,
@@ -131,9 +145,10 @@ public sealed class AutoPlayer
         int Need(double n) => (int)Math.Ceiling(n * cover);
         var want = new Dictionary<Role, int>
         {
-            [Role.Clerk] = Need(Have(StationType.Registration) + Have(StationType.Dispatch) + 1),
+            // Messengers do the running, so clerks only need to cover the registration and despatch desks.
+            [Role.Clerk] = Need(Have(StationType.Registration) + Have(StationType.Dispatch) + (g.ActIndex < 1 ? 1 : 0)),
             [Role.Messenger] = g.ActIndex < 1 ? 0 : Need(g.Grid.Zones.Count(z => z.Unlocked) + g.ActIndex / 3),
-            [Role.Cryptanalyst] = Need(Have(StationType.HandCipher) + Have(StationType.Crib) + Have(StationType.Zygalski) + Have(StationType.Banburismus) + Have(StationType.Testery)),
+            [Role.Cryptanalyst] = Need(Math.Max(Have(StationType.HandCipher), Want(StationType.HandCipher)) + Have(StationType.Crib) + Have(StationType.Zygalski) + Have(StationType.Banburismus) + Have(StationType.Testery)),
             [Role.Wren] = Need(Have(StationType.Bombe) + Have(StationType.Bombe4) + Have(StationType.Typex) + Have(StationType.Checking)
                                + Have(StationType.OutstationLink) + Have(StationType.Colossus) + Have(StationType.TunnyMachine)),
             [Role.Linguist] = Need(Have(StationType.Translation)),
@@ -177,6 +192,7 @@ public sealed class AutoPlayer
             bool can = nd.Family == Family.Hand ? Have(StationType.HandCipher) > 0
                 : (g.KeyRoute(c.Net) != null || g.KeyBroken(c.Net, g.Day)) && Have(Defs.DecryptStep(c.Net)) > 0;
             if (!can) continue;
+            if (nd.Family == Family.Hand && !HandWorkFits(c)) continue;
             if (g.Accept(c.Id)) active++;
         }
     }

@@ -68,7 +68,7 @@ Godot lives in `~/.local/opt/godot/` and is linked as `~/.local/bin/godot`. Expo
   - From 1941 you can ask for **gardening**: minelaying that gives naval cribs, at a price in suspicion.
 - **Outstations** (Eastcote, Stanmore, Wavendon, Adstock, Gayhurst) are bought as remote Bombe capacity. An outstation teleprinter in the park sends them menus when your own Bombes are busy. They are not separate maps.
 - **Research** is paid for with breakthroughs, which you earn from delivered decrypts.
-- **Reputation** sets the weekly Treasury grant. Wages and station upkeep come out of it every Sunday. If reputation reaches zero, the game is lost.
+- **Reputation** sets the weekly Treasury grant. Wages and station upkeep come out of it every Sunday. If reputation reaches zero, the game is lost. From the Phoney War on, Whitehall gets used to miracles: reputation slips a little every day, and a little more each act, so you have to keep delivering.
 
 ### Modes
 
