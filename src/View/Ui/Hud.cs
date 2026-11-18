@@ -191,7 +191,8 @@ public partial class Hud : CanvasLayer
                              (cut > 0 ? $"\nWith more than £{Defs.TreasuryComfortable:N0} in hand, the Treasury will hold back £{cut:N0} of it." : "");
         double slip = S.DailyExpectation * Defs.Difficulties[S.Difficulty].RepLossMult;
         _rep.TooltipText = "Completed requests raise it, missed deadlines lower it. It sets the weekly Treasury grant. At zero, GC&CS is closed down." +
-                           (slip > 0 ? $"\n\nWhitehall soon gets used to miracles: it slips {slip:0.0} a day, and more as the war goes on." : "");
+                           (slip > 0 ? $"\n\nWhitehall soon gets used to miracles: it slips {slip:0.0} a day, and more as the war goes on." : "") +
+                           RepWeek();
         _funds.MouseFilter = Control.MouseFilterEnum.Pass;
         _rep.Value = S.Reputation;
         var fill = UiTheme.Box(S.Reputation < 25 ? Gfx.Bad : S.Reputation < 45 ? Gfx.Warn : UiTheme.Accent, UiTheme.Accent, 3, 0);
@@ -377,6 +378,17 @@ public partial class Hud : CanvasLayer
         p.SetMeta("born", Time.GetTicksMsec());
         _feed.AddChild(p);
         while (_feed.GetChildCount() > 6) { var first = _feed.GetChild(0); _feed.RemoveChild(first); first.QueueFree(); }
+    }
+
+    /// <summary>The past seven days' reputation changes, by cause.</summary>
+    string RepWeek()
+    {
+        var week = S.RepLog.Where(e => S.Now - e.At <= 7 * Defs.MinutesPerDay)
+                           .GroupBy(e => e.Reason).Select(g => (reason: g.Key, delta: g.Sum(e => e.Delta)))
+                           .Where(x => Math.Abs(x.delta) >= 0.05).OrderBy(x => x.delta).ToList();
+        if (week.Count == 0) return "";
+        return "\n\nThe past week:\n" + string.Join("\n", week.Select(x => $"  {(x.delta > 0 ? "+" : "−")}{Math.Abs(x.delta):0.0}  {x.reason}")) +
+               $"\n  = {(week.Sum(x => x.delta) >= 0 ? "+" : "−")}{Math.Abs(week.Sum(x => x.delta)):0.0}";
     }
 
     public void OnEvent(GameEvent e)

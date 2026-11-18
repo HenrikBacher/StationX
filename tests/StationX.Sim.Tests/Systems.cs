@@ -932,3 +932,24 @@ public class WrenShortageTests
         Assert.Equal(3, Wrens(Campaign.ActionThisDay));
     }
 }
+
+public class RepLogTests
+{
+    [Fact]
+    public void ReputationChangesAreLoggedByCauseAndPruned()
+    {
+        var g = GameState.NewGame(59);
+        g.AdjustRep(-2, "Missed deadlines");
+        g.AdjustRep(-1, "Missed deadlines");
+        g.AdjustRep(3, "Requests completed");
+        Assert.Equal(2, g.RepLog.Count);
+        Assert.Equal(-3, g.RepLog[0].Delta, 3);
+        g.ActIndex = 2;
+        g.Advance(20 * Defs.MinutesPerDay);
+        g.Events.Clear();
+        Assert.All(g.RepLog, e => Assert.True(g.Now - e.At <= 15 * Defs.MinutesPerDay));
+        Assert.Contains(g.RepLog, e => e.Reason == "Whitehall's expectations");
+        var copy = SaveGame.Load(SaveGame.Save(g));
+        Assert.Equal(g.RepLog.Count, copy.RepLog.Count);
+    }
+}

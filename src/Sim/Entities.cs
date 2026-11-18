@@ -249,6 +249,13 @@ public enum EventKind { Info, Good, Bad, ActStarted, ActComplete, Won, Lost, Dil
 
 public sealed record GameEvent(EventKind Kind, string Text);
 
+public sealed class RepEntry
+{
+    public double At { get; set; }
+    public double Delta { get; set; }
+    public string Reason { get; set; } = "";
+}
+
 /// <summary>One day's numbers, for the statistics panel.</summary>
 public sealed class DayRecord
 {

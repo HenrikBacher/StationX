@@ -262,7 +262,7 @@ public sealed partial class GameState
         Funds += grant - wages - upkeep;
         foreach (var (issuer, days) in NeglectedMinistries().Where(x => x.days >= Defs.NeglectDays).ToList())
         {
-            AdjustRep(-Defs.NeglectRep);
+            AdjustRep(-Defs.NeglectRep, "Ministries left waiting");
             LastServed[issuer] = Now - (Defs.NeglectDays - 7) * Defs.MinutesPerDay;   // they complain again next week if still ignored
             Emit(EventKind.Bad, $"The {Defs.IssuerNames[issuer]} complains to the Foreign Office that Bletchley has done nothing for it in {days:0} days. Reputation falls.");
         }
@@ -353,7 +353,7 @@ public sealed partial class GameState
         c.State = ContractState.Expired;
         if (c.Flash)
         {
-            AdjustRep(-Defs.FlashIgnoredRep / 2);
+            AdjustRep(-Defs.FlashIgnoredRep / 2, "Flash requests");
             Emit(EventKind.Info, $"We tell the {Defs.IssuerNames[c.Issuer]} we can't do it in time. They are disappointed, but grateful for the honesty.");
         }
     }
@@ -527,7 +527,7 @@ public sealed partial class GameState
                     c.State = ContractState.Expired;
                     if (c.Flash)
                     {
-                        AdjustRep(-Defs.FlashIgnoredRep);
+                        AdjustRep(-Defs.FlashIgnoredRep, "Flash requests");
                         Emit(EventKind.Bad, $"The {Defs.IssuerNames[c.Issuer]}'s MOST IMMEDIATE request went unanswered. They noticed.");
                     }
                     break;
@@ -554,7 +554,7 @@ public sealed partial class GameState
                         var pol = Defs.Policies[Policy];
                         int reward = (int)(c.Reward * pol.Reward);
                         Funds += reward;
-                        AdjustRep(c.Rep * pol.Rep);
+                        AdjustRep(c.Rep * pol.Rep, "Requests completed");
                         ChangeMorale(0.02);
                         Stats.ContractsCompleted++;
                         LastServed[c.Issuer] = Now;
@@ -565,7 +565,7 @@ public sealed partial class GameState
                     {
                         c.State = ContractState.Failed;
                         Stats.ContractsFailed++;
-                        AdjustRep(-(4 + c.Rep));
+                        AdjustRep(-(4 + c.Rep), "Missed deadlines");
                         ChangeMorale(-0.04);
                         Emit(EventKind.Bad, $"Missed deadline: {c.Title} for the {Defs.IssuerNames[c.Issuer]}. Reputation falls.");
                         if (c.Tag != null) (retries ??= new()).Add(c);

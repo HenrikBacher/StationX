@@ -85,7 +85,7 @@ public sealed partial class GameState
         var o = d.Options[option];
         Dilemmas.Remove(d);
         Funds += o.Funds;
-        if (o.Rep != 0) AdjustRep(o.Rep);
+        if (o.Rep != 0) AdjustRep(o.Rep, "Decisions");
         if (o.Suspicion != 0) AddSuspicion(d.Service, o.Suspicion);
         if (o.Morale != 0) ChangeMorale(o.Morale);
         Points += o.Points;

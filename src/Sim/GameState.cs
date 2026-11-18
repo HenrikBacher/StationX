@@ -129,6 +129,7 @@ public sealed partial class GameState
     void OnNewDay()
     {
         RecordDay();
+        RepLog.RemoveAll(e => Now - e.At > 14 * Defs.MinutesPerDay);
         RollWeather();
         MaybeStaleCribs();
         PlanRaid();
@@ -139,10 +140,10 @@ public sealed partial class GameState
         if (Day % 7 == 0) WeeklyAccounts();
         if (Day % 7 == 3) RefreshCandidates();
         if (SharkBlackout) TonnageLost += Rng.Range(14000, 26000);
-        if (ActIndex >= 1) AdjustRep(-DailyExpectation);
+        if (ActIndex >= 1) AdjustRep(-DailyExpectation, "Whitehall's expectations");
         if (Funds < 0)
         {
-            AdjustRep(-1.5);
+            AdjustRep(-1.5, "Overdrawn");
             Emit(EventKind.Bad, "The Treasury is asking why GC&CS is overdrawn. Reputation falls.");
         }
         // Forget key records older than a week.
@@ -884,10 +885,22 @@ public sealed partial class GameState
             }
     }
 
-    public void AdjustRep(double delta)
+    /// <summary>Recent reputation changes and their causes, for the player to see why it moves. Kept for a fortnight.</summary>
+    public List<RepEntry> RepLog { get; set; } = new();
+
+    public void AdjustRep(double delta, string reason = "Other")
     {
         if (delta < 0) delta *= Defs.Difficulties[Difficulty].RepLossMult;
+        double before = Reputation;
         Reputation = Math.Clamp(Reputation + delta, Mode == GameMode.FreePlay ? 5 : 0, 100);
+        if (Reputation != before)
+        {
+            var last = RepLog.Count > 0 ? RepLog[^1] : null;
+            // Merge same-day entries with the same reason to keep the log (and saves) small.
+            if (last != null && last.Reason == reason && (int)(last.At / Defs.MinutesPerDay) == Day) last.Delta += Reputation - before;
+            else RepLog.Add(new RepEntry { At = Now, Delta = Reputation - before, Reason = reason });
+            RepLog.RemoveAll(e => Now - e.At > 14 * Defs.MinutesPerDay);
+        }
         if (Reputation <= 0 && Status == GameStatus.Playing)
         {
             Status = GameStatus.Lost;
