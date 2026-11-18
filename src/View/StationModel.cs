@@ -68,6 +68,7 @@ public partial class StationModel : Node3D
             case StationType.Testery: Desk(); Testery(); break;
             case StationType.Colossus: Colossus(); break;
             case StationType.TunnyMachine: TunnyMachine(); break;
+            case StationType.Index: CardIndex(); break;
         }
         if (!Defs.IsRest(Type)) BuildPiles();
     }
@@ -315,6 +316,41 @@ public partial class StationModel : Node3D
         var tape = Mesh3.Box(this, new Vector3(0.04f, 0.01f, 0.22f), new Vector3(0.32f, DeskTop + 0.12f, 0.12f), Gfx.Paper);
         _sliders.Add(tape);
         Chair(new Vector3(0, 0, 0.5f + 0.22f));
+    }
+
+    /// <summary>Hut 3's Index: banks of oak card drawers with brass pulls, a ledge with trays of cards, a chair.</summary>
+    void CardIndex()
+    {
+        float back = -H / 2 + 0.06f, depth = 0.34f, height = 0.86f;
+        foreach (float cx in new[] { -0.5f, 0.5f })
+        {
+            Mesh3.BoxAt(this, cx - 0.44f, 0, back, 0.88f, height, depth, Gfx.Oak);
+            Mesh3.BoxAt(this, cx - 0.46f, height, back - 0.01f, 0.92f, 0.03f, depth + 0.02f, Gfx.OakDark);
+            for (int row = 0; row < 6; row++)
+                for (int col = 0; col < 4; col++)
+                {
+                    float x = cx - 0.4f + col * 0.205f, y = 0.08f + row * 0.13f, z = back + depth + 0.005f;
+                    Mesh3.Box(this, new Vector3(0.18f, 0.11f, 0.012f), new Vector3(x + 0.09f, y + 0.055f, z), Gfx.OakLight);
+                    Mesh3.Box(this, new Vector3(0.06f, 0.025f, 0.008f), new Vector3(x + 0.09f, y + 0.075f, z + 0.01f), Gfx.Paper);   // label
+                    Mesh3.Box(this, new Vector3(0.05f, 0.012f, 0.02f), new Vector3(x + 0.09f, y + 0.035f, z + 0.015f), Gfx.Brass); // pull
+                }
+        }
+        // One drawer pulled out, full of cards
+        Mesh3.BoxAt(this, 0.1f, 0.47f, back + depth, 0.18f, 0.1f, 0.22f, Gfx.OakLight);
+        for (int i = 0; i < 9; i++)
+            Mesh3.Box(this, new Vector3(0.16f, 0.09f, 0.004f), new Vector3(0.19f, 0.535f, back + depth + 0.03f + i * 0.02f), i % 4 == 0 ? Gfx.PaperShade : Gfx.Paper);
+        // Working ledge in front with card trays
+        Mesh3.BoxAt(this, -0.9f, DeskTop - 0.04f, back + depth + 0.02f, 1.8f, 0.04f, 0.3f, Gfx.Oak);
+        foreach (float lx in new[] { -0.86f, 0.8f })
+            Mesh3.BoxAt(this, lx, 0, back + depth + 0.24f, 0.05f, DeskTop - 0.04f, 0.05f, Gfx.OakDark);
+        for (int i = 0; i < 3; i++)
+        {
+            float tx = -0.6f + i * 0.32f;
+            Mesh3.BoxAt(this, tx, DeskTop, back + depth + 0.07f, 0.22f, 0.05f, 0.16f, Gfx.OakDark);
+            for (int k = 0; k < 6; k++)
+                Mesh3.Box(this, new Vector3(0.18f, 0.06f, 0.003f), new Vector3(tx + 0.11f, DeskTop + 0.05f, back + depth + 0.09f + k * 0.022f), Gfx.Paper);
+        }
+        Chair(new Vector3(-0.3f, 0, H / 2 + 0.22f));
     }
 
     void Desk(float inset = 0.08f)

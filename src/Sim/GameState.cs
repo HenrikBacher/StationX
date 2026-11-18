@@ -520,9 +520,16 @@ public sealed partial class GameState
             case StationType.Translation:
                 if (Researched.Contains(ResearchId.Hut3Reporting)) t *= 0.6;
                 break;
+            case StationType.Index:
+                if (Researched.Contains(ResearchId.CardIndex)) t *= 0.7;
+                if (Researched.Contains(ResearchId.Hollerith)) t *= 0.6;
+                break;
         }
         return Math.Max(1, t / op.SpeedFor(st.Type));
     }
+
+    /// <summary>Machine-cipher decrypts go through Hut 3's Index from the Battle of Britain; hand ciphers never do.</summary>
+    public bool NeedsIndex(Message m) => ActIndex >= Defs.IndexFromAct && Defs.NetOf(m.Net).Family != Family.Hand;
 
     /// <summary>How long a Bombe run takes relative to the base time, before the operator's speed.</summary>
     double BombeFactor(Message m)
@@ -645,6 +652,9 @@ public sealed partial class GameState
                 m.Next = StationType.Translation;
                 break;
             case StationType.Translation:
+                m.Next = NeedsIndex(m) ? StationType.Index : StationType.Dispatch;
+                break;
+            case StationType.Index:
                 m.Next = StationType.Dispatch;
                 break;
             case StationType.Dispatch:

@@ -138,3 +138,23 @@ public class BuildDiag(ITestOutputHelper output)
         }
     }
 }
+
+public class PileDiag(ITestOutputHelper output)
+{
+    [Fact]
+    public void Piles()
+    {
+        if (Environment.GetEnvironmentVariable("PILE") != "1") return;
+        var g = GameState.NewGame(int.Parse(Environment.GetEnvironmentVariable("SEED") ?? "3"));
+        var ai = new AutoPlayer(g);
+        int day = int.Parse(Environment.GetEnvironmentVariable("DAYS") ?? "30");
+        while (g.Status == GameStatus.Playing && g.Day < day) { ai.Think(); g.Advance(60); g.Events.Clear(); if (g.ActCompletePending) g.ContinueAfterAct(); }
+        output.WriteLine($"day {g.Day} act {g.ActIndex} status {g.Status} rep {g.Reputation:0} staff {g.Staff.Count} handovers {g.Stats.HandOvers}");
+        foreach (var st in g.Stations.Where(s => s.Def.Operator != null))
+            output.WriteLine($"  {st.Type} #{st.Id} {g.Grid.ZoneAt(st.X, st.Y)?.Id}/{g.Grid.RoomAt(st.X, st.Y)?.Name} in {st.Input.Count} out {st.Output.Count} cur {st.Current} op {st.OperatorId}");
+        foreach (var grp in g.Messages.Values.Where(m => m.Loc != Loc.Done).GroupBy(m => $"{m.Loc}/{m.Next}"))
+            output.WriteLine($"  {grp.Key}: {grp.Count()} oldest {(g.Now - grp.Min(m => m.Created)) / 60:0}h");
+        foreach (var r in new[] { Role.Clerk, Role.Messenger, Role.Linguist, Role.Wren, Role.Cryptanalyst })
+            output.WriteLine($"  {r}: {g.Staff.Count(s => s.Role == r)} idle {g.Staff.Count(s => s.Role == r && s.Idle)} away {g.Staff.Count(s => s.Role == r && s.Away)}");
+    }
+}

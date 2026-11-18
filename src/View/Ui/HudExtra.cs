@@ -231,6 +231,8 @@ public partial class Hud
             return ("trans", "Decrypts are in German. A translation desk, worked by a linguist, turns them into English.");
         if (!Has(StationType.Dispatch))
             return ("disp", "Finished translations leave by the despatch box. Without one, nothing reaches Whitehall.");
+        if (S.ActIndex >= Defs.IndexFromAct && !Has(StationType.Index))
+            return ("index", "Machine-cipher decrypts now go through Hut 3's Index before despatch: a card for every unit, officer and place, so each message is read against all we know. Build a card index (Hut 3, Hut 8 or the Mansion), worked by a clerk.");
         if (Count(Role.Clerk) < 2)
             return ("clerks", "Clerks register paper and carry it between desks. Hire another from Staff (H).");
         if (S.ActIndex >= 1 && Count(Role.Messenger) == 0 && S.Candidates.Any(c => c.Role == Role.Messenger))

@@ -37,6 +37,7 @@ static class TestUtil
         foreach (var r in new[] { Role.Wren, Role.Wren, Role.Wren, Role.Cryptanalyst, Role.Linguist, Role.Clerk, Role.Clerk }) Add(g, r);
         g.Place(StationType.Registration, 5, 3, 0, free: true);
         g.Place(StationType.Translation, 11, 3, 0, free: true);
+        Assert.NotNull(g.Place(StationType.Index, 14, 8, 0, free: true));   // act 5: decrypts are indexed
         g.Place(StationType.Typex, 22, 3, 0, free: true);
         g.Place(StationType.Crib, 21, 5, 0, free: true);   // Hut 6 Machine Room
         g.Place(StationType.Bombe, 36, 3, 0, free: true);
@@ -330,8 +331,9 @@ public class MachineTests(ITestOutputHelper output)
         g.Place(StationType.Registration, 5, 3, 0, free: true);
         g.Place(StationType.Translation, 11, 3, 0, free: true);
         Assert.Equal("Build a Testery desk", g.KeyRouteProblem(Net.Tunny));
-        g.Place(StationType.Testery, 21, 26, 0, free: true);
-        g.Place(StationType.TunnyMachine, 25, 27, 0, free: true);
+        Assert.NotNull(g.Place(StationType.Testery, 21, 27, 0, free: true));      // the Testery room, off the corridor
+        Assert.NotNull(g.Place(StationType.TunnyMachine, 25, 27, 0, free: true));
+        Assert.NotNull(g.Place(StationType.Index, 14, 8, 0, free: true));
         Assert.Equal(StationType.Testery, g.KeyRoute(Net.Tunny));
         g.AddScripted(Net.Tunny, 5, 5, 0, 0, "t", "t", "t");
         TestUtil.Run(g, 4);
@@ -1227,5 +1229,31 @@ public class TiredOperatorTests
         for (int t = 0; t < 3 * 60; t += 5) g.Advance(5);
         Assert.True(hand.Processed > 0 || hand.WorkDone > 0, $"the hand-cipher desk never got going again: now {g.Now} in {hand.Input.Count} op {hand.OperatorId} " +
             string.Join("; ", g.Staff.Select(s => $"{s.Role} E{s.Energy:0.00} {s.Task?.Kind} away {s.Away} at {s.TilePos}")) + " msgs " + string.Join(",", g.Messages.Values.Select(m => $"{m.Loc}/{m.Next}")) + $" contract {c.State}");
+    }
+}
+
+public class IndexTests
+{
+    [Fact]
+    public void MachineDecryptsAreIndexedFromTheBattleOfBritain()
+    {
+        var g = GameState.NewGame(3);
+        g.DebugSkipToAct(Defs.IndexFromAct - 1);
+        Assert.False(g.NeedsIndex(new Message { Net = Net.Red }));
+        g.DebugSkipToAct(Defs.IndexFromAct);
+        Assert.True(g.NeedsIndex(new Message { Net = Net.Red }));
+        Assert.True(g.NeedsIndex(new Message { Net = Net.Tunny }));
+        Assert.False(g.NeedsIndex(new Message { Net = Net.Police }));
+    }
+
+    [Fact]
+    public void IndexedRedTrafficStillGetsThrough()
+    {
+        var g = TestUtil.BombeLine(12, checking: true);
+        g.AddScripted(Net.Red, 8, 4, 0, 0, "t", "t", "t");
+        TestUtil.Run(g, 3);
+        var index = g.Stations.Single(s => s.Type == StationType.Index);
+        Assert.True(index.Processed > 0, "nothing was indexed");
+        Assert.True(Stats.Get(g.Stats.Delivered, Net.Red) > 0);
     }
 }

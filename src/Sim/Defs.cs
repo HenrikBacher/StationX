@@ -12,7 +12,7 @@ public enum StationType
     Bombe, Bombe4, Typex, Translation, Dispatch,
     Canteen, CommonRoom, Rounders, Checking, Tube, OutstationLink,
     Testery, Colossus, TunnyMachine,
-    Stove, SickBay,
+    Stove, SickBay, Index,
 }
 
 public enum Family { Hand, Enigma, Lorenz }
@@ -116,6 +116,10 @@ public static class Defs
     public const double RuthlessSuccess = 0.4;
     public const int RuthlessPoints = 80;
     public const double RuthlessSuspicion = 18;
+    // ---- Hut 3 ----
+    /// <summary>From "Their Finest Hour": machine-cipher decrypts are indexed after translation, before despatch.</summary>
+    public const int IndexFromAct = 5;
+
     // ---- Layout ----
     /// <summary>Paper passes straight across to a next-step desk this close (Manhattan, between working tiles, same hut).</summary>
     public const int HandOverReach = 2;
@@ -134,13 +138,14 @@ public static class Defs
         StationType.Bombe or StationType.Bombe4 => new[] { StationType.Crib, StationType.Checking },
         StationType.Checking => new[] { StationType.Bombe, StationType.Bombe4 },
         StationType.Typex => new[] { StationType.Registration, StationType.Translation },
-        StationType.Translation => new[] { StationType.Typex, StationType.HandCipher, StationType.Dispatch },
-        StationType.Dispatch => new[] { StationType.Translation },
+        StationType.Translation => new[] { StationType.Typex, StationType.HandCipher, StationType.Index, StationType.Dispatch },
+        StationType.Index => new[] { StationType.Translation, StationType.Dispatch },
+        StationType.Dispatch => new[] { StationType.Translation, StationType.Index },
         _ => Array.Empty<StationType>(),
     };
     // ---- Traffic growth ----
     /// <summary>German wireless traffic grew year on year; requests grow with each chapter, so the Park must grow too.</summary>
-    public const double TrafficPerAct = 0.11;
+    public const double TrafficPerAct = 0.06;
     public static double TrafficScale(int act) => 1 + TrafficPerAct * Math.Max(0, act);
     // ---- Heads of huts ----
     public const double HeadBonus = 1.1;
@@ -257,7 +262,7 @@ public static class Defs
     public static readonly Dictionary<Difficulty, DifficultyDef> Difficulties = new()
     {
         [Difficulty.Easy] = new(Difficulty.Easy, "Easy", "More money, longer deadlines, slower German suspicion.", 2200, 1.2, 1, 0.6, 0.7, 0.5),
-        [Difficulty.Normal] = new(Difficulty.Normal, "Normal", "As intended.", 1500, 0.84, 0, 1.0, 1.0),
+        [Difficulty.Normal] = new(Difficulty.Normal, "Normal", "As intended.", 1500, 0.9, 0, 1.0, 1.0),
         [Difficulty.Hard] = new(Difficulty.Hard, "Hard", "Less money, tighter deadlines, and the Germans notice everything.", 1100, 0.85, -0.25, 1.4, 1.0, 1.2),
     };
 
@@ -319,6 +324,9 @@ public static class Defs
         [StationType.Typex] = new(StationType.Typex, "Typex machine",
             "A British cipher machine modified to emulate Enigma. With the day's key, decrypts a message in minutes.",
             350, 1, 1, Role.Wren, 15, 8, null, 2, Upkeep: 5),
+        [StationType.Index] = new(StationType.Index, "Card index",
+            "Hut 3's Index: every unit, officer, place and callsign in the decrypts on a card, so each new message is read against everything already known. From the Battle of Britain, Enigma and Tunny decrypts are indexed before they go out.",
+            120, 2, 1, Role.Clerk, 7, 8, null, Defs.IndexFromAct),
         [StationType.Translation] = new(StationType.Translation, "Translation desk",
             "Turns German service jargon into intelligence that Whitehall can act on.",
             150, 2, 1, Role.Linguist, 50, 6, null, 0),
@@ -422,7 +430,7 @@ public static class Defs
     {
         ["mansion"] = new("Headquarters. Any desk work can go here, but no machines: those went into the huts.",
             new[] { StationType.Inbox, StationType.Registration, StationType.HandCipher, StationType.Crib, StationType.Zygalski, StationType.Banburismus,
-                    StationType.Translation, StationType.Dispatch, StationType.CommonRoom, StationType.Testery }),
+                    StationType.Translation, StationType.Dispatch, StationType.CommonRoom, StationType.Testery, StationType.Index }),
         ["hut1"] = new("A small hut beside the Mansion. The first Bombe, 'Victory', was installed here in March 1940.",
             new[] { StationType.Bombe, StationType.Checking }),
         ["hut6"] = new("Army and Luftwaffe Enigma: cribs, Zygalski sheets, and the Typex machines of the decoding room.",
@@ -430,13 +438,13 @@ public static class Defs
         ["hut11"] = new("The Bombe hut, built for the machines that followed Victory and run by the Wrens. Hot, loud and smelling of oil.",
             new[] { StationType.Bombe, StationType.Bombe4, StationType.Checking, StationType.OutstationLink }),
         ["hut3"] = new("Intelligence from Hut 6: translation, emendation and despatch to the commands. No machines.",
-            new[] { StationType.Registration, StationType.Translation, StationType.Dispatch, StationType.CommonRoom }),
+            new[] { StationType.Registration, StationType.Translation, StationType.Index, StationType.Dispatch, StationType.CommonRoom }),
         ["hut8"] = new("Naval Enigma: cribs, Banburismus, the naval decoding room's Typex machines, and naval translation.",
             new[] { StationType.Inbox, StationType.Registration, StationType.Crib, StationType.Banburismus, StationType.Typex,
-                    StationType.Translation, StationType.Dispatch }),
+                    StationType.Translation, StationType.Index, StationType.Dispatch }),
         ["blockf"] = new("The Testery and the Newmanry: Tunny by hand and by Colossus.",
             new[] { StationType.Inbox, StationType.Registration, StationType.Testery, StationType.Colossus, StationType.TunnyMachine,
-                    StationType.Translation, StationType.Dispatch }),
+                    StationType.Translation, StationType.Index, StationType.Dispatch }),
     };
 
     /// <summary>Buildings with central heating: no stove needed, and none allowed.</summary>

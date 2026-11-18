@@ -19,6 +19,7 @@ public sealed class AutoPlayer
         [StationType.HandCipher] = new[] { "mansion" },
         [StationType.Translation] = new[] { "hut3", "mansion" },
         [StationType.Dispatch] = new[] { "hut3", "mansion" },
+        [StationType.Index] = new[] { "hut3", "hut8", "mansion" },
         [StationType.Typex] = new[] { "hut6", "hut8" },
         [StationType.Zygalski] = new[] { "hut6", "mansion" },
         [StationType.Crib] = new[] { "hut6", "hut8", "mansion" },
@@ -44,6 +45,7 @@ public sealed class AutoPlayer
             StationType.HandCipher => a >= 5 ? 1 : a >= 1 ? 2 : 1,
             StationType.Translation => a >= 9 ? 5 : a >= 5 ? 4 : a >= 2 ? 2 : 1,
             StationType.Dispatch => a >= 5 ? 2 : 1,
+            StationType.Index => a >= Defs.IndexFromAct ? Math.Min(Have(StationType.Translation), Have(StationType.Index) + (UnindexedTranslation().Any() ? 1 : 0)) : 0,
             StationType.Typex => a >= 5 ? 2 : a >= 2 ? 1 : 0,
             StationType.Zygalski => a is 2 or 3 ? 1 : 0,
             StationType.Crib => a >= 7 ? 2 : a >= 3 ? 1 : 0,
@@ -111,7 +113,7 @@ public sealed class AutoPlayer
     {
         StationType.Registration, StationType.HandCipher, StationType.Translation,
         StationType.Typex, StationType.Zygalski, StationType.Crib, StationType.Bombe,
-        StationType.Banburismus, StationType.Bombe4, StationType.Dispatch,
+        StationType.Banburismus, StationType.Bombe4, StationType.Dispatch, StationType.Index,
         StationType.Checking, StationType.Canteen, StationType.CommonRoom, StationType.Rounders,
         StationType.OutstationLink, StationType.Testery, StationType.TunnyMachine, StationType.Colossus,
     };
@@ -224,7 +226,7 @@ public sealed class AutoPlayer
         var want = new Dictionary<Role, int>
         {
             // Messengers do the running, so clerks only need to cover the registration and despatch desks.
-            [Role.Clerk] = Need(Have(StationType.Registration) + Have(StationType.Dispatch) + (g.ActIndex < 1 ? 1 : 0)),
+            [Role.Clerk] = Need(Have(StationType.Registration) + Have(StationType.Dispatch) + Have(StationType.Index) + (g.ActIndex < 1 ? 1 : 0)),
             [Role.Messenger] = g.ActIndex < 1 ? 0 : Need(g.Grid.Zones.Count(z => z.Unlocked) + g.ActIndex / 3),
             [Role.Cryptanalyst] = Need(Math.Max(Have(StationType.HandCipher), Want(StationType.HandCipher)) + Have(StationType.Crib) + Have(StationType.Zygalski) + Have(StationType.Banburismus) + Have(StationType.Testery)),
             [Role.Wren] = Need(Have(StationType.Bombe) + Have(StationType.Bombe4) + Have(StationType.Typex) + Have(StationType.Checking)
@@ -293,10 +295,47 @@ public sealed class AutoPlayer
         return ok;
     }
 
+    /// <summary>Rooms with a translation desk but no card index yet: each wants one beside it.</summary>
+    IEnumerable<Station> UnindexedTranslation() =>
+        g.Stations.Where(tr => tr.Type == StationType.Translation &&
+            !g.Stations.Any(ix => ix.Type == StationType.Index && g.Grid.RoomAt(ix.UseTile.x, ix.UseTile.y) == g.Grid.RoomAt(tr.UseTile.x, tr.UseTile.y)));
+
+    /// <summary>The closest legal spot to another station, in the same room.</summary>
+    bool TryBuildBeside(StationType t, Station anchor)
+    {
+        var zone = g.Grid.ZoneAt(anchor.UseTile.x, anchor.UseTile.y);
+        if (zone == null || !Defs.AllowedIn(zone.Id, t)) return false;
+        var room = g.Grid.RoomAt(anchor.UseTile.x, anchor.UseTile.y);
+        (int x, int y, int r)? best = null;
+        int bestD = int.MaxValue;
+        for (int y = zone.Y + 1; y < zone.Y + zone.H - 1; y++)
+            for (int x = zone.X + 1; x < zone.X + zone.W - 1; x++)
+                foreach (int rot in new[] { 0, 2, 1, 3 })
+                {
+                    var use = Station.UseTileFor(t, x, y, rot);
+                    if (g.Grid.RoomAt(use.x, use.y) != room || g.CanPlace(t, x, y, rot) != null) continue;
+                    int d = Math.Abs(use.x - anchor.UseTile.x) + Math.Abs(use.y - anchor.UseTile.y);
+                    if (d < bestD) { bestD = d; best = (x, y, rot); }
+                }
+        return best is var (bx, by, br) && g.Place(t, bx, by, br) != null;
+    }
+
     bool TryBuildInner(StationType t)
     {
+        if (t == StationType.Index)
+        {
+            foreach (var tr in UnindexedTranslation())
+                if (TryBuildBeside(t, tr)) return true;
+            if (g.Stations.Any(x => x.Type == StationType.Index)) return false;   // no room beside any translator: make do
+        }
         if (Defs.Station(t).Outdoor) return TryBuildOutdoor(t);
         var zones = PreferredZones.TryGetValue(t, out var z) ? z : new[] { "mansion" };
+        // Index and despatch go where the translations are, so paper doesn't cross the park and back.
+        if (t is StationType.Index or StationType.Dispatch)
+        {
+            var near = Defs.FlowNeighbours(t);
+            zones = zones.OrderByDescending(id => g.Stations.Count(st => near.Contains(st.Type) && g.Grid.ZoneAt(st.X, st.Y)?.Id == id)).ToArray();
+        }
         foreach (var zid in zones.Concat(g.Grid.Zones.Select(x => x.Id)).Distinct().Where(id => Defs.AllowedIn(id, t)))
         {
             var zone = g.Grid.Zone(zid);

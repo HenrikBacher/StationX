@@ -109,7 +109,7 @@ public static class Intercepts
         return m.Next switch
         {
             StationType.Translation => ReadStage.Decrypted,
-            StationType.Dispatch => ReadStage.Translated,
+            StationType.Dispatch or StationType.Index => ReadStage.Translated,
             _ => ReadStage.Intercept,
         };
     }
