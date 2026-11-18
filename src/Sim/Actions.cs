@@ -209,8 +209,17 @@ public sealed partial class GameState
         c.HomeX = c.X; c.HomeY = c.Y;
         Staff.Add(c);
         AssignBillets();
-        Emit(EventKind.Info, $"{c.Name} signs the Official Secrets Act and reports for duty." +
-                             (c.FarBillet ? " There's no room in the town, so they're billeted out in the villages." : ""));
+        string billet = c.FarBillet ? " There's no room in the town, so they'll be billeted out in the villages." : "";
+        if (c.Notable != null)
+        {
+            Emit(EventKind.Info, $"{c.Name} signs the Official Secrets Act and reports for duty.{billet}");
+            return true;
+        }
+        // Everyone else is interviewed, vetted and put on a train.
+        double hours = Defs.VettingHours(c.Role, Difficulty);
+        c.Away = true;
+        c.ArrivesAt = Now + hours * 60;
+        Emit(EventKind.Info, $"{c.Name} accepts the post. After vetting and the train to Bletchley they'll report in about {Math.Round(hours)} hours.{billet}");
         return true;
     }
 

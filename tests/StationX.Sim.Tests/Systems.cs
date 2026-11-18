@@ -812,3 +812,23 @@ public class SickBayTests
         Assert.True(Longest(false) > 3 * Defs.MinutesPerDay);
     }
 }
+
+public class VettingTests
+{
+    [Fact]
+    public void RecruitsArriveAfterVettingButNotablesAtOnce()
+    {
+        var g = GameState.NewGame(37);
+        g.Funds = 5000;
+        var cand = g.Candidates.First(c => c.Notable == null && c.Role != Role.Messenger);
+        Assert.True(g.Hire(cand.Id));
+        var s = g.StaffById(cand.Id)!;
+        Assert.True(s.Away);
+        Assert.True(s.Arriving(g.Now));
+        g.Advance(Defs.VettingHours(s.Role, g.Difficulty) * 60 - 30);
+        Assert.True(s.Away);
+        for (int i = 0; i < 48 && s.Away; i++) g.Advance(30);
+        Assert.False(s.Away);
+        Assert.Equal(0, s.ArrivesAt);
+    }
+}

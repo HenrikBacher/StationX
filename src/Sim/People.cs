@@ -24,7 +24,15 @@ public sealed partial class GameState
             bool duty = OnDuty(s);
             if (s.Away)
             {
-                if (duty && !s.Leaving && !s.IsSick(Now)) ComeBack(s);
+                if (duty && !s.Leaving && !s.IsSick(Now) && !s.Arriving(Now))
+                {
+                    if (s.ArrivesAt > 0)
+                    {
+                        s.ArrivesAt = 0;
+                        Emit(EventKind.Info, $"{s.Name} signs the Official Secrets Act and reports for duty.");
+                    }
+                    ComeBack(s);
+                }
                 continue;
             }
 

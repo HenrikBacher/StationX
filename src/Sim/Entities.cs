@@ -142,6 +142,9 @@ public sealed class Staff
     /// <summary>Worked in a freezing hut today (reset each midnight).</summary>
     public bool Chilled { get; set; }
     public bool IsSick(double now) => SickUntil > now;
+    /// <summary>A new recruit still being vetted and on the train to Bletchley; 0 once they've arrived.</summary>
+    public double ArrivesAt { get; set; }
+    public bool Arriving(double now) => ArrivesAt > now;
 
     /// <summary>How fast they're working right now: tired or unhappy people are slower.</summary>
     public double WorkRate =>

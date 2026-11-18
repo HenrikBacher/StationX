@@ -110,6 +110,10 @@ public static class Defs
     public const double ExpectationBase = 0.5;
     /// <summary>Above this balance at the weekly accounts, the Treasury claws back part of the grant.</summary>
     public const int TreasuryComfortable = 2500;
+    // ---- Recruitment ----
+    /// <summary>Hours from accepting a post to reporting for duty: interview, vetting, the Official Secrets Act and the train.</summary>
+    public static double VettingHours(Role r, Difficulty d) =>
+        (r == Role.Messenger ? 6 : 16) * d switch { Difficulty.Easy => 0.5, _ => 1.0 };
     // ---- Illness ----
     public const double SickChanceSummer = 0.002;
     public const double SickChanceWinter = 0.008;

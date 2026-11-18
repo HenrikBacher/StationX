@@ -58,7 +58,7 @@ public partial class Hud
         string sig = _panel switch
         {
             "build" => $"{S.Funds / 50}|{S.ActIndex}|{string.Join(",", S.Researched)}|{S.IndicatorChanged}",
-            "staff" => string.Join(",", S.Staff.Select(s => $"{s.Id}{s.Task?.Kind}{s.Leaving}{s.Away}{s.Shift}{(int)(s.Energy * 5)}{(int)(s.Morale * 5)}{s.FarBillet}{s.IsSick(S.Now)}")) + $"|{S.Billets}{S.Funds >= Defs.BilletCost}|" +
+            "staff" => string.Join(",", S.Staff.Select(s => $"{s.Id}{s.Task?.Kind}{s.Leaving}{s.Away}{s.Shift}{(int)(s.Energy * 5)}{(int)(s.Morale * 5)}{s.FarBillet}{s.IsSick(S.Now)}{s.Arriving(S.Now)}")) + $"|{S.Billets}{S.Funds >= Defs.BilletCost}|" +
                        string.Join(",", S.Candidates.Select(c => c.Id)) + $"|{S.Funds / 25}",
             "requests" => string.Join(",", S.Contracts.Select(c => $"{c.Id}{c.State}{c.Delivered}{c.Spawned}{(int)((c.State == ContractState.Offered ? c.OfferExpires : c.Due) - S.Now) / 60}")) +
                           $"|{string.Join(",", S.KeyBoardNets().Select(n => S.KeyRoute(n)))}",
@@ -229,7 +229,7 @@ public partial class Hud
             _sideBox.AddChild(head);
             foreach (var p in people)
             {
-                string doing = p.IsSick(S.Now) ? "off sick" : p.Away ? "off watch" : p.Task?.Kind switch
+                string doing = p.Arriving(S.Now) ? "arriving" : p.IsSick(S.Now) ? "off sick" : p.Away ? "off watch" : p.Task?.Kind switch
                 {
                     null => "idle",
                     TaskKind.Operate => "working",
@@ -269,7 +269,8 @@ public partial class Hud
                 v.AddChild(UiTheme.Label("Specialist: " + string.Join(", ", c.Specialties.Select(t => Defs.Station(t).Name.ToLowerInvariant())), 12, UiTheme.Accent));
             }
             var id = c.Id;
-            v.AddChild(Row(role, UiTheme.Button("Hire", () => S.Hire(id), S.Funds >= c.Salary)));
+            v.AddChild(Row(role, UiTheme.Button("Hire", () => S.Hire(id), S.Funds >= c.Salary,
+                tooltip: c.Notable != null ? "Reports at once." : $"Vetting and travel: reports in about {Math.Round(Defs.VettingHours(c.Role, S.Difficulty))} hours. Hire ahead of need.")));
         }
     }
 
@@ -563,7 +564,7 @@ public partial class Hud
             var l = UiTheme.Label($"{td.Name}: {td.Blurb}", 12, td.Good ? UiTheme.Accent : Gfx.Bad);
             _inspBox.AddChild(l);
         }
-        string doing = s.IsSick(S.Now) ? $"Off sick: back in about {Math.Max(1, Math.Round((s.SickUntil - S.Now) / Defs.MinutesPerDay))} days" : s.Away ? $"Off watch, back at the billets until {Defs.Shifts[s.Shift].StartHour:00}:00" : s.Task switch
+        string doing = s.Arriving(S.Now) ? $"On the way: vetting and the train to Bletchley. Reports in about {Math.Max(1, Math.Round((s.ArrivesAt - S.Now) / 60))} h" : s.IsSick(S.Now) ? $"Off sick: back in about {Math.Max(1, Math.Round((s.SickUntil - S.Now) / Defs.MinutesPerDay))} days" : s.Away ? $"Off watch, back at the billets until {Defs.Shifts[s.Shift].StartHour:00}:00" : s.Task switch
         {
             { Kind: TaskKind.Operate } t => $"Working at the {S.StationById(t.Dest)?.Def.Name.ToLowerInvariant()}",
             { Kind: TaskKind.Carry, Phase: 0 } => "Fetching messages",
