@@ -331,6 +331,14 @@ public partial class Hud : CanvasLayer
             else if (S.KeyRouteProblem(n) is string prob) { status = prob; col = Gfx.Bad; }
             else { status = "Waiting for today's first message"; col = UiTheme.TextDim; }
             texts.AddChild(UiTheme.Label(status, 12, col));
+            if (!free && S.Stale(n, S.Day) && !S.Gardened(n, S.Day))
+            {
+                var st = UiTheme.Label($"Cribs poor for {S.StaleUntil[n] - S.Day + 1} more day(s)", 11, Gfx.Warn);
+                st.TooltipText = "The Germans have changed their habits. Menus take longer to make and Bombe runs take longer until new cribs turn up." +
+                                 (nd.Naval ? " Gardening plants a crib regardless." : "");
+                st.MouseFilter = Control.MouseFilterEnum.Pass;
+                texts.AddChild(st);
+            }
             row.AddChild(texts);
             if (waiting > 0)
             {

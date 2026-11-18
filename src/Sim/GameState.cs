@@ -23,6 +23,8 @@ public sealed partial class GameState
     public int OutstationBombes { get; set; }
     public List<RemoteJob> RemoteJobs { get; set; } = new();
     public Dictionary<Net, int> GardenUntil { get; set; } = new();
+    /// <summary>Days on which a network's usual cribs have dried up.</summary>
+    public Dictionary<Net, int> StaleUntil { get; set; } = new();
     public List<DayRecord> History { get; set; } = new();
     /// <summary>Recent message movements between stations, "from>to" → messages, for the flow overlay.</summary>
     public SortedDictionary<string, double> Flows { get; set; } = new();
@@ -124,6 +126,7 @@ public sealed partial class GameState
     {
         RecordDay();
         RollWeather();
+        MaybeStaleCribs();
         PlanRaid();
         DailyPeople();
         DailyIntelligence();
@@ -484,6 +487,7 @@ public sealed partial class GameState
                 break;
             case StationType.Crib:
                 if (Gardened(m.Net, m.Day)) t *= 0.5;
+                else if (Stale(m.Net, m.Day)) t *= Defs.StaleCribMult;
                 break;
             case StationType.Translation:
                 if (Researched.Contains(ResearchId.Hut3Reporting)) t *= 0.6;
@@ -500,7 +504,30 @@ public sealed partial class GameState
         if (Researched.Contains(ResearchId.DiagonalBoard)) t *= 0.5;
         if (m.Rerun) t *= 0.5;
         if (!HasStation(StationType.Checking)) t *= 1.25;
+        if (Stale(m.Net, m.Day) && !Gardened(m.Net, m.Day)) t *= Defs.StaleBombeMult;
         return t;
+    }
+
+    public bool Stale(Net net, int day) => StaleUntil.TryGetValue(net, out var d) && day <= d;
+
+    /// <summary>Now and then an operator stops sending the stereotyped report a crib relied on.</summary>
+    void MaybeStaleCribs()
+    {
+        if (ActIndex < Defs.StaleFromAct || !Rng.Chance(Defs.StaleChance)) return;
+        var nets = ActiveNets.Where(n => Defs.NetOf(n).Family == Family.Enigma && !Stale(n, Day) && !(FreeKeysUntil.TryGetValue(n, out var f) && Day <= f)).ToList();
+        if (nets.Count == 0) return;
+        var net = Rng.Pick(nets);
+        int days = Rng.Range(3, 6);
+        StaleUntil[net] = Day + days - 1;
+        var nd = Defs.NetOf(net);
+        string why = Rng.Pick(new[]
+        {
+            "the weather station that sent the same 06:00 report every morning has gone quiet",
+            "a new signals officer has stopped his operators repeating the call signs in the text",
+            "the 'nothing to report' messages we used as cribs have stopped",
+        });
+        Emit(EventKind.Bad, $"{nd.Name}: {why}. Our cribs for it are poor for {days} days: menus take longer and the Bombe runs are longer." +
+                            (nd.Naval ? " Gardening can still plant one." : ""));
     }
 
     public bool Gardened(Net net, int day) => GardenUntil.TryGetValue(net, out var d) && day <= d;

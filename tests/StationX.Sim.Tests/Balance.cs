@@ -12,6 +12,9 @@ namespace StationX.Tests;
 /// </summary>
 public class Balance(ITestOutputHelper output)
 {
+    // Twenty seeds per difficulty: six were too few to tell a real change from luck.
+    static readonly int[] Seeds = System.Linq.Enumerable.Range(0, 20).Select(i => 3 + i * 37).ToArray();
+
     [Fact]
     public void Report()
     {
@@ -19,7 +22,7 @@ public class Balance(ITestOutputHelper output)
         foreach (var d in Enum.GetValues<Difficulty>())
         {
             int wins = 0;
-            foreach (var seed in new[] { 3, 17, 29, 41, 77, 101 })
+            foreach (var seed in Seeds)
             {
                 var g = GameState.NewGame(seed, d);
                 var ai = new AutoPlayer(g);
@@ -38,7 +41,7 @@ public class Balance(ITestOutputHelper output)
                                  $"rep min {minRep,3:0} end {g.Reputation,3:0}  funds min £{minFunds,5:0} end £{g.Funds,5}  " +
                                  $"contracts {g.Stats.ContractsCompleted}/{g.Stats.ContractsCompleted + g.Stats.ContractsFailed}  breakdowns {g.Stats.Breakdowns}  score {g.Score()} {g.Honour().honour}");
             }
-            output.WriteLine($"{d}: {wins}/6 won");
+            output.WriteLine($"{d}: {wins}/{Seeds.Length} won");
         }
     }
 }

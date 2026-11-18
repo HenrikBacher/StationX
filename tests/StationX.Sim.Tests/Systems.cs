@@ -859,3 +859,30 @@ public class AllHandsTests
         Assert.Equal(g.LastAllHandsAt, copy.LastAllHandsAt);
     }
 }
+
+public class StaleCribTests
+{
+    [Fact]
+    public void StaleCribsSlowBombeRunsUnlessGardened()
+    {
+        var g = GameState.NewGame(43);
+        var m = new Message { Net = Net.Dolphin, Day = g.Day };
+        var bombe = new Station { Id = 900, Type = StationType.Bombe };
+        var op = TestUtil.Add(g, Role.Wren);
+        double normal = g.Duration(bombe, op, m);
+        g.StaleUntil[Net.Dolphin] = g.Day + 2;
+        Assert.True(g.Duration(bombe, op, m) > normal * 1.2);
+        g.GardenUntil[Net.Dolphin] = g.Day + 2;
+        Assert.Equal(normal, g.Duration(bombe, op, m), 3);
+    }
+
+    [Fact]
+    public void StaleCribsTurnUpLaterInTheWar()
+    {
+        var g = GameState.NewGame(43);
+        g.ActIndex = Defs.StaleFromAct;
+        g.ActiveNets.Add(Net.Red); g.ActiveNets.Add(Net.Dolphin);
+        for (int i = 0; i < 60 && g.StaleUntil.Count == 0; i++) { g.Advance(Defs.MinutesPerDay); g.Events.Clear(); }
+        Assert.NotEmpty(g.StaleUntil);
+    }
+}
