@@ -116,7 +116,6 @@ jobs:
             echo "### Downloads"
             echo "- **Linux**: \`StationX-linux-x86_64.tar.gz\`"
             echo "- **Windows**: \`StationX-windows-x86_64.zip\`"
-            echo "- **Both**: \`StationX-linux-windows.zip\`"
           } > release-notes.md
           cat release-notes.md
           gh release create "$GITHUB_REF_NAME" build/*.zip build/*.tar.gz \
