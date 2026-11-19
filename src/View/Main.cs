@@ -104,6 +104,12 @@ public partial class Main : Node3D
             },
         };
         AddChild(_env);
+        if (SkyLight.Make() is { } sky)
+        {
+            _env.Environment.Sky = sky;
+            _env.Environment.AmbientLightSource = Godot.Environment.AmbientSource.Sky;
+            _env.Environment.ReflectedLightSource = Godot.Environment.ReflectionSource.Sky;
+        }
         // Bounce light at low quality and half resolution: it's a soft effect, and laptops' integrated GPUs must cope.
         RenderingServer.EnvironmentSetSsilQuality(RenderingServer.EnvironmentSsilQuality.Low, true, 0.5f, 2, 50, 300);
         _weather = new WeatherFx { Name = "Weather" };
@@ -172,6 +178,8 @@ public partial class Main : Node3D
             // frame is rendered in software, and the full-quality world made the run take minutes.
             var e = _env.Environment;
             e.SsaoEnabled = e.SsilEnabled = e.GlowEnabled = false;
+            e.AmbientLightSource = Godot.Environment.AmbientSource.Color;
+            e.ReflectedLightSource = Godot.Environment.ReflectionSource.Disabled;
             _sun.ShadowEnabled = false;
             GetViewport().Msaa3D = Viewport.Msaa.Disabled;
             GetViewport().Scaling3DScale = 0.25f;
@@ -522,6 +530,7 @@ public partial class Main : Node3D
         var sky = new Color("aab8c8").Lerp(new Color("c8a890"), low * 0.5f);
         env.AmbientLightColor = sky.Lerp(new Color("46506e"), night).Lerp(new Color("b4b8bc"), gloom * 0.8f * (1 - night));
         env.AmbientLightEnergy = Mathf.Lerp(0.42f, 0.5f, night) * (1 + 0.55f * gloom);
+        SkyLight.Set(env.AmbientLightColor, env.AmbientLightEnergy);
         // Haze by colour grading: an orthographic camera far above the park makes distance fog all-or-nothing.
         float haze = w switch { Weather.Fog => 1f, Weather.Snow => 0.45f, Weather.Rain or Weather.Storm => 0.35f, _ => 0f };
         env.AdjustmentContrast = 1.06f - 0.22f * haze;

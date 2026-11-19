@@ -19,6 +19,11 @@ Photographed materials from [Poly Haven](https://polyhaven.com), released under
 | [Sparse Grass](https://polyhaven.com/a/sparse_grass) | Grounds |
 | [Gravel Floor 02](https://polyhaven.com/a/gravel_floor_02) | Paths |
 
+## Sky
+
+[Lythwood Field](https://polyhaven.com/a/lythwood_field) HDRI from Poly Haven (CC0), 1K, in `assets/hdri/`: the
+overcast sky that lights the park and shows in glass and polished surfaces.
+
 ## Fonts
 
 See the licence files beside each font in `assets/fonts/`.

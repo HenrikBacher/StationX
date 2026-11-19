@@ -475,7 +475,7 @@ public partial class Park3D : Node3D
                 var wc = alongX ? new Vector3(t, wy, ay) : new Vector3(ax, wy, t);
                 var frame = alongX ? new Vector3(ww + 0.1f, wh + 0.1f, WallThick + 0.02f) : new Vector3(WallThick + 0.02f, wh + 0.1f, ww + 0.1f);
                 Mesh3.Box(parent, frame, wc, z.Brick ? Gfx.StoneDressing : new Color("d7cfb8"));
-                Mesh3.Box(parent, wsz, wc, Gfx.Window, 0.05f);
+                Mesh3.Box(parent, wsz, wc, Mesh3.Glass);
                 // Anti-blast tape crosses on both faces
                 foreach (float f in new[] { -1f, 1f })
                 {
@@ -522,7 +522,7 @@ public partial class Park3D : Node3D
         {
             Mesh3.Prism(north, new Vector3(2.2f, 1.1f, WallThick), new Vector3(gx, BackWall + 0.6f, y0), brick);
             Mesh3.Prism(north, new Vector3(2.45f, 1.22f, WallThick * 0.6f), new Vector3(gx, BackWall + 0.62f, y0 - 0.1f), stone);
-            Mesh3.Box(north, new Vector3(0.36f, 0.5f, WallThick + 0.03f), new Vector3(gx, BackWall + 0.4f, y0), Gfx.Window, 0.05f);
+            Mesh3.Box(north, new Vector3(0.36f, 0.5f, WallThick + 0.03f), new Vector3(gx, BackWall + 0.4f, y0), Mesh3.Glass);
             Mesh3.Box(north, new Vector3(0.12f, 0.12f, 0.12f), new Vector3(gx, BackWall + 1.2f, y0), stone);
         }
         foreach (float cx in new[] { x0 + 1.2f, (x0 + x1) / 2 - 1.4f, x1 - 1.3f })
@@ -533,7 +533,7 @@ public partial class Park3D : Node3D
         float by = (y0 + y1) / 2 + 0.5f;
         Mesh3.Box(west, new Vector3(0.6f, BackWall + 0.2f, 1.8f), new Vector3(x0 - 0.38f, (BackWall + 0.2f) / 2, by), brick);
         for (int k = -1; k <= 1; k++)
-            Mesh3.Box(west, new Vector3(0.05f, 0.6f, 0.42f), new Vector3(x0 - 0.7f, 0.95f, by + k * 0.55f), Gfx.Window, 0.05f);
+            Mesh3.Box(west, new Vector3(0.05f, 0.6f, 0.42f), new Vector3(x0 - 0.7f, 0.95f, by + k * 0.55f), Mesh3.Glass);
         Mesh3.Prism(west, new Vector3(0.7f, 0.5f, 1.9f), new Vector3(x0 - 0.38f, BackWall + 0.45f, by), slate);
         Chimney(west, new Vector3(x0 - 0.05f, BackWall, y1 - 1.6f), brick);
 
@@ -543,7 +543,7 @@ public partial class Park3D : Node3D
         for (int k = 0; k < 8; k++)
         {
             float a = k * Mathf.Tau / 8;
-            Mesh3.Box(corner, new Vector3(0.12f, 0.3f, 0.03f), drum + new Vector3(Mathf.Cos(a) * 0.62f, 0.3f, Mathf.Sin(a) * 0.62f), Gfx.Window, 0.05f)
+            Mesh3.Box(corner, new Vector3(0.12f, 0.3f, 0.03f), drum + new Vector3(Mathf.Cos(a) * 0.62f, 0.3f, Mathf.Sin(a) * 0.62f), Mesh3.Glass)
                 .Rotation = new Vector3(0, -a + Mathf.Pi / 2, 0);
         }
         Mesh3.Cyl(corner, 0.68f, 0.68f, 0.06f, drum + new Vector3(0, 0.57f, 0), Gfx.StoneDressing, 20);
