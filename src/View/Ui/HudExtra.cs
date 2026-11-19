@@ -129,6 +129,13 @@ public partial class Hud
         Chart("Average morale", hist, r => r.Morale * 100, Gfx.Good, "0'%'", 0, 100);
         Chart("Highest German suspicion", hist, r => r.Suspicion, Gfx.Bad, "0", 0, Defs.SuspicionLimit);
         _sideBox.AddChild(UiTheme.Label($"Totals: {S.Stats.DeliveredTotal} decrypts · {S.Stats.ContractsCompleted} requests completed, {S.Stats.ContractsFailed} missed · {S.Stats.DilemmasResolved} decisions taken", 12, UiTheme.TextDim));
+        var more = new List<string>();
+        var st = S.Stats;
+        if (st.InspectionsPassed + st.InspectionsFailed > 0) more.Add($"visits from Whitehall: {st.InspectionsPassed} impressed, {st.InspectionsFailed} not");
+        if (st.MilestonesMet + st.MilestonesMissed > 0) more.Add($"standing-order days met {st.MilestonesMet} of {st.MilestonesMet + st.MilestonesMissed}");
+        if (st.OpsWithheld > 0) more.Add($"{st.OpsWithheld} operations held back to protect the source");
+        if (st.CribsDragged > 0) more.Add($"{st.CribsDragged} cribs placed by hand");
+        if (more.Count > 0) _sideBox.AddChild(UiTheme.Label(char.ToUpperInvariant(more[0][0]) + string.Join(" · ", more)[1..], 12, UiTheme.TextDim));
     }
 
     void Chart(string title, List<DayRecord> hist, Func<DayRecord, double> f, Color color, string fmt, double? min = null, double? max = null)
