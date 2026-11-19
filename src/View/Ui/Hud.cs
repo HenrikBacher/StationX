@@ -385,10 +385,11 @@ public partial class Hud : CanvasLayer
             {
                 var order = S.KeyOrderOf(n);
                 var net = n;
-                var ob = UiTheme.Button(order switch { KeyOrder.First => "First", KeyOrder.Hold => "Hold", _ => "Normal" },
+                var ob = UiTheme.Button(order switch { KeyOrder.First => "First", KeyOrder.Hold => "Hold", _ => "In turn" },
                     () => { S.SetKeyOrder(net, GameState.NextOrder(S.KeyOrderOf(net))); _keySig = ""; },
                     tooltip: "Bombe time is short. First: this key jumps the queue at crib desks and Bombes, and its traffic is carried first.\n" +
-                             "Hold: don't attempt this key; its traffic waits and the Bombes work for the others.\nClick to change.");
+                             "Hold: don't attempt this key; its traffic waits and the Bombes work for the others.\n" +
+                             "In turn: the usual order, most urgent first.\nClick to change: in turn → first → hold.");
                 ob.CustomMinimumSize = new Vector2(64, 26);
                 ob.AddThemeFontSizeOverride("font_size", 11);
                 if (order == KeyOrder.First) ob.AddThemeColorOverride("font_color", Gfx.Good);

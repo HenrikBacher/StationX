@@ -57,7 +57,12 @@ public partial class WarMapView : Control
         foreach (var poly in Coastlines)
         {
             var pts = poly.Select(p => Project(p.lat, p.lon)).ToArray();
-            DrawColoredPolygon(pts, Land);
+            // A coastline that crosses itself can't be filled as it stands (North America did not, and logged an
+            // error every frame): fill its untangled parts instead.
+            if (Geometry2D.TriangulatePolygon(pts).Length > 0) DrawColoredPolygon(pts, Land);
+            else
+                foreach (var part in Geometry2D.OffsetPolygon(pts, 0.01f))
+                    if (Geometry2D.TriangulatePolygon(part).Length > 0) DrawColoredPolygon(part, Land);
             DrawPolyline(pts.Append(pts[0]).ToArray(), Coast, 1.3f, true);
         }
         var font = Fonts.Heading;

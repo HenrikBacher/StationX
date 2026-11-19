@@ -400,7 +400,7 @@ public partial class Hud
 
     public void ShowPauseMenu()
     {
-        var v = Paper(460);
+        var v = Paper(500);
         v.AddChild(Letterhead());
         v.AddChild(new HSeparator());
         v.AddChild(Ink("Paused", 30, Fonts.Heading));
@@ -467,6 +467,12 @@ public partial class Hud
             grid.AddChild(Ink(label, 14, Fonts.Body, wrap: false));
             var row = new HBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
             var sl = new HSlider { MinValue = min, MaxValue = max, Step = step, Value = value, CustomMinimumSize = new Vector2(260, 20), FocusMode = Control.FocusModeEnum.None };
+            // Ink on paper: a faint rule for the track and a solid one up to the setting.
+            var track = new StyleBoxLine { Color = UiTheme.PaperInk with { A = 0.25f }, Thickness = 4 };
+            var filled = new StyleBoxLine { Color = UiTheme.PaperInk, Thickness = 4 };
+            sl.AddThemeStyleboxOverride("slider", track);
+            sl.AddThemeStyleboxOverride("grabber_area", filled);
+            sl.AddThemeStyleboxOverride("grabber_area_highlight", new StyleBoxLine { Color = UiTheme.Stamp, Thickness = 4 });
             var val = Ink(show(value), 13, Fonts.Typewriter, wrap: false);
             val.CustomMinimumSize = new Vector2(52, 0);
             sl.ValueChanged += x => { set((float)x); val.Text = show((float)x); Settings.Apply(); Settings.Save(); };
@@ -482,6 +488,7 @@ public partial class Hud
             foreach (var st in new[] { "normal", "pressed", "hover", "hover_pressed", "focus" })
                 cb.AddThemeStyleboxOverride(st, new StyleBoxEmpty());
             cb.AddThemeColorOverride("icon_normal_color", UiTheme.PaperInk);
+            cb.AddThemeIconOverride("unchecked", EmptyBox());
             cb.Toggled += x => { set(x); Settings.Apply(); Settings.Save(); };
             grid.AddChild(cb);
         }
@@ -499,6 +506,20 @@ public partial class Hud
         var back = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.End };
         back.AddChild(PaperButton("Done", () => { if (_titleOpen) ShowTitle(); else ShowPauseMenu(); }));
         v.AddChild(back);
+    }
+
+    static ImageTexture? _emptyBox;
+
+    /// <summary>An empty tick box, drawn in white so the ink colour tints it (the default is a filled grey square).</summary>
+    static ImageTexture EmptyBox()
+    {
+        if (_emptyBox != null) return _emptyBox;
+        var img = Image.CreateEmpty(16, 16, false, Image.Format.Rgba8);
+        for (int y = 0; y < 16; y++)
+            for (int x = 0; x < 16; x++)
+                if (x is 1 or 2 or 13 or 14 && y is >= 1 and <= 14 || y is 1 or 2 or 13 or 14 && x is >= 1 and <= 14)
+                    img.SetPixel(x, y, Colors.White);
+        return _emptyBox = ImageTexture.CreateFromImage(img);
     }
 
     bool _titleOpen;

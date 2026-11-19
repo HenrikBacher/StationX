@@ -278,12 +278,12 @@ public partial class Hud
         v.AddChild(new HSeparator());
         string heading = !won ? "Closed down" : S.ActIndex == Campaign.Acts.Length - 1 ? "VICTORY" : S.ActIndex > Campaign.EnigmaFinale ? "TUNNY" : "SHARK";
         v.AddChild(Ink(heading, 34, Fonts.Heading, won ? UiTheme.PaperInk : UiTheme.Stamp));
-        v.AddChild(Ink(S.EndReason ?? "", 15));
+        if (!string.IsNullOrEmpty(S.EndReason)) v.AddChild(Ink(S.EndReason, 15));
         v.AddChild(Ink(
             $"Decrypts delivered: {S.Stats.DeliveredTotal}\n" +
             $"Requests completed: {S.Stats.ContractsCompleted} · missed: {S.Stats.ContractsFailed}\n" +
-            $"Staff at the end: {S.Staff.Count}\n" +
-            (S.TonnageLost > 0 ? $"Shipping lost during the SHARK blackout: {S.TonnageLost:N0} tons" : ""), 14));
+            $"Staff at the end: {S.Staff.Count}" +
+            (S.TonnageLost > 0 ? $"\nShipping lost during the SHARK blackout: {S.TonnageLost:N0} tons" : ""), 14));
         if (S.Mode == GameMode.Campaign)
         {
             int score = S.Score();

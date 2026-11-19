@@ -254,13 +254,13 @@ public partial class Hud
             // Who is on which watch, by role: one column per role, so nobody has to decode initials.
             var roles = Enum.GetValues<Role>().Where(S.RoleOpen).ToList();
             var table = new GridContainer { Columns = roles.Count + 1 };
-            table.AddThemeConstantOverride("h_separation", 6);
+            table.AddThemeConstantOverride("h_separation", 4);
             table.AddThemeConstantOverride("v_separation", 0);
             Label Cell(string text, Color colour, bool first = false)
             {
                 var c = UiTheme.Label(text, 12, colour, wrap: false);
                 if (first) c.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-                else { c.CustomMinimumSize = new Vector2(40, 0); c.HorizontalAlignment = HorizontalAlignment.Center; }
+                else { c.CustomMinimumSize = new Vector2(36, 0); c.HorizontalAlignment = HorizontalAlignment.Center; }
                 return c;
             }
             table.AddChild(Cell("", UiTheme.TextDim, true));
@@ -277,7 +277,8 @@ public partial class Hud
                 bool office = sh == Shift.Office;
                 int total = S.Staff.Count(x => x.Shift == sh && !x.Leaving);
                 if (office && total == 0) continue;
-                table.AddChild(Cell($"{sd.Name} {sd.StartHour:00}–{sd.EndHour:00}", office ? Gfx.Warn : UiTheme.Text, true));
+                string watch = sh switch { Shift.Day => "Day", Shift.Evening => "Evening", Shift.Night => "Night", _ => "Long days" };
+                table.AddChild(Cell($"{watch} {sd.StartHour:00}–{sd.EndHour:00}", office ? Gfx.Warn : UiTheme.Text, true));
                 foreach (var r in roles)
                 {
                     int n = S.Staff.Count(x => x.Role == r && x.Shift == sh && !x.Leaving);
@@ -320,6 +321,8 @@ public partial class Hud
                 b.Alignment = HorizontalAlignment.Left;
                 b.Flat = true;
                 b.AddThemeFontSizeOverride("font_size", 13);
+                b.ClipText = true;   // a long line must not widen the panel
+                b.TooltipText = b.Text;
                 if (p.Away) b.AddThemeColorOverride("font_color", UiTheme.TextDim);
                 b.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
                 _sideBox.AddChild(Row(b, Meter(p.Energy, "Energy"), Meter(p.Morale, "Morale")));
@@ -659,7 +662,8 @@ public partial class Hud
         if (st.IsRest)
         {
             int using_ = S.Staff.Count(x => x.Task is { Kind: TaskKind.Rest } t && t.Dest == st.Id);
-            _inspBox.AddChild(UiTheme.Label($"{using_}/{d.Seats} taking a break here", 13));
+            int idle = S.Staff.Count(x => x.Task is { Kind: TaskKind.Rest, Loafing: true } t && t.Dest == st.Id);
+            _inspBox.AddChild(UiTheme.Label($"{using_}/{d.Seats} seats taken" + (idle > 0 ? $": {using_ - idle} on a break, {idle} with nothing to do (they give up the seat to anyone tired)" : ""), 13));
             if (st.Type == StationType.Rounders) _inspBox.AddChild(UiTheme.Label("Played between 08:00 and 19:00, weather permitting.", 12, UiTheme.TextDim));
         }
         if (d.Operator is Role pr && !st.IsRest)
