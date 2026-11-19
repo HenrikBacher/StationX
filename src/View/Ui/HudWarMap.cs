@@ -42,7 +42,8 @@ public partial class Hud
                 var cover = UiTheme.Button("With cover", () => { S.UseOperation(oid, OpUse.Covered); _sideSig = ""; }, tooltip: $"Three-quarters of the result; suspicion +{Defs.OpCoverSuspicion}");
                 cover.Disabled = S.CoverLeft <= 0;
                 var hold = UiTheme.Button("Hold back", () => { S.UseOperation(oid, OpUse.Withheld); _sideSig = ""; }, tooltip: "Nothing is done: no result, no risk");
-                card.AddChild(Row(act, cover, hold, Spacer(), UiTheme.Label($"{Math.Max(0, (o.DecideBy - S.Now) / 60):0} h", 12, UiTheme.TextDim)));
+                if (S.CoverLeft <= 0) cover.TooltipText = $"No cover stories left this week ({Defs.CoverPerWeek} a week).";
+                card.AddChild(Row(act, cover, hold, Spacer(), UiTheme.Label($"{Math.Max(0, (o.DecideBy - S.Now) / 60):0} h left", 12, UiTheme.TextDim)));
                 _sideBox.AddChild(card);
             }
         }

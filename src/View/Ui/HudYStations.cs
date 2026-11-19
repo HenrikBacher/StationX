@@ -24,7 +24,7 @@ public partial class Hud
         string? buy = S.CanBuySet();
         _sideBox.AddChild(Row(count, UiTheme.Button($"Buy a set (£{Defs.SetCost})", () => { S.BuySet(); _sideSig = ""; }, buy == null, tooltip: buy ?? "One more receiver, with operators trained to work it.")));
 
-        _sideBox.AddChild(UiTheme.Caps("Cover", 12, UiTheme.Accent));
+        _sideBox.AddChild(UiTheme.Caps($"Receiver sets on each network · {Defs.SetsWanted} wanted", 12, UiTheme.Accent));
         foreach (var n in S.CoveredNets())
         {
             var net = n;

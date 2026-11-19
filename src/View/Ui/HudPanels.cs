@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Godot;
 using StationX.Sim;
@@ -129,12 +130,14 @@ public partial class Hud
 
     static Control Spacer() => new Control { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
 
-    /// <summary>"any hut", or the names of the buildings that take this station, open ones first.</summary>
+    /// <summary>"any hut", or the open buildings that take this station, then the ones not open yet.</summary>
     string WhereItGoes(StationType t)
     {
         if (Defs.Everywhere.Contains(t)) return "any hut";
-        return string.Join(", ", Defs.ZonesFor(t).Select(id => S.Grid.Zone(id)).Where(z => z != null)
-            .OrderBy(z => !z!.Unlocked).Select(z => z!.Unlocked ? z.Name : $"{z.Name} (not open)"));
+        var zones = Defs.ZonesFor(t).Select(id => S.Grid.Zone(id)).OfType<Zone>().ToList();
+        string open = string.Join(", ", zones.Where(z => z.Unlocked).Select(z => z.Name));
+        string later = string.Join(", ", zones.Where(z => !z.Unlocked).Select(z => z.Name));
+        return open.Length == 0 ? $"{later} (not open yet)" : later.Length == 0 ? open : $"{open} · later also {later}";
     }
 
     /// <summary>The stations a hut takes, by name.</summary>
@@ -180,14 +183,14 @@ public partial class Hud
         {
             var d = Defs.Station(t);
             bool unlocked = S.StationUnlocked(t, out var why);
-            if (!unlocked && why == "Not needed yet") continue;
+            if (!unlocked && (why == "Not needed yet" || t == StationType.Zygalski && S.IndicatorChanged)) continue;   // not yet, or no longer, in play
             var v = Card();
             var name = UiTheme.Label(d.Name, 15, UiTheme.Text, Fonts.BodyBold);
             name.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
             v.AddChild(Row(name, UiTheme.Label($"£{d.Cost:N0}", 15, S.Funds >= d.Cost ? UiTheme.Accent : Gfx.Bad, Fonts.BodyBold)));
             v.AddChild(UiTheme.Label(d.Blurb, 12, UiTheme.TextDim));
             if (!d.Outdoor) v.AddChild(UiTheme.Label("Goes in: " + WhereItGoes(t), 12, UiTheme.Accent));
-            string who = d.Operator is Role r ? $"Worked by a {Defs.Roles[r].Name.ToLowerInvariant()}" : "No operator needed";
+            string who = d.Operator is Role r ? $"Worked by a {RoleWord(r)}" : "No operator needed";
             var info = UiTheme.Label($"{who} · {d.W}×{d.H} tiles", 12, UiTheme.TextDim);
             info.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
             Control action = unlocked
@@ -248,13 +251,40 @@ public partial class Hud
             v.AddChild(UiTheme.Label("Three watches", 15, UiTheme.Text, Fonts.BodyBold));
             v.AddChild(UiTheme.Label("Day 08–16, evening 16–24, night 00–08. People on the long day (07–22) grow weary now the work never stops; " +
                                      "more than a week of nights straight wears anyone but a night owl down twice as fast.", 12, UiTheme.TextDim));
+            // Who is on which watch, by role: one column per role, so nobody has to decode initials.
+            var roles = Enum.GetValues<Role>().Where(S.RoleOpen).ToList();
+            var table = new GridContainer { Columns = roles.Count + 1 };
+            table.AddThemeConstantOverride("h_separation", 6);
+            table.AddThemeConstantOverride("v_separation", 0);
+            Label Cell(string text, Color colour, bool first = false)
+            {
+                var c = UiTheme.Label(text, 12, colour, wrap: false);
+                if (first) c.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+                else { c.CustomMinimumSize = new Vector2(40, 0); c.HorizontalAlignment = HorizontalAlignment.Center; }
+                return c;
+            }
+            table.AddChild(Cell("", UiTheme.TextDim, true));
+            foreach (var r in roles)
+            {
+                var h = Cell(ShortRole(r), Gfx.RoleColor(r).Lightened(0.35f));
+                h.TooltipText = Defs.Roles[r].Plural;
+                h.MouseFilter = Control.MouseFilterEnum.Pass;
+                table.AddChild(h);
+            }
             foreach (var sh in new[] { Shift.Day, Shift.Evening, Shift.Night, Shift.Office })
             {
-                var counts = string.Join("  ", Enum.GetValues<Role>().Where(S.RoleOpen).Select(r => $"{Defs.Roles[r].Name[0]}{S.Staff.Count(x => x.Role == r && x.Shift == sh)}"));
-                var l = UiTheme.Label($"{Defs.Shifts[sh].Name}", 12, UiTheme.Text);
-                l.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-                v.AddChild(Row(l, UiTheme.Label(counts, 12, UiTheme.TextDim, Fonts.Typewriter)));
+                var sd = Defs.Shifts[sh];
+                bool office = sh == Shift.Office;
+                int total = S.Staff.Count(x => x.Shift == sh && !x.Leaving);
+                if (office && total == 0) continue;
+                table.AddChild(Cell($"{sd.Name} {sd.StartHour:00}–{sd.EndHour:00}", office ? Gfx.Warn : UiTheme.Text, true));
+                foreach (var r in roles)
+                {
+                    int n = S.Staff.Count(x => x.Role == r && x.Shift == sh && !x.Leaving);
+                    table.AddChild(Cell(n.ToString(), n == 0 ? UiTheme.TextDim : office ? Gfx.Warn : UiTheme.Text));
+                }
             }
+            v.AddChild(table);
             var rota = new CheckBox { Text = "Rotate weekly", ButtonPressed = S.RotateWatches,
                 TooltipText = "Change the watches round every week (day to evening to night), as Hut 6 did, so nobody is stuck on nights. Night owls lose their pick of the night watch." };
             rota.AddThemeFontSizeOverride("font_size", 12);
@@ -266,21 +296,23 @@ public partial class Hud
         {
             var people = S.Staff.Where(s => s.Role == role).ToList();
             var rd = Defs.Roles[role];
-            var head = Row(new ColorRect { Color = Gfx.RoleColor(role), CustomMinimumSize = new Vector2(10, 10), SizeFlagsVertical = Control.SizeFlags.ShrinkCenter },
-                UiTheme.Caps($"{rd.Plural} · {people.Count}", 12, UiTheme.Text));
-            head.TooltipText = rd.Blurb;
-            _sideBox.AddChild(head);
+            // Long lists start folded, with a count of what everyone is doing; click the heading to open one.
+            bool open = _rolesOpen.TryGetValue(role, out var o) ? o : people.Count <= 8;
+            var r0 = role;
+            var toggle = UiTheme.Button($"{(open ? "▾" : "▸")} {rd.Plural.ToUpperInvariant()} · {people.Count}", () => { _rolesOpen[r0] = !open; _sideSig = ""; },
+                tooltip: rd.Blurb + (open ? "" : "\n\nClick to list them."));
+            toggle.Flat = true;
+            toggle.Alignment = HorizontalAlignment.Left;
+            toggle.AddThemeFontOverride("font", Fonts.BodyBold);
+            toggle.AddThemeFontSizeOverride("font_size", 12);
+            var summary = UiTheme.Label(open ? "" : string.Join(" · ", people.GroupBy(Doing).OrderByDescending(g => g.Count()).Select(g => $"{g.Count()} {g.Key}")), 11, UiTheme.TextDim);
+            summary.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+            _sideBox.AddChild(Row(new ColorRect { Color = Gfx.RoleColor(role), CustomMinimumSize = new Vector2(10, 10), SizeFlagsVertical = Control.SizeFlags.ShrinkCenter },
+                toggle, summary));
+            if (!open) continue;
             foreach (var p in people)
             {
-                string doing = p.Arriving(S.Now) ? "arriving" : p.IsSick(S.Now) ? (p.OffReason switch { "leave" => "on leave", "breakdown" => "broken down", _ => "off sick" }) : p.Away ? "off watch"
-                    : p.HeadOf != null && p.Task == null ? $"head of {S.Grid.Zone(p.HeadOf)?.Name}" : p.Task?.Kind switch
-                {
-                    null => "idle",
-                    TaskKind.Operate => "working",
-                    TaskKind.Rest => "on a break",
-                    TaskKind.Leave => "going off",
-                    _ => "running",
-                };
+                string doing = Doing(p);
                 string shift = S.WatchesAvailable ? $" · {Defs.Shifts[p.Shift].Name.Split(' ')[0].ToLowerInvariant()}" : "";
                 string pin = (p.Pinned != null ? " · 📌" : "") + (p.Posted is string po && S.Grid.Zone(po) is { } pz ? $" · {pz.Name}" : "");
                 var b = UiTheme.Button($"{p.Name}   {Stars(p.Skill)}   {doing}{shift}{pin}",
@@ -318,6 +350,30 @@ public partial class Hud
         }
     }
 
+    /// <summary>Which role lists the player has opened or folded in the Staff panel.</summary>
+    readonly Dictionary<Role, bool> _rolesOpen = new();
+
+    /// <summary>A role in running text: "a clerk", but "a Wren" (a member of the WRNS).</summary>
+    static string RoleWord(Role r) => r == Role.Wren ? Defs.Roles[r].Name : Defs.Roles[r].Name.ToLowerInvariant();
+
+    static string ShortRole(Role r) => r switch
+    {
+        Role.Clerk => "Clerks", Role.Cryptanalyst => "Crypt.", Role.Wren => "Wrens", Role.Linguist => "Ling.", _ => "Msgrs",
+    };
+
+    /// <summary>What someone is doing, in a word or two, for the Staff list.</summary>
+    string Doing(Staff p) =>
+        p.Arriving(S.Now) ? "arriving" : p.IsSick(S.Now) ? (p.OffReason switch { "leave" => "on leave", "breakdown" => "broken down", _ => "off sick" }) : p.Away ? "off watch"
+        : p.HeadOf != null && p.Task == null ? $"head of {S.Grid.Zone(p.HeadOf)?.Name}" : p.Task switch
+        {
+            null => "idle",
+            { Kind: TaskKind.Operate } => "working",
+            { Kind: TaskKind.Rest, Loafing: true } => "sitting, free",
+            { Kind: TaskKind.Rest } => "on a break",
+            { Kind: TaskKind.Leave } => "going off",
+            _ => "carrying",
+        };
+
     // --------------------------------------------------------------- requests
 
     void RequestsPanel()
@@ -344,9 +400,9 @@ public partial class Hud
                 double at = GameState.MilestoneAt(c, next);
                 int need = c.PerDay * next;
                 bool behind = c.Delivered < need && at - S.Now < 8 * 60;
-                v.AddChild(UiTheme.Label(next <= c.TotalDays
-                        ? $"Day {next} of {c.TotalDays}: {need} delivered in all by {S.DateOf((int)(at / Defs.MinutesPerDay)):ddd} {(int)(at % Defs.MinutesPerDay) / 60:00}:{(int)(at % 60):00} ({Hours(at - S.Now)}) · milestones met {c.MilestonesMet}/{c.MilestonesChecked}"
-                        : $"Milestones met {c.MilestonesMet}/{c.TotalDays}", 12, behind ? Gfx.Bad : UiTheme.Text));
+                v.AddChild(UiTheme.Label(next <= StandingDays(c)
+                        ? $"Day {next} of {StandingDays(c)}: {need} delivered in all by {S.DateOf((int)(at / Defs.MinutesPerDay)):ddd} {(int)(at % Defs.MinutesPerDay) / 60:00}:{(int)(at % 60):00} ({Hours(at - S.Now)}) · milestones met {c.MilestonesMet}/{c.MilestonesChecked}"
+                        : $"Milestones met {c.MilestonesMet}/{c.MilestonesChecked}", 12, behind ? Gfx.Bad : UiTheme.Text));
                 v.AddChild(UiTheme.Label($"£{c.MilestonePay:N0} for each day met · £{c.Reward:N0} bonus on completion (half if a day was missed)", 12, UiTheme.TextDim));
             }
             else
@@ -367,7 +423,7 @@ public partial class Hud
             ContractHeader(v, c);
             v.AddChild(UiTheme.Label(c.Flavour, 12, UiTheme.TextDim));
             v.AddChild(UiTheme.Label(c.Standing
-                ? $"{c.PerDay} messages every day for {c.TotalDays} days · £{c.MilestonePay:N0} each day met, £{c.Reward:N0} bonus · reputation +{c.Rep}. A day missed costs {Defs.MilestoneMissedRep} reputation."
+                ? $"{c.PerDay} messages every day for {StandingDays(c)} days · £{c.MilestonePay:N0} each day met, £{c.Reward:N0} bonus · reputation +{c.Rep}. A day missed costs {Defs.MilestoneMissedRep} reputation."
                 : $"{c.Quantity} messages within {Hours(c.Days * Defs.MinutesPerDay)} · £{c.Reward:N0} · reputation +{c.Rep}", 13, UiTheme.Text));
             if (c.Flash)
                 v.AddChild(UiTheme.Label($"Urgent. Ignoring it costs {Defs.FlashIgnoredRep:0} reputation; declining costs {Defs.FlashIgnoredRep / 2:0}. Best taken when today's key is already broken.", 11, Gfx.Warn));
@@ -390,6 +446,9 @@ public partial class Hud
                     c.State == ContractState.Completed ? Gfx.Good : Gfx.Bad));
         }
     }
+
+    /// <summary>The days a standing order asks for, as its title says. (The sim's TotalDays also counts the day of grace.)</summary>
+    static int StandingDays(Contract c) => c.PerDay > 0 ? c.Quantity / c.PerDay : c.TotalDays;
 
     static void ContractHeader(Control v, Contract c)
     {
@@ -545,7 +604,7 @@ public partial class Hud
             var op = st.OperatorId is int id ? S.StaffById(id) : null;
             string who = st.IsDown(S.Now) ? (st.Servicing ? "Off for servicing" : "Out of action")
                 : op == null
-                ? (st.Input.Count > 0 ? $"Waiting for a free {Defs.Roles[r].Name.ToLowerInvariant()}" : $"Unstaffed. Needs a {Defs.Roles[r].Name.ToLowerInvariant()}.")
+                ? (st.Input.Count > 0 ? $"Waiting for a free {RoleWord(r)}" : $"Unstaffed. Needs a {RoleWord(r)}.")
                 : st.OperatorPresent ? $"{op.Name} at work" : $"{op.Name} on the way";
             _inspBox.AddChild(UiTheme.Label(who, 13, op == null && st.Input.Count > 0 ? Gfx.Warn : UiTheme.Text));
             _inspBox.AddChild(UiTheme.Label($"In tray {st.Input.Count}/{d.InputCap} · out tray {st.Output.Count}", 13, UiTheme.Text));
@@ -609,7 +668,7 @@ public partial class Hud
             var pinned = S.PinnedTo(st.Id).ToList();
             _inspBox.AddChild(UiTheme.Label(pinned.Count == 0 ? "Nobody is pinned here; anyone free will come." : "Pinned: " + string.Join(", ", pinned.Select(p => p.Name)), 12, UiTheme.TextDim));
             var pick = new OptionButton { FocusMode = Control.FocusModeEnum.None, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
-            pick.AddItem($"Pin a {Defs.Roles[pr].Name.ToLowerInvariant()}…", -1);
+            pick.AddItem($"Pin a {RoleWord(pr)}…", -1);
             foreach (var p in S.Staff.Where(x => x.Role == pr && x.Pinned != st.Id).OrderBy(x => x.Name))
                 pick.AddItem(p.Name + (p.Pinned != null ? " (pinned elsewhere)" : ""), p.Id);
             foreach (var p in pinned) pick.AddItem($"Unpin {p.Name}", -1000 - p.Id);
@@ -680,6 +739,7 @@ public partial class Hud
             { Kind: TaskKind.Operate } t => $"Working at the {S.StationById(t.Dest)?.Def.Name.ToLowerInvariant()}",
             { Kind: TaskKind.Carry, Phase: 0 } => "Fetching messages",
             { Kind: TaskKind.Carry } t => $"Carrying {t.Msgs.Count} message(s)",
+            { Kind: TaskKind.Rest, Loafing: true } t => $"Nothing to do, so sitting at the {S.StationById(t.Dest)?.Def.Name.ToLowerInvariant()}: up as soon as work comes",
             { Kind: TaskKind.Rest } t => $"On a break at the {S.StationById(t.Dest)?.Def.Name.ToLowerInvariant()}",
             { Kind: TaskKind.Leave } => "Going off watch",
             _ => "Waiting for work",
