@@ -168,6 +168,13 @@ public partial class Main : Node3D
             // Don't wait on vsync: a window behind others gets its frames throttled by the compositor, and the
             // self-test then crawls (5 minutes instead of 6 seconds).
             DisplayServer.WindowSetVsyncMode(DisplayServer.VSyncMode.Disabled);
+            // It tests the UI and the game, not the looks: draw the world cheaply. On a machine without a GPU (CI) every
+            // frame is rendered in software, and the full-quality world made the run take minutes.
+            var e = _env.Environment;
+            e.SsaoEnabled = e.SsilEnabled = e.GlowEnabled = false;
+            _sun.ShadowEnabled = false;
+            GetViewport().Msaa3D = Viewport.Msaa.Disabled;
+            GetViewport().Scaling3DScale = 0.25f;
             _ = SelfTest();
             return;
         }

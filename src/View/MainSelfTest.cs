@@ -26,6 +26,18 @@ public partial class Main
         for (int i = 0; i < n; i++) await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
     }
 
+    /// <summary>
+    /// Waits until the condition holds or the time runs out, in real seconds. For anything animated: those run on time,
+    /// not frames, and the frame rate varies wildly (a few frames a second in software rendering, hundreds without vsync).
+    /// </summary>
+    async Task Until(System.Func<bool> done, double seconds)
+    {
+        ulong end = Time.GetTicksMsec() + (ulong)(seconds * 1000);
+        while (!done() && Time.GetTicksMsec() < end) await Frames(1);
+    }
+
+    async Task For(double seconds) => await Until(() => false, seconds);
+
     static void SendKey(Godot.Key k, bool down)
     {
         Input.ParseInputEvent(new InputEventKey { Keycode = k, PhysicalKeycode = k, Pressed = down });
@@ -186,7 +198,8 @@ public partial class Main
             // Camera: pan, zoom, rotate
             var before = Rig.Target;
             SendKey(Godot.Key.D, true);
-            await Frames(15);
+            await Frames(2);
+            await For(0.3);
             SendKey(Godot.Key.D, false);
             Check((Rig.Target - before).Length() > 0.3f, "holding D pans the camera");
             float size = Rig.Cam.Size;
@@ -196,10 +209,10 @@ public partial class Main
             Check(Rig.Cam.Size < size, "the mouse wheel zooms in");
             await Tap(Godot.Key.Period);
             Check(Rig.Quarter == 1, "full stop turns the view a quarter");
-            await Frames(90);
+            await Until(() => !Rig.Turning, 5);
             Check(!Rig.Turning, "the turn finishes");
             await Tap(Godot.Key.Comma);
-            await Frames(40);
+            await Until(() => !Rig.Turning, 5);
             Check(Rig.Quarter == 0, "comma turns it back");
 
             // Flow view
