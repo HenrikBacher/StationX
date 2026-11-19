@@ -581,23 +581,8 @@ public partial class Park3D : Node3D
             for (float t = s + 0.9f; t < e - 0.6f; t += spacing)
             {
                 float ww = z.Brick ? 0.6f : 0.8f, wh = z.Brick ? 0.75f : 0.5f, wy = z.Brick ? 0.95f : 0.9f;
-                var wsz = alongX ? new Vector3(ww, wh, WallThick + 0.04f) : new Vector3(WallThick + 0.04f, wh, ww);
                 var wc = alongX ? new Vector3(t, wy, ay) : new Vector3(ax, wy, t);
-                var frame = alongX ? new Vector3(ww + 0.1f, wh + 0.1f, WallThick + 0.02f) : new Vector3(WallThick + 0.02f, wh + 0.1f, ww + 0.1f);
-                Mesh3.Box(parent, frame, wc, z.Brick ? Gfx.StoneDressing : new Color("d7cfb8"));
-                Mesh3.Box(parent, wsz, wc, Mesh3.Glass);
-                // Anti-blast tape crosses on both faces
-                foreach (float f in new[] { -1f, 1f })
-                {
-                    var face = wc + outward * f * (WallThick / 2 + 0.025f);
-                    for (int k = 0; k < 2; k++)
-                    {
-                        float diag = Mathf.Atan2(wh, ww) * (k == 0 ? 1 : -1);
-                        var tape = Mesh3.Box(parent, new Vector3(Mathf.Sqrt(ww * ww + wh * wh) * 0.95f, 0.035f, 0.005f), Vector3.Zero, Gfx.Cream.Darkened(0.1f));
-                        tape.Position = face;
-                        tape.Rotation = alongX ? new Vector3(0, 0, diag) : new Vector3(diag, Mathf.Pi / 2, 0);
-                    }
-                }
+                Window(parent, wc, ww, wh, alongX, outward, z.Brick);
                 if (z.Brick && height > 1)
                 {
                     var ls = alongX ? new Vector3(ww + 0.2f, 0.07f, WallThick + 0.08f) : new Vector3(WallThick + 0.08f, 0.07f, ww + 0.2f);
@@ -946,6 +931,92 @@ public partial class Park3D : Node3D
     }
 
     /// <summary>
+    /// A window: a pane of glass just proud of the wall, a painted frame round it and glazing bars dividing it into
+    /// small panes (hut casements 3 by 2, sash windows in brick 2 by 3), with thin anti-blast tape across the glass.
+    /// </summary>
+    static void Window(Node3D parent, Vector3 wc, float ww, float wh, bool alongX, Vector3 outward, bool brick)
+    {
+        Vector3 Size(float along, float h, float depth) => alongX ? new Vector3(along, h, depth) : new Vector3(depth, h, along);
+        Vector3 Along(float t) => alongX ? new Vector3(t, 0, 0) : new Vector3(0, 0, t);
+        var paint = brick ? new Color("d2cab6") : new Color("b3ab93");
+        float glassD = WallThick + 0.02f, barD = WallThick + 0.05f, frameD = WallThick + 0.06f;
+        Mesh3.Box(parent, Size(ww, wh, glassD), wc, Mesh3.Glass);
+        const float fw = 0.06f, bw = 0.025f;
+        Mesh3.Box(parent, Size(ww + 2 * fw, fw, frameD), wc + new Vector3(0, wh / 2 + fw / 2, 0), paint);
+        Mesh3.Box(parent, Size(ww + 2 * fw, fw, frameD), wc - new Vector3(0, wh / 2 + fw / 2, 0), paint);
+        Mesh3.Box(parent, Size(fw, wh, frameD), wc + Along(ww / 2 + fw / 2), paint);
+        Mesh3.Box(parent, Size(fw, wh, frameD), wc - Along(ww / 2 + fw / 2), paint);
+        int cols = brick ? 2 : 3, rows = brick ? 3 : 2;
+        for (int i = 1; i < cols; i++)
+            Mesh3.Box(parent, Size(bw, wh, barD), wc + Along(-ww / 2 + ww * i / cols), paint);
+        for (int j = 1; j < rows; j++)
+            Mesh3.Box(parent, Size(ww, bw, barD), wc + new Vector3(0, -wh / 2 + wh * j / rows, 0), paint);
+        // The sill, outside only (brick windows have stone sills already).
+        if (!brick)
+            Mesh3.Box(parent, Size(ww + 0.16f, 0.04f, 0.08f), wc + new Vector3(0, -wh / 2 - fw - 0.02f, 0) + outward * (WallThick / 2 + 0.04f),
+                paint.Darkened(0.1f));
+        // Anti-blast tape, criss-cross on the inside and outside of the glass.
+        var tapeColor = new Color("cbbf9f");
+        foreach (float f in new[] { -1f, 1f })
+        {
+            var face = wc + outward * f * (glassD / 2 + 0.003f);
+            for (int k = 0; k < 2; k++)
+            {
+                float diag = Mathf.Atan2(wh, ww) * (k == 0 ? 1 : -1);
+                var tape = Mesh3.Box(parent, new Vector3(Mathf.Sqrt(ww * ww + wh * wh), 0.02f, 0.004f), Vector3.Zero, tapeColor);
+                tape.Position = face;
+                tape.Rotation = alongX ? new Vector3(0, 0, diag) : new Vector3(diag, Mathf.Pi / 2, 0);
+            }
+        }
+    }
+
+    /// <summary>
+    /// A wartime army lorry, nose to +Z: ladder chassis, cab with a glazed windscreen, a long bonnet with a dark grille
+    /// and headlamps on the wings, and a canvas tilt over the load bed.
+    /// </summary>
+    static void Lorry(Node3D lorry)
+    {
+        var body = Gfx.KhakiGreen;
+        var dark = new Color("23221c");
+        var canvas = new Color("7a7553");
+        Mesh3.Box(lorry, new Vector3(0.7f, 0.12f, 2.5f), new Vector3(0, 0.32f, -0.05f), dark);
+        foreach (float wz in new[] { 0.95f, -0.75f })
+            foreach (float wx in new[] { -0.4f, 0.4f })
+            {
+                Mesh3.Cyl(lorry, 0.22f, 0.22f, 0.14f, new Vector3(wx, 0.22f, wz), new Color("1b1a18"), 16).RotationDegrees = new Vector3(0, 0, 90);
+                Mesh3.Cyl(lorry, 0.09f, 0.09f, 0.16f, new Vector3(wx, 0.22f, wz), body.Darkened(0.2f), 10).RotationDegrees = new Vector3(0, 0, 90);
+            }
+        // Cab
+        Mesh3.Box(lorry, new Vector3(0.92f, 0.6f, 0.55f), new Vector3(0, 0.68f, 0.5f), body);
+        Mesh3.Box(lorry, new Vector3(0.96f, 0.04f, 0.62f), new Vector3(0, 1.0f, 0.5f), body.Darkened(0.1f));
+        Mesh3.Box(lorry, new Vector3(0.78f, 0.22f, 0.02f), new Vector3(0, 0.84f, 0.78f), Mesh3.Glass);
+        foreach (float sx in new[] { -1f, 1f })
+        {
+            Mesh3.Box(lorry, new Vector3(0.02f, 0.2f, 0.3f), new Vector3(sx * 0.465f, 0.84f, 0.56f), Mesh3.Glass);
+            // Front wing over the wheel, with its headlamp
+            Mesh3.Box(lorry, new Vector3(0.2f, 0.05f, 0.56f), new Vector3(sx * 0.4f, 0.47f, 0.98f), body.Darkened(0.1f));
+            Mesh3.Cyl(lorry, 0.06f, 0.06f, 0.06f, new Vector3(sx * 0.37f, 0.56f, 1.2f), new Color("d8d0b0"), 10).RotationDegrees = new Vector3(90, 0, 0);
+        }
+        // Bonnet, grille and bumper
+        Mesh3.Box(lorry, new Vector3(0.58f, 0.32f, 0.48f), new Vector3(0, 0.58f, 1.01f), body);
+        Mesh3.Box(lorry, new Vector3(0.5f, 0.3f, 0.03f), new Vector3(0, 0.58f, 1.26f), dark);
+        for (int i = -2; i <= 2; i++)
+            Mesh3.Box(lorry, new Vector3(0.015f, 0.26f, 0.02f), new Vector3(i * 0.09f, 0.58f, 1.28f), body.Darkened(0.25f));
+        Mesh3.Box(lorry, new Vector3(0.98f, 0.07f, 0.06f), new Vector3(0, 0.34f, 1.32f), dark);
+        // Load bed and the canvas tilt, rounded over its hoops
+        Mesh3.Box(lorry, new Vector3(0.98f, 0.28f, 1.45f), new Vector3(0, 0.52f, -0.52f), body.Darkened(0.15f));
+        Mesh3.Box(lorry, new Vector3(0.96f, 0.44f, 1.4f), new Vector3(0, 0.88f, -0.52f), canvas);
+        var top = Mesh3.Cyl(lorry, 0.48f, 0.48f, 1.4f, new Vector3(0, 1.09f, -0.52f), canvas, 18);
+        top.RotationDegrees = new Vector3(90, 0, 0);
+        top.Scale = new Vector3(1, 1, 0.32f);
+        foreach (float sx in new[] { -1f, 1f })
+            Mesh3.Box(lorry, new Vector3(0.2f, 0.05f, 0.5f), new Vector3(sx * 0.4f, 0.47f, -0.75f), dark);
+        // Rear flap tied up, and the tailgate
+        Mesh3.Box(lorry, new Vector3(0.7f, 0.3f, 0.02f), new Vector3(0, 0.88f, -1.23f), canvas.Darkened(0.3f));
+        Mesh3.Box(lorry, new Vector3(0.98f, 0.06f, 0.08f), new Vector3(0, 0.32f, -1.27f), dark);
+    }
+
+    /// <summary>
     /// The doorway in a full-height wall: wall over the door on a lintel, a frame, and the door itself standing open
     /// outwards (ledged and braced boards painted green on the huts, oak on the Mansion and the blocks).
     /// </summary>
@@ -1124,12 +1195,7 @@ public partial class Park3D : Node3D
 
         var lorry = new Node3D { Position = new Vector3(3.2f, 0, 15.6f), RotationDegrees = new Vector3(0, 90, 0) };
         _buildings.AddChild(lorry);
-        Mesh3.Box(lorry, new Vector3(0.9f, 0.55f, 0.85f), new Vector3(0, 0.45f, 0.75f), Gfx.KhakiGreen);
-        Mesh3.Box(lorry, new Vector3(0.95f, 0.75f, 1.5f), new Vector3(0, 0.6f, -0.45f), Gfx.KhakiGreen.Darkened(0.15f));
-        Mesh3.Box(lorry, new Vector3(0.6f, 0.2f, 0.05f), new Vector3(0, 0.62f, 1.18f), Gfx.Window.Darkened(0.4f));
-        foreach (float wz in new[] { 0.8f, -0.8f })
-            foreach (float wx in new[] { -0.45f, 0.45f })
-                Mesh3.Cyl(lorry, 0.2f, 0.2f, 0.12f, new Vector3(wx, 0.2f, wz), new Color("1b1a18"), 12).RotationDegrees = new Vector3(0, 0, 90);
+        Lorry(lorry);
         var bike = new Node3D { Position = new Vector3(5.6f, 0, 11.4f), RotationDegrees = new Vector3(0, 20, 0) };
         _buildings.AddChild(bike);
         Bicycle(bike, Vector3.Zero, 0);

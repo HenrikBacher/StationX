@@ -43,9 +43,9 @@ public static class Mesh3
     /// </summary>
     public static StandardMaterial3D Glass => _glass ??= new StandardMaterial3D
     {
-        AlbedoColor = new Color("3a4648"),
-        Roughness = 0.08f,
-        Metallic = 0.3f,
+        AlbedoColor = new Color("56666b"),
+        Roughness = 0.1f,
+        Metallic = 0.2f,
         MetallicSpecular = 0.7f,
     };
     static StandardMaterial3D? _glass;

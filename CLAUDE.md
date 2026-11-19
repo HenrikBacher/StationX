@@ -37,7 +37,7 @@ state, so the work can be resumed on any machine.
 
 Last release **v0.27.0**: cold handovers, the stranded-staff fix, intelligence freshness by service, security sweeps,
 merged static building meshes (`Park3D.MergeStatic`; screenshots print draw calls). v0.26.0 had overhaul parts 1–5
-and most of 6, Stores, and bad visits cutting the grant. Untagged since: furniture wood.
+and most of 6, Stores, and bad visits cutting the grant. Untagged since: furniture wood, glazed windows (`Park3D.Window`: frame, glazing bars, sill, thin tape) and a detailed army lorry (`Park3D.Lorry`).
 
 ### Graphics overhaul: period realism, CC0 assets allowed
 
