@@ -294,6 +294,67 @@ public static class Intercepts
     static bool In(DateOnly d, int y0, int m0, int d0, int y1, int m1, int d1) =>
         d >= new DateOnly(y0, m0, d0) && d <= new DateOnly(y1, m1, d1);
 
+    static readonly (string de, string en)[] Names =
+    {
+        P("MUELLER", "Müller"), P("SCHMIDT", "Schmidt"), P("WEBER", "Weber"), P("BECKER", "Becker"), P("HOFFMANN", "Hoffmann"),
+        P("KRUEGER", "Krüger"), P("BRAUN", "Braun"), P("ZIMMERMANN", "Zimmermann"), P("HARTMANN", "Hartmann"), P("KOCH", "Koch"),
+        P("RICHTER", "Richter"), P("WOLF", "Wolf"), P("SCHROEDER", "Schröder"), P("NEUMANN", "Neumann"), P("FUCHS", "Fuchs"),
+    };
+
+    static (string de, string en)[] Ranks(Net net) => Defs.NetOf(net).Service switch
+    {
+        Service.Kriegsmarine => new[] { P("LEUTNANT ZUR SEE", "Leutnant zur See"), P("OBERLEUTNANT ZUR SEE", "Oberleutnant zur See"), P("KAPITAENLEUTNANT", "Kapitänleutnant"), P("KORVETTENKAPITAEN", "Korvettenkapitän"), P("OBERMAAT", "Obermaat"), P("FUNKMAAT", "Funkmaat") },
+        Service.Security when net == Net.Police => new[] { P("WACHTMEISTER", "Wachtmeister"), P("OBERWACHTMEISTER", "Oberwachtmeister"), P("LEUTNANT", "Leutnant"), P("HAUPTMANN", "Hauptmann"), P("MAJOR", "Major") },
+        Service.Security => new[] { P("SONDERFUEHRER", "Sonderführer"), P("HAUPTMANN", "Hauptmann"), P("MAJOR", "Major"), P("OBERST", "Oberst") },
+        _ => new[] { P("LEUTNANT", "Leutnant"), P("OBERLEUTNANT", "Oberleutnant"), P("HAUPTMANN", "Hauptmann"), P("MAJOR", "Major"), P("FELDWEBEL", "Feldwebel"), P("UNTEROFFIZIER", "Unteroffizier"), P("OBERGEFREITER", "Obergefreiter") },
+    };
+
+    static string Ord(int n) => n + (n % 100 is 11 or 12 or 13 ? "th" : (n % 10) switch { 1 => "st", 2 => "nd", 3 => "rd", _ => "th" });
+
+    /// <summary>
+    /// The everyday procedure every network carried, alongside the news: acknowledgements, repeats, call-sign changes,
+    /// leave, promotions and birthday greetings. Hut 6 lived on such routine; much of it made good cribs. Two lines per
+    /// draw, so routine stays a minority beside the network's own traffic.
+    /// </summary>
+    static void Routine(Net net, Random r, DateOnly d, List<(string de, string en)> pool)
+    {
+        var t = new Tale(r, d);
+        t.Set("rank", Pick(r, Ranks(net)));
+        t.Set("rank2", Pick(r, Ranks(net)));
+        t.Set("name", Pick(r, Names));
+        int nr = r.Next(2, 400), day = r.Next(1, 28), back = Math.Min(28, day + r.Next(7, 15));
+        t.Set("nr", Digits(nr), nr.ToString());
+        t.Set("day", Digits(day), Ord(day));
+        t.Set("back", Digits(back), Ord(back));
+        t.Set("time", Time(r));
+        t["table"] = ((char)('A' + r.Next(8))).ToString();
+        t["sq"] = Pick(r, new[] { "AJ", "AK", "AL", "BC", "BD", "BE", "BF", "CA", "CB", "CF", "AE", "BB" });
+        bool naval = Defs.NetOf(net).Service == Service.Kriegsmarine;
+        var item = naval
+            ? Pick(r, new[] { P("ERSATZROEHREN FUER FUNKEMPFAENGER", "spare valves for the wireless receivers"), P("TAUWERK", "rope"), P("SCHMIEROEL", "lubricating oil"), P("KARTEN QUADRAT AJ", "charts for square AJ") })
+            : Pick(r, new[] { P("REIFEN", "tyres"), P("ZUENDKERZEN", "spark plugs"), P("DECKEN", "blankets"), P("BATTERIEN FUER FUNKGERAETE", "batteries for wireless sets"), P("SCHREIBMASCHINENBAENDER", "typewriter ribbons") });
+        t.Set("item", item);
+        int n = r.Next(2, 60);
+        t.Set("n", Digits(n), n.ToString());
+        var lines = new List<(string de, string en)>
+        {
+            t.Pair("KEINE BESONDEREN {EREIGNISSE|VORKOMMNISSE}", "Nothing {special|unusual} to report."),
+            t.Pair("SPRUCH NR {nr} {VERSTUEMMELT|NICHT ENTZIFFERBAR} ERBITTE WIEDERHOLUNG", "Message no. {nr} {corrupt|undecipherable}. Request repeat."),
+            t.Pair("SPRUCH NR {nr} VON {time} ERHALTEN", "Message no. {nr} of {time} received."),
+            t.Pair("AB {time} NEUE RUFZEICHEN GEMAESS TABELLE {table}", "New call signs from {time}, as per table {table}."),
+            t.Pair("FUNKSTILLE BIS {time}", "Wireless silence until {time}."),
+            t.Pair("HERZLICHE GLUECKWUENSCHE ZUM GEBURTSTAG {rank} {name}", "Hearty birthday congratulations to {rank} {name}."),
+            t.Pair("{rank} {name} URLAUB VOM {day} BIS {back} GENEHMIGT", "{rank} {name}: leave granted from the {day} to the {back}."),
+            t.Pair("{rank} {name} MIT WIRKUNG VOM {day} BEFOERDERT ZUM {rank2}", "{rank} {name} promoted to {rank2} with effect from the {day}."),
+            t.Pair("ERBITTE {n} {item}", "Request {n} {item}."),
+            t.Pair("{rank} {name} {VERSETZT|KOMMANDIERT} ZU {STAB|ERSATZTRUPPENTEIL}", "{rank} {name} {posted|detached} to {staff|the depot}."),
+        };
+        if (naval) lines.Add(t.Pair("STANDORT QUADRAT {sq} ALLES KLAR", "Position square {sq}. All well."));
+        if (net == Net.Abwehr) lines.Add(t.Pair("FUER AGENTEN {n} TAUSEND {ESCUDOS|PESETAS} UEBERWIESEN", "{n} thousand {escudos|pesetas} sent for agents."));
+        pool.Add(lines[r.Next(lines.Count)]);
+        pool.Add(lines[r.Next(lines.Count)]);
+    }
+
     /// <summary>
     /// One sentence of traffic, true to the date: routine traffic for the network as it stood then, plus (weighted up)
     /// whatever that part of the German forces was doing in that week of the war.
@@ -305,6 +366,7 @@ public static class Intercepts
         var pool = new List<(string de, string en)>();
         void Add(params (string de, string en)[] xs) => pool.AddRange(xs);
         void Now(params (string de, string en)[] xs) { pool.AddRange(xs); pool.AddRange(xs); pool.AddRange(xs); }   // topical: three times as likely
+        Routine(net, r, d, pool);
 
         switch (net)
         {

@@ -62,6 +62,10 @@ Then (user requests, 2026-11-19):
   detour (≤ `DetourTiles`) or wait `SqueezeAfter` minutes, and the view's `SeparatePeople` sidesteps figures.
 - Specialists leave carrying to messengers and clerks (`SpecialistsCarryAfter`). A Park without a canteen is now
   crippling: tests that run a pipeline need a canteen table.
+- Variety engine (`Tale.cs`): templates with `{var}` and `{a|b|c}` (nesting), own seeded dice, `Pair` fills German and English
+  alike. ULTRA decisions come from a dated deck (`UltraDeck.cs`, ~25 scenarios by service and TUNNY; `RecentScenarios` avoids repeats;
+  `Tale.Stakes` scales rewards and risks). Intercepts add routine procedure (`Intercepts.Routine`). Tests in `Variety.cs` check
+  every scenario fills cleanly and that no option is strictly worse than another.
 - Intel dilemmas carry a `Context` ("What we know"); the dialog shows lockdown stakes and suspicion after each option.
   Options were rebalanced so none is strictly worse; keep option 1 the middle (cover) choice, the autoplayer's default.
 

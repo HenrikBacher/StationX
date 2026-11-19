@@ -77,6 +77,7 @@ public sealed partial class GameState
 
     /// <summary>A sample decision for screenshots and tests.</summary>
     public Dilemma DebugDilemma() => IntelDilemma(ActiveNets.Count > 0 ? ActiveNets.First() : Net.Red);
+    public Dilemma DebugIntelDilemma(Net net) => IntelDilemma(net);
 
     const string RuthlessTitle = "Operation Ruthless";
 
@@ -141,167 +142,31 @@ public sealed partial class GameState
         return true;
     }
 
-    static readonly string[] Cities = { "Liverpool", "Plymouth", "Bristol", "Hull", "Southampton", "Belfast", "Clydebank", "Portsmouth", "Birmingham", "Sheffield" };
-    static readonly string[] Towns = { "Ely", "Peterborough", "Ramsey", "Banbury", "Thetford", "Huntingdon" };
-    static readonly string[] Ports = { "Naples", "Taranto", "Palermo", "Brindisi" };
-
-    Dilemma IntelDilemma(Net net)
-    {
-        var nd = Defs.NetOf(net);
-        var name = nd.Name;
-        if (nd.Family == Family.Lorenz)
-            return new Dilemma
-            {
-                Service = Service.Heer, Title = "Orders from the high command",
-                Text = "TUNNY decrypts give the German high command's plans for the next offensive in the east, " +
-                       "in more detail than Moscow has ever had.",
-                Context = "The Testery has read a run of teleprinter messages between the high command and an army group: dates, " +
-                          "objectives, divisions. It is as good as intelligence gets. But Stalin distrusts anything British, " +
-                          "and the Soviets' own ciphers are known to be read by the Germans: whatever we tell Moscow, Berlin may overhear.",
-                Options =
-                {
-                    new() { Label = "Tell Moscow it comes from decrypts", Rep = 6, Suspicion = 16,
-                        Outcome = "Moscow believes it and acts in full. But Soviet ciphers are not as secure as ours, and within weeks German signals mention a leak." },
-                    new() { Label = "Pass it to Moscow disguised as a spy report", Rep = 3, Suspicion = 4,
-                        Outcome = "The Soviets receive it from a 'source in Switzerland'. Stalin half-believes it; no one asks about teleprinters." },
-                    new() { Label = "Keep it in London", Rep = -3,
-                        Outcome = "The offensive comes as a surprise to our ally. Whitehall is unimpressed." },
-                },
-            };
-        return nd.Service switch
-        {
-            Service.Luftwaffe => Rng.Chance(0.6) ? RaidDilemma(name) : new Dilemma
-            {
-                Service = Service.Luftwaffe, Title = "Airfield strengths",
-                Text = $"A {name} decrypt lists the serviceable aircraft at every Luftwaffe airfield in northern France.",
-                Context = "A Luftflotte's daily strength return, read in full: which airfields are crowded and which are thin. " +
-                          "The figures are a day old and good for perhaps two more. Bombing exactly the weak ones points at Enigma; " +
-                          "a reconnaissance flight first gives the RAF a plausible reason to know. Filed, it builds Hut 3's order of battle.",
-                Options =
-                {
-                    new() { Label = "Bomb the weakest-defended airfields tonight", Rep = 3, Suspicion = 12,
-                        Outcome = "Bomber Command hits exactly the right airfields. Luftflotte 3 starts an inquiry." },
-                    new() { Label = "Send a photo-reconnaissance flight to 'discover' them first", Funds = -150, Rep = 2, Suspicion = 3,
-                        Outcome = "A Spitfire photographs the airfields. Nobody suspects the photographs." },
-                    new() { Label = "File it for the order of battle", Points = 4,
-                        Outcome = "Hut 3's index grows. The analysts are pleased." },
-                },
-            },
-            Service.Heer => new Dilemma
-            {
-                Service = Service.Heer, Title = "A convoy for Rommel",
-                Text = $"{name} gives the sailing time and route of a tanker convoy leaving {Rng.Pick(Ports)} for Libya.",
-                Context = "The sailing signal to the escort, read within hours: ships, times and route. Rommel's advance runs on this fuel. " +
-                          "The rule for Malta is that no strike goes in unless a reconnaissance aircraft has been seen to 'find' the ships first. " +
-                          "Every convoy that arrives untouched also reassures Rome that its signals are safe.",
-                Options =
-                {
-                    new() { Label = "Strike from Malta at once", Rep = 5, Suspicion = 18,
-                        Outcome = "The tankers burn. Rome and Berlin each accuse the other of leaking the sailing orders." },
-                    new() { Label = "Send a reconnaissance plane to 'find' them first", Funds = -150, Rep = 3, Suspicion = 4,
-                        Outcome = "A Maryland is seen overhead before the strike. The cover story holds." },
-                    new() { Label = "Let this one through", Rep = -2, Suspicion = -3,
-                        Outcome = "The fuel reaches Rommel. The secret is safe." },
-                },
-            },
-            Service.Kriegsmarine => Rng.Chance(0.5) ? new Dilemma
-            {
-                Service = Service.Kriegsmarine, Title = "A U-boat rendezvous",
-                Text = $"{name} shows a tanker will refuel a wolf pack west of the Azores in three days.",
-                Context = "U-boat Command's orders to the boats and their supply tanker: a position and a time. Hut 8 is sure of it. " +
-                          "Sinking them at a secret rendezvous is hard to explain any other way; moving the convoys is invisible but leaves the pack to hunt. " +
-                          "Do nothing, and the refuelled pack will find someone.",
-                Options =
-                {
-                    new() { Label = "Sink the tanker and the U-boats", Rep = 5, Suspicion = 20,
-                        Outcome = "Escort carriers are waiting. Dönitz demands to know how they knew." },
-                    new() { Label = "Quietly route the convoys around it", Rep = 2, Suspicion = 3,
-                        Outcome = "The convoys sail clear. To the Germans it looks like good luck." },
-                    new() { Label = "Do nothing", Rep = -2, Suspicion = -3, Tonnage = 30000,
-                        Outcome = "The wolf pack refuels and finds a convoy. Ships are lost and the Admiralty is bitter; the secret is safe." },
-                },
-            } : new Dilemma
-            {
-                Service = Service.Kriegsmarine, Title = "The supply ships",
-                Text = $"{name} gives the positions of nine supply ships waiting in the Atlantic for raiders and U-boats.",
-                Context = "A whole season's supply plan, read from the naval key: where each ship waits and for whom. " +
-                          "Take them all and the raiders and U-boats starve, but nine sinkings in a week can't all be luck. " +
-                          "Two might be.",
-                Options =
-                {
-                    new() { Label = "Sink all of them", Rep = 6, Suspicion = 28,
-                        Outcome = "As in June 1941, the Navy sweeps them up. Berlin investigates, and only luck blames spies." },
-                    new() { Label = "Sink two and leave the rest", Rep = 3, Suspicion = 8,
-                        Outcome = "Two ships lost could be bad luck. The Germans shrug." },
-                    new() { Label = "Leave them be", Rep = -1,
-                        Outcome = "The Admiralty grumbles, but the secret is safe." },
-                },
-            },
-            _ => new Dilemma
-            {
-                Service = Service.Security, Title = "An agent by parachute",
-                Text = $"{name} traffic says the Abwehr is dropping an agent near {Rng.Pick(Towns)} on Thursday night.",
-                Context = "The Abwehr's own signals give the night, the field and his cover name. MI5 can be waiting. " +
-                          "A captured agent can be turned (MI5's Twenty Committee runs them, feeding the Abwehr what we choose), " +
-                          "and a turned agent who keeps reporting reassures the Abwehr that its network is sound. " +
-                          "A public arrest wins headlines and makes the Abwehr ask how we knew; a free agent may lead to others.",
-                Options =
-                {
-                    new() { Label = "Arrest him publicly", Rep = 5, Suspicion = 12,
-                        Outcome = "The newspapers love it, and so does the War Cabinet. The Abwehr wonders how the police were waiting in the right field." },
-                    new() { Label = "Arrest him quietly and offer him to the Twenty Committee", Rep = 2, Points = 4, Suspicion = -2,
-                        Outcome = "He takes the offer. Soon he is sending the Abwehr exactly what MI5 wants it to hear, and the Abwehr is pleased with him." },
-                    new() { Label = "Let him land and follow him to his contacts", Rep = 1, Points = 6, Suspicion = 6,
-                        Outcome = "He leads MI5 to two more agents before he is picked up. The Abwehr loses a network and starts asking why." },
-                },
-            },
-        };
-    }
-
-    Dilemma RaidDilemma(string name)
-    {
-        var city = Rng.Pick(Cities);
-        return new Dilemma
-        {
-            Service = Service.Luftwaffe, Title = $"A raid on {city}",
-            Text = $"{name} decrypts give tonight's target: {city}, with about {Rng.Range(8, 30) * 10} bombers.",
-            Context = "A Fliegerkorps order to its bomber groups, broken this afternoon: target, numbers and time over target. " +
-                      "Only Enigma could have told us this early. Night fighters waiting over a city before any radar plot " +
-                      "point straight at it; passed on as a radar and Y-service warning, the defences are readier but not suspiciously so.",
-            Options =
-            {
-                new() { Label = "Warn the city and send the night fighters", Rep = 4, Suspicion = 16,
-                    Outcome = $"The raiders find the fighters waiting over {city}. Someone in Berlin asks how the RAF knew." },
-                new() { Label = "Pass it on as a radar and Y-service warning", Funds = -100, Rep = 2, Suspicion = 4,
-                    Outcome = "Fighter Command acts on 'radar plots'. The cover story holds." },
-                new() { Label = "Keep it to ourselves", Rep = -2, Morale = -0.05, Suspicion = -3,
-                    Outcome = $"The raid on {city} meets only the usual defences. The secret is safe; the watch takes it hard." },
-            },
-        };
-    }
-
     Dilemma TalkerIncident(Staff s)
     {
-        var pub = Rng.Pick(new[] { "the Eight Bells", "the Duke of Wellington", "the Shoulder of Mutton", "a dance at Wilton Hall" });
+        var t = NewTale(0x7A1C);
+        t["who"] = s.Name;
+        t["role"] = Defs.Roles[s.Role].Name.ToLowerInvariant();
+        t["where"] = t.Pick("the Eight Bells", "the Duke of Wellington", "the Shoulder of Mutton", "a dance at Wilton Hall", "the station buffet",
+                            "a crowded train to Euston", "their billet's kitchen table", "a cinema queue in Bedford");
+        t["said"] = t.Pick("'machines that read German signals'", "'how we knew where the bombers were going'", "'the Wrens and their clever machines'",
+                           "'breaking the Germans' codes'", "'what the U-boats said yesterday'");
+        t["heard"] = t.Pick("MI5 reports that", "The Park's security officer hears that", "A landlady writes to the Park to say that",
+                            "A fellow billetee reports that", "The local police pass on that");
         var worst = Enum.GetValues<Service>().OrderByDescending(SuspicionOf).First();
-        return new Dilemma
-        {
-            Service = worst, StaffId = s.Id, Title = "Careless talk",
-            Text = $"MI5 reports that {s.Name} ({Defs.Roles[s.Role].Name.ToLowerInvariant()}) was overheard at {pub} " +
-                   "talking about 'machines that read German signals'.",
-            Context = "The talk has happened; what matters is whether it happens again. Careless talkers keep raising the " +
-                      "Abwehr's suspicion a little every day they stay. Dismissing them stops it but costs us their work and shakes the huts; " +
-                      "a reprimand marks them, so you know who to watch. Ignoring MI5 costs us standing in Whitehall.",
-            Options =
-            {
-                new() { Label = $"Dismiss {s.Name}", DismissStaff = true, Morale = -0.03, Suspicion = -5, RevealTalker = true,
-                    Outcome = $"{s.Name} is sent away, reminded that the Official Secrets Act lasts for life." },
-                new() { Label = "A reprimand, and they sign the Act again", Morale = -0.02, RevealTalker = true,
-                    Outcome = $"{s.Name} is badly shaken. Whether it sticks remains to be seen." },
-                new() { Label = "Take no action", Rep = -3, Suspicion = 12,
-                    Outcome = "MI5 notes our lack of interest. So, perhaps, does someone else." },
-            },
-        };
+        var d = Dil(worst, t, "Careless talk",
+            "{heard} {who} ({role}) was overheard at {where} talking about {said}.",
+            "The talk has happened; what matters is whether it happens again. Careless talkers keep raising the " +
+            "Abwehr's suspicion a little every day they stay. Dismissing them stops it but costs us their work and shakes the huts; " +
+            "a reprimand marks them, so you know who to watch. Ignoring it costs us standing in Whitehall.",
+            new DilemmaOption { Label = "Dismiss {who}", DismissStaff = true, Morale = -0.03, Suspicion = -5, RevealTalker = true,
+                Outcome = "{who} is sent away, reminded that the Official Secrets Act lasts for life." },
+            new DilemmaOption { Label = "A reprimand, and they sign the Act again", Morale = -0.02, RevealTalker = true,
+                Outcome = "{who} is {badly shaken|white as a sheet|close to tears}. Whether it sticks remains to be seen." },
+            new DilemmaOption { Label = "Take no action", Rep = -3, Suspicion = 12,
+                Outcome = "{MI5 notes our lack of interest.|The security officer writes a sharp minute.} So, perhaps, does someone else." });
+        d.StaffId = s.Id;
+        return d;
     }
 
     // ---------------------------------------------------------------- gardening
