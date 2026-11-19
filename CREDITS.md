@@ -18,6 +18,7 @@ Photographed materials from [Poly Haven](https://polyhaven.com), released under
 | [Roof Slates 02](https://polyhaven.com/a/roof_slates_02) | Roofs |
 | [Sparse Grass](https://polyhaven.com/a/sparse_grass) | Grounds |
 | [Gravel Floor 02](https://polyhaven.com/a/gravel_floor_02) | Paths |
+| [Brown Mud 02](https://polyhaven.com/a/brown_mud_02) | Trodden earth, building plots |
 
 ## Sky
 

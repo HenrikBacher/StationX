@@ -157,9 +157,10 @@ public partial class Park3D : Node3D
     void Rebuild()
     {
         var g = State!.Grid;
-        _ground.MaterialOverride = new StandardMaterial3D
+        var (paint, mask) = PaintGround(g);
+        _ground.MaterialOverride = (Material?)Ground.Make(paint, mask) ?? new StandardMaterial3D
         {
-            AlbedoTexture = PaintGround(g),
+            AlbedoTexture = paint,
             Roughness = 0.97f,
             TextureFilter = BaseMaterial3D.TextureFilterEnum.LinearWithMipmapsAnisotropic,
             // Fine world-space grit over the painted ground, a few repeats per tile
@@ -214,16 +215,53 @@ public partial class Park3D : Node3D
         return Mathf.Lerp(Mathf.Lerp(a, b, tx), Mathf.Lerp(c, d, tx), ty);
     }
 
-    static ImageTexture PaintGround(Grid g)
+    /// <summary>
+    /// The ground's colour, and a mask of what lies where for the photographed ground (r gravel, g earth, b wet,
+    /// a grass; the rest, under buildings and the lake, stays plain).
+    /// </summary>
+    static bool IsPath(Grid g, int x, int y) =>
+        x >= 0 && y >= 0 && x < Grid.Width && y < Grid.Height && g.Get(x, y) is Tile.Path or Tile.Door;
+
+    /// <summary>
+    /// Gravel or not, with ragged edges: near the boundary between a path tile and grass, noise decides, so grass creeps
+    /// over the gravel in places and the gravel spills into the lawn in others.
+    /// </summary>
+    static bool PathAt(Grid g, float fx, float fy)
+    {
+        int tx = (int)fx, ty = (int)fy;
+        bool here = IsPath(g, tx, ty);
+        float lx = fx - tx, ly = fy - ty, edge = 1;
+        for (int dy = -1; dy <= 1; dy++)
+            for (int dx = -1; dx <= 1; dx++)
+            {
+                if ((dx == 0 && dy == 0) || IsPath(g, tx + dx, ty + dy) == here) continue;
+                float ex = dx < 0 ? lx : dx > 0 ? 1 - lx : 0, ey = dy < 0 ? ly : dy > 0 ? 1 - ly : 0;
+                edge = Mathf.Min(edge, dx != 0 && dy != 0 ? Mathf.Max(ex, ey) : ex + ey);
+            }
+        if (edge >= 0.3f) return here;
+        float n = Blob(fx * 4, fy * 4, 1, here ? 51 : 53) * 0.75f + Blob(fx * 13, fy * 13, 1, 57) * 0.25f;
+        return here ? edge > n * 0.22f : edge < n * 0.3f - 0.06f;
+    }
+
+    static (ImageTexture paint, ImageTexture mask) PaintGround(Grid g)
     {
         int W = Grid.Width * PxPerTile, H = Grid.Height * PxPerTile;
         var data = new byte[W * H * 3];
+        var mask = new byte[W * H * 4];
         void Put(int px, int py, Color c)
         {
             int i = (py * W + px) * 3;
             data[i] = (byte)(Mathf.Clamp(c.R, 0, 1) * 255);
             data[i + 1] = (byte)(Mathf.Clamp(c.G, 0, 1) * 255);
             data[i + 2] = (byte)(Mathf.Clamp(c.B, 0, 1) * 255);
+        }
+        void Mask(int px, int py, float gravel, float earth, float wet, float grass)
+        {
+            int i = (py * W + px) * 4;
+            mask[i] = (byte)(Mathf.Clamp(gravel, 0, 1) * 255);
+            mask[i + 1] = (byte)(Mathf.Clamp(earth, 0, 1) * 255);
+            mask[i + 2] = (byte)(Mathf.Clamp(wet, 0, 1) * 255);
+            mask[i + 3] = (byte)(Mathf.Clamp(grass, 0, 1) * 255);
         }
         var doors = g.Zones.Select(z => z.OutsideDoor).Append(Grid.Gate).ToList();
 
@@ -235,19 +273,26 @@ public partial class Park3D : Node3D
                 float noise = (Gfx.Hash(px, py, 3) & 0xFF) / 255f;
                 // Tired lawn: mown stripes, worn patches, clumps.
                 Color c = ((tx / 2) % 2 == 0 ? Gfx.Lawn : Gfx.LawnStripe).Lightened(noise * 0.05f);
+                float gravel = 0, earth = 0, wet = 0;
                 float wear = Blob(fx, fy, 3, 17);
-                if (wear > 0.62f) c = c.Lerp(Gfx.Mud.Lightened(0.15f), (wear - 0.62f) * 1.6f);
+                if (wear > 0.62f)
+                {
+                    c = c.Lerp(Gfx.Mud.Lightened(0.15f), (wear - 0.62f) * 1.6f);
+                    earth = (wear - 0.62f) * 2.2f;
+                }
                 if (noise > 0.93f) c = c.Darkened(0.15f);
 
                 // Trampled mud around doorways and the gate.
                 foreach (var (dx0, dy0) in doors)
                 {
                     float d = Mathf.Sqrt((fx - dx0 - 0.5f) * (fx - dx0 - 0.5f) + (fy - dy0 - 0.5f) * (fy - dy0 - 0.5f));
-                    if (d < 2.2f) c = c.Lerp(Gfx.Mud, Mathf.Clamp((2.2f - d) / 1.6f, 0, 0.85f) * (0.6f + 0.4f * Blob(fx, fy, 1, 23)));
+                    if (d >= 2.2f) continue;
+                    float t = Mathf.Clamp((2.2f - d) / 1.6f, 0, 0.85f) * (0.6f + 0.4f * Blob(fx, fy, 1, 23));
+                    c = c.Lerp(Gfx.Mud, t);
+                    earth = Mathf.Max(earth, t * 1.3f);
                 }
 
-                var tile = g.Get(tx, ty);
-                if (tile is Tile.Path or Tile.Door)
+                if (PathAt(g, fx, fy))
                 {
                     c = Gfx.Gravel.Darkened(noise * 0.12f);
                     if ((Gfx.Hash(px, py, 9) & 0x1F) == 0) c = Gfx.GravelDot;
@@ -255,20 +300,30 @@ public partial class Park3D : Node3D
                     if (ty is >= 12 and <= 14 && (Math.Abs(fy - 12.9f) < 0.12f || Math.Abs(fy - 14.1f) < 0.12f)) c = c.Darkened(0.22f);
                     float puddle = Blob(fx, fy, 2, 29);
                     if (puddle > 0.8f) c = c.Lerp(new Color("3b4446"), Mathf.Clamp((puddle - 0.8f) * 8, 0, 0.85f));
+                    gravel = 1; earth = 0;
+                    wet = Mathf.Clamp((puddle - 0.8f) * 8, 0, 1);
                 }
+                earth = Mathf.Clamp(earth, 0, 1 - gravel);
+                float grass = 1 - gravel - earth;
 
                 // Lake
                 float lx = (fx - 9.5f) / 6.0f, ly = (fy - 23f) / 4.2f;
                 float ld = lx * lx + ly * ly;
-                if (ld < 1.0f) c = ld > 0.86f ? Gfx.Shore.Darkened(noise * 0.1f) : Gfx.Water.Darkened(0.2f * (1 - ld));
+                if (ld < 1.0f)
+                {
+                    c = ld > 0.86f ? Gfx.Shore.Darkened(noise * 0.1f) : Gfx.Water.Darkened(0.2f * (1 - ld));
+                    (gravel, earth, wet, grass) = ld > 0.86f ? (0f, 1f, 0.3f, 0f) : (0f, 0f, 0f, 0f);
+                }
 
                 foreach (var z in g.Zones)
                 {
                     if (fx < z.X + 0.5f || fx > z.X + z.W - 0.5f || fy < z.Y + 0.5f || fy > z.Y + z.H - 0.5f) continue;
+                    (gravel, earth, wet, grass) = (0f, 0f, 0f, 0f);
                     if (!z.Unlocked)
                     {
                         c = (z.Available ? Gfx.Slab : Gfx.Mud.Darkened(0.1f)).Darkened(noise * 0.08f);
                         if (z.Available && Blob(fx, fy, 1, 37) > 0.75f) c = c.Darkened(0.12f);
+                        earth = 1;
                     }
                     else if (z.Id == "mansion")
                     {
@@ -290,10 +345,13 @@ public partial class Park3D : Node3D
                     }
                 }
                 Put(px, py, c);
+                Mask(px, py, gravel, earth, wet, grass);
             }
         var img = Image.CreateFromData(W, H, false, Image.Format.Rgb8, data);
         img.GenerateMipmaps();
-        return ImageTexture.CreateFromImage(img);
+        var mimg = Image.CreateFromData(W, H, false, Image.Format.Rgba8, mask);
+        mimg.GenerateMipmaps();
+        return (ImageTexture.CreateFromImage(img), ImageTexture.CreateFromImage(mimg));
     }
 
     // ------------------------------------------------------------- buildings

@@ -35,7 +35,7 @@ state, so the work can be resumed on any machine.
 
 ## Current work (2026-11-19)
 
-Last release **v0.25.0**. Untagged on `main` since: teleprinter jams, faster CI, Node 24 actions, overhaul parts 1–2.
+Last release **v0.25.0**. Untagged on `main` since: teleprinter jams, faster CI, Node 24 actions, overhaul parts 1–3.
 
 ### Graphics overhaul: period realism, CC0 assets allowed
 
@@ -52,8 +52,9 @@ settings. Materials are mapped in `Textures.Pbr` (folder, tiles per repeat, tone
 2. HDRI sky lighting and reflections: `SkyLight.cs`, the `lythwood_field` 1K HDR tinted to the ambient colour. Godot
    ignores `AmbientLightEnergy` once the ambient comes wholly from the sky, so the energy goes into the tint. Windows
    use `Mesh3.Glass`. **Done.** The HDR import needs `mipmaps/generate=true`.
-3. Ground: grass, gravel paths, worn earth. The `sparse_grass` and `gravel_floor_02` sets are already in the repo. The
-   ground is currently a per-pixel baked image in `Park3D.Grounds` plus a Grit detail texture.
+3. Ground: `Ground.cs` shader lays grass, gravel and `brown_mud_02` photos (each divided by its linear mean) over the
+   painted layout from `Park3D.PaintGround`, which also writes a mask (r gravel, g earth, b wet, a grass). Path edges
+   are ragged (`PathAt`). **Done.**
 4. Real roofs: slate on the Mansion, felt on the huts, fading when zoomed in to look inside. `roof_slates_02` is in.
 5. Atmosphere and weathering: haze, soot and dirt at wall bases, moss.
 6. Model detail: Mansion bays and gables, hut doors, steps, stove pipes. Also: unbuilt plots are flat brown rectangles
