@@ -42,6 +42,7 @@ public sealed partial class GameState
         double hour = MinuteOfDay / 60;
         bool night = hour >= 20 || hour < 6;
         var cold = ColdZones();
+        bool anyRest = Stations.Any(RestOpen);
         for (int i = Staff.Count - 1; i >= 0; i--)
         {
             var s = Staff[i];
@@ -64,19 +65,26 @@ public sealed partial class GameState
             double drain = 0;
             if (t is { Kind: TaskKind.Rest } && s.Path.Count == 0 && StationById(t.Dest) is { } rest)
             {
-                s.Energy = Math.Min(1, s.Energy + Defs.EnergyRecoverRest * dt);
-                s.Morale = Math.Min(1, s.Morale + dt * rest.Type switch
+                // A cup of tea goes further in company, and nowhere at all across the table from a rival.
+                int company = RestingAt(rest.Id, s);
+                bool rival = RivalRestingAt(s, rest.Id);
+                double rate = rival ? Defs.RestRivalMult : 1 + Defs.RestCompany * Math.Min(company, Defs.RestCompanyMax);
+                s.Energy = Math.Min(1, s.Energy + Defs.EnergyRecoverRest * rate * dt);
+                s.Morale = Math.Min(1, s.Morale + dt * (rival ? 0 : rest.Type switch
                 {
                     StationType.Rounders => 0.008,
                     StationType.CommonRoom => 0.004,
                     _ => 0.001,
-                });
+                }));
                 if (s.Energy >= Defs.BreakUntil) s.Task = null;
             }
             else if (t is { Kind: TaskKind.Operate } && StationById(t.Dest) is { Working: true })
                 drain = Defs.EnergyDrainWorking;
             else if (t == null && s.Path.Count == 0)
-                s.Energy = Math.Min(1, s.Energy + Defs.EnergyRecoverIdle * dt);
+            {
+                // Standing about is no rest, unless there's nowhere at all to sit down with a cup of tea.
+                if (!anyRest) s.Energy = Math.Min(1, s.Energy + Defs.EnergyRecoverNowhere * dt);
+            }
             else
                 drain = Defs.EnergyDrainOther;
 
@@ -119,7 +127,8 @@ public sealed partial class GameState
                 }
                 continue;
             }
-            if (s.Task == null && s.Tired) StartBreak(s);
+            if (s.Task == null && s.Tired) StartBreak(s, false);
+            else if (s.Task == null && s.Path.Count == 0 && s.Energy < Defs.LoafBelow && s.HeadOf == null && !s.Arriving(Now)) StartBreak(s, true);
         }
     }
 
@@ -158,27 +167,55 @@ public sealed partial class GameState
         !st.PendingRemoval && st.IsRest &&
         (st.Type != StationType.Rounders || MinuteOfDay is >= 8 * 60 and < 19 * 60 && Weather is Weather.Fine or Weather.Overcast);
 
+    /// <summary>Others sitting (not still walking up) at a rest station.</summary>
+    public int RestingAt(int stationId, Staff? except = null) =>
+        Staff.Count(o => o != except && o.Task is { Kind: TaskKind.Rest } t && t.Dest == stationId && o.Path.Count == 0 && !o.Away);
+
+    public bool RivalRestingAt(Staff s, int stationId) =>
+        s.Rival is int rid && StaffById(rid) is { Task: { Kind: TaskKind.Rest } rt } && rt.Dest == stationId;
+
     int SeatsTaken(Station st) => Staff.Count(x => x.Task is { Kind: TaskKind.Rest } t && t.Dest == st.Id);
 
-    /// <summary>Tea break. Unhappy people head for the common room or the rounders pitch.</summary>
-    void StartBreak(Staff s)
+    /// <summary>
+    /// Tea break. Unhappy people head for the common room or the rounders pitch. The tired go wherever there's a seat,
+    /// and may turn out someone who is only sitting there for want of work; the idle only sit down nearby, and only in
+    /// a free seat.
+    /// </summary>
+    void StartBreak(Staff s, bool loafing)
     {
         Station? best = null;
+        Staff? bump = null;
         int bestScore = int.MaxValue;
         foreach (var st in Stations)
         {
-            if (!RestOpen(st) || SeatsTaken(st) >= st.Def.Seats) continue;
+            if (!RestOpen(st)) continue;
             int score = Manhattan(st.UseTile, s.TilePos);
+            if (loafing && score > Defs.LoafRange) continue;
+            Staff? loafer = null;
+            if (SeatsTaken(st) >= st.Def.Seats)
+            {
+                if (loafing) continue;
+                loafer = Staff.FirstOrDefault(x => x.Task is { Kind: TaskKind.Rest, Loafing: true } t && t.Dest == st.Id);
+                if (loafer == null) continue;
+                score += 4;
+            }
             if (s.Morale < 0.5 && st.Type != StationType.Canteen) score -= 20;
-            if (score < bestScore) { bestScore = score; best = st; }
+            // Company draws people in; a rival at the table keeps them away.
+            score -= 2 * Math.Min(RestingAt(st.Id), Defs.RestCompanyMax);
+            if (RivalRestingAt(s, st.Id)) score += 30;
+            if (score < bestScore) { bestScore = score; best = st; bump = loafer; }
         }
         if (best == null || !SendTo(s, best.UseTile)) return;
+        if (bump != null) { bump.Task = null; bump.Path.Clear(); }
         var used = Staff.Where(x => x.Task is { Kind: TaskKind.Rest } t && t.Dest == best.Id).Select(x => x.Task!.Seat).ToHashSet();
         int seat = 0;
         while (used.Contains(seat)) seat++;
-        s.Task = new StaffTask { Kind = TaskKind.Rest, Dest = best.Id, Seat = seat };
+        s.Task = new StaffTask { Kind = TaskKind.Rest, Dest = best.Id, Seat = seat, Loafing = loafing };
         if (s.Path.Count == 0) OnArrive(s);
     }
+
+    /// <summary>People due a break with no seat free anywhere: they stand about, getting no rest.</summary>
+    public int WaitingForTea => Staff.Count(s => s.Task == null && s.Tired && !s.Away && !s.Leaving && OnDuty(s));
 
     /// <summary>
     /// Men of military age could be called up. GC&amp;CS fought for each deferment, spending Whitehall's goodwill,
@@ -342,7 +379,9 @@ public sealed partial class GameState
         foreach (var s in Staff.ToList())
         {
             s.Morale += (Defs.MoraleBaseline - s.Morale) * 0.15;
-            if (s.Shift == Shift.Night && !s.Has(Trait.NightOwl)) s.Morale -= 0.02;
+            if (s.Shift == Shift.Night && !s.Has(Trait.NightOwl))
+                s.Morale -= ++s.NightsRunning > Defs.LongNightsAfter ? Defs.LongNightsMorale : Defs.NightMorale;
+            else s.NightsRunning = 0;
             if (s.Shift == Shift.Office && WatchesAvailable) s.Morale -= 0.01; // long days wear people down
             s.Morale = Math.Clamp(s.Morale, 0, 1);
             s.LowMoraleDays = s.Morale < 0.2 ? s.LowMoraleDays + 1 : 0;
@@ -377,13 +416,34 @@ public sealed partial class GameState
     {
         if (!WatchesAvailable) return;
         var watches = new[] { Shift.Day, Shift.Evening, Shift.Night };
+        // On a weekly rota this week's turn decides who has the nights; otherwise night owls take them.
+        int week = RotateWatches ? Day / 7 : 0;
         foreach (var group in Staff.Where(s => role == null || s.Role == role).GroupBy(s => s.Role))
         {
             int i = 0;
-            foreach (var s in group.OrderByDescending(s => s.Has(Trait.NightOwl)).ThenBy(s => s.Id))
-                s.Shift = watches[(i++ + 2) % 3];  // night owls first, onto the night watch
+            foreach (var s in group.OrderByDescending(s => !RotateWatches && s.Has(Trait.NightOwl)).ThenBy(s => s.Id))
+                s.Shift = watches[(i++ + 2 + week) % 3];
         }
     }
+
+    /// <summary>
+    /// Hut 6's rota: the watches change round every week, day to evening to night and back to day, so nobody is left on
+    /// nights for good. Night owls lose their pick of the night watch.
+    /// </summary>
+    public bool RotateWatches { get; set; }
+
+    public void SetRotation(bool on) { if (WatchesAvailable) RotateWatches = on; }
+
+    void WeeklyRota()
+    {
+        if (!RotateWatches || !WatchesAvailable) return;
+        foreach (var s in Staff)
+            s.Shift = s.Shift switch { Shift.Day => Shift.Evening, Shift.Evening => Shift.Night, Shift.Night => Shift.Day, var o => o };
+        Emit(EventKind.Info, "The watches change round for the week: day to evening, evening to night, night back to days.");
+    }
+
+    /// <summary>People who have worked more than a week of nights straight, and are paying for it.</summary>
+    public int LongNights => Staff.Count(s => s.NightsRunning > Defs.LongNightsAfter);
 
     public bool Pin(int staffId, int? stationId)
     {

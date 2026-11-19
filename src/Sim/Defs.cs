@@ -89,10 +89,21 @@ public static partial class Defs
     public const double OperatorLingerMinutes = 30;
 
     // ---- People ----
-    public const double EnergyDrainWorking = 1.0 / 700;
-    public const double EnergyDrainOther = 1.0 / 1300;
-    public const double EnergyRecoverIdle = 1.0 / 500;
-    public const double EnergyRecoverRest = 1.0 / 45;
+    // Nobody gets through a watch without a break: a fresh worker is due one after about four hours at a desk and
+    // exhausted after six. Energy only comes back at a canteen table, the common room or the rounders pitch (and
+    // overnight in the billets).
+    public const double EnergyDrainWorking = 1.0 / 380;
+    public const double EnergyDrainOther = 1.0 / 900;
+    /// <summary>Idle people with energy below this go and sit down with a cup of tea if there's a seat nearby.</summary>
+    public const double LoafBelow = 0.8;
+    /// <summary>With no canteen or common room anywhere in the Park, people catch their breath where they stand, slowly.</summary>
+    public const double EnergyRecoverNowhere = 1.0 / 1500;
+    public const int LoafRange = 14;
+    /// <summary>Energy back per minute at a tea table alone; each companion adds a quarter (up to three), a rival halves it.</summary>
+    public const double EnergyRecoverRest = 1.0 / 60;
+    public const double RestCompany = 0.25;
+    public const int RestCompanyMax = 3;
+    public const double RestRivalMult = 0.5;
     public const double BreakAt = 0.35;
     public const double BreakUntil = 0.92;
     public const double Exhausted = 0.08;
@@ -101,6 +112,10 @@ public static partial class Defs
     public static readonly double[] ExperienceFor = { 0, 0, 4000, 12000 };
     /// <summary>Act index from which the three-watch system is available.</summary>
     public const int WatchesFromAct = 5;
+    /// <summary>Morale lost per day on the night watch (night owls excepted), and after a week of nights without a break.</summary>
+    public const double NightMorale = 0.02;
+    public const double LongNightsMorale = 0.045;
+    public const int LongNightsAfter = 7;
 
     // ---- Economy ----
     public const double StartReputation = 50;
@@ -322,9 +337,9 @@ public static partial class Defs
     public static readonly Dictionary<Shift, ShiftDef> Shifts = new()
     {
         [Shift.Office] = new(Shift.Office, "Long days", 7, 22),
-        [Shift.Day] = new(Shift.Day, "Day watch", 9, 16),
+        [Shift.Day] = new(Shift.Day, "Day watch", 8, 16),
         [Shift.Evening] = new(Shift.Evening, "Evening watch", 16, 24),
-        [Shift.Night] = new(Shift.Night, "Night watch", 0, 9),
+        [Shift.Night] = new(Shift.Night, "Night watch", 0, 8),
     };
 
     public static readonly Dictionary<Trait, TraitDef> Traits = new()
@@ -341,7 +356,7 @@ public static partial class Defs
     public static readonly Dictionary<Difficulty, DifficultyDef> Difficulties = new()
     {
         [Difficulty.Easy] = new(Difficulty.Easy, "Easy", "More money, longer deadlines, slower German suspicion.", 2200, 1.2, 1, 0.6, 0.7, 0.5),
-        [Difficulty.Normal] = new(Difficulty.Normal, "Normal", "As intended.", 1500, 0.9, 0, 1.0, 1.0),
+        [Difficulty.Normal] = new(Difficulty.Normal, "Normal", "As intended.", 1500, 0.9, 0, 1.0, 0.9),
         [Difficulty.Hard] = new(Difficulty.Hard, "Hard", "Less money, tighter deadlines, and the Germans notice everything.", 1100, 0.85, -0.25, 1.4, 1.0, 1.2),
     };
 
@@ -417,10 +432,10 @@ public static partial class Defs
             100, 1, 1, Role.Clerk, 10, 10, null, 0),
         [StationType.Canteen] = new(StationType.Canteen, "Canteen table",
             "Tea, toast and a sit-down. Tired staff get their energy back here.",
-            250, 2, 2, null, 0, 0, null, 0, Seats: 4, Upkeep: 12),
+            250, 2, 2, null, 0, 0, null, 0, Seats: 6, Upkeep: 12),
         [StationType.CommonRoom] = new(StationType.CommonRoom, "Common room",
             "Armchairs, a chess set and yesterday's Times crossword. A break here lifts spirits as well as energy.",
-            300, 2, 2, null, 0, 0, null, 1, Seats: 3, Upkeep: 5),
+            300, 2, 2, null, 0, 0, null, 1, Seats: 4, Upkeep: 5),
         [StationType.Rounders] = new(StationType.Rounders, "Rounders pitch",
             "A game on the lawn between watches. Daytime only. The best thing there is for morale.",
             150, 3, 3, null, 0, 0, null, 2, Seats: 6, Outdoor: true),

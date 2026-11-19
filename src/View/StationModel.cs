@@ -80,8 +80,11 @@ public partial class StationModel : Node3D
     /// <summary>Where resting staff sit, in local space, and the point they face.</summary>
     public (Vector3 at, Vector3 face) Seat(int i) => Type switch
     {
-        StationType.Canteen => (new Vector3(i % 2 == 0 ? -0.32f : 0.32f, 0, i < 2 ? 0.62f : -0.62f), Vector3.Zero),
-        StationType.CommonRoom => (i switch { 0 => new Vector3(-0.62f, 0, 0.35f), 1 => new Vector3(0.62f, 0, 0.35f), _ => new Vector3(0, 0, -0.62f) }, Vector3.Zero),
+        StationType.Canteen => (new Vector3((i % 3 - 1) * 0.4f, 0, i < 3 ? 0.62f : -0.62f), Vector3.Zero),
+        StationType.CommonRoom => (i switch
+        {
+            0 => new Vector3(-0.62f, 0, 0.35f), 1 => new Vector3(0.62f, 0, 0.35f), 2 => new Vector3(-0.35f, 0, -0.62f), _ => new Vector3(0.35f, 0, -0.62f),
+        }, Vector3.Zero),
         StationType.Rounders => (i switch
         {
             0 => new Vector3(0, 0, 1.15f), 1 => new Vector3(1.1f, 0, 0), 2 => new Vector3(0, 0, -1.1f),
@@ -122,7 +125,7 @@ public partial class StationModel : Node3D
         Mesh3.Cyl(this, 0.012f, 0.015f, 0.04f, new Vector3(-0.04f, 0.345f, 0.03f), Gfx.Cream, 6);
         Mesh3.Cyl(this, 0.012f, 0.015f, 0.04f, new Vector3(0.05f, 0.345f, -0.05f), Gfx.Black, 6);
         // Armchairs
-        for (int i = 0; i < 3; i++)
+        for (int i = 0; i < 4; i++)
         {
             var (at, _) = Seat(i);
             var chair = new Node3D { Position = at, Rotation = new Vector3(0, Mathf.Atan2(-at.X, -at.Z), 0) };

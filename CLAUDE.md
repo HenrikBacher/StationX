@@ -26,7 +26,7 @@ state, so the work can be resumed on any machine.
 - No Claude co-author / "Generated with Claude" lines in commits or PRs.
 - Commit and push small steps to `main`. Tag (semver, annotated, message with "New"/"Fixes" sections summing up
   everything since the last tag) only after a significant batch; minor bump for features, patch for fixes only.
-- Balance: Normal ≈ 50% autoplayer wins (40 seeds); Easy higher, Hard lower. The autoplayer stands in for an average
+- Balance: Normal ≈ 50% autoplayer wins (40 seeds); Easy higher, Hard no more than 5/40. The autoplayer stands in for an average
   player: only teach it what the in-game tips tell a player; rebalance the game, not the bot. Prefer levers other than
   traffic volume (grant, deadlines, reputation loss, extra process steps).
 - Seeded dice for new systems: `new Random(GameState.Mix(Seed, x, salt))`, never `HashCode.Combine` (randomised per process).
@@ -38,6 +38,18 @@ state, so the work can be resumed on any machine.
 Last release **v0.27.0**: cold handovers, the stranded-staff fix, intelligence freshness by service, security sweeps,
 merged static building meshes (`Park3D.MergeStatic`; screenshots print draw calls). v0.26.0 had overhaul parts 1–5
 and most of 6, Stores, and bad visits cutting the grant. Untagged since: furniture wood, glazed windows (`Park3D.Window`: frame, glazing bars, sill, thin tape) and a detailed army lorry (`Park3D.Lorry`).
+Then (user requests, 2026-11-19):
+- New chapters send their newly opened posts at once (`NewChapterIntake`, own dice), not with the next weekly intake.
+- Three watches on the historical hours 08–16/16–24/00–08 (the user chose three watches over two). Optional weekly
+  rota (`RotateWatches`), and nights wear harder after a week straight (`NightsRunning`, tip `nights`).
+- Breaks matter: drain 1/380 per minute at a desk, so a break is due inside every watch. Energy only comes back at a
+  rest station (`EnergyRecoverRest` × company bonus, halved by a rival), or slowly if the Park has none at all. Idle
+  people sit down nearby (`Loafing` rests, still `Available` for work, turned out by the tired). Canteen 6 seats,
+  common room 4. Tip `teaqueue` when seats run out (the autoplayer adds a table).
+- Panels only list what's in play: teleprinter filters (`ActiveNets`), roles (`RoleOpen`), services (`ServiceInPlay`).
+- Self-updater (`src/View/Updater.cs`): GitHub latest-release check, download, swap, restart; CI stamps
+  `config/version` on tags. Only testable end to end from the second release that has it.
+- The user wants **Hard ≤ 5/40** wins (Normal still ≈ 50%).
 
 ### Graphics overhaul: period realism, CC0 assets allowed
 

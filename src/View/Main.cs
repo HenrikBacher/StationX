@@ -75,6 +75,7 @@ public partial class Main : Node3D
         if (userArgs.Any(a => a.StartsWith("--selftest") || a.StartsWith("--shot"))) Settings.Persist = false;
         if (userArgs.Any(a => a.StartsWith("--selftest"))) Saves.Dir = "user://selftest-saves";
         Settings.Load();
+        Updater.Check();
         AddChild(new Sound { Name = "Sound" });
         AddChild(new FilmGrain { Name = "FilmGrain" });
 

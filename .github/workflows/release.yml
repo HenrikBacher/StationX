@@ -85,6 +85,10 @@ jobs:
           dotnet build StationX.csproj --nologo -v q
           xvfb-run -a -s "-screen 0 1600x900x24" timeout 600 "$GODOT" --path . --resolution 1600x900 -- --selftest
 
+      - name: Stamp the version (tags only; the in-game updater compares it with the latest release)
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: sed -i "s/^config\/name=.*/&\nconfig\/version=\"${GITHUB_REF_NAME#v}\"/" project.godot && grep config/version project.godot
+
       - name: Export Linux and Windows
         run: ./export.sh
 

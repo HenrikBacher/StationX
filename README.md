@@ -20,6 +20,12 @@ GitHub Actions (`.github/workflows/release.yml`) runs the sim tests and the UI s
 - `StationX-linux-x86_64.tar.gz`: run `./StationX.x86_64`
 - `StationX-windows-x86_64.zip`: run `StationX.exe`
 
+Release builds carry their version (CI stamps `application/config/version` from the tag). On start they ask GitHub's
+public releases API whether a newer one is out, and the title screen offers **Update and restart**: it downloads the
+matching archive, unpacks it inside the install folder and swaps it in (on Windows a small script does the swap after
+the game closes). Saves and settings in `user://` are untouched. It can be turned off in Settings; editor runs,
+self-tests and screenshots never check.
+
 Godot lives in `~/.local/opt/godot/` and is linked as `~/.local/bin/godot`. Exports need the 4.7.2 .NET export templates in `~/.local/share/godot/export_templates/4.7.2.stable.mono`.
 
 ## How it plays
@@ -57,9 +63,9 @@ Godot lives in `~/.local/opt/godot/` and is linked as `~/.local/bin/godot`. Expo
   - Some intercepts arrive **garbled**. They go back to the listening station and return later.
 - **Machines wear out.** Bombes, four-rotor Bombes, Typex machines, Colossus and the Tunny machine wear as they run, and the more worn they are, the likelier a breakdown. A broken machine waits about five hours (a Typex two and a half) and £80 for the RAF fitters; the job it was running waits too. **Service** a machine from its inspector (£20, one hour) to reset its wear. A flashing orange lamp means it's badly worn; red, with smoke, means it's broken.
 - **People get tired.**
-  - Energy runs down with work. Tired people work slower and take tea breaks if there is somewhere to sit: the **canteen**, the **common room**, or the **rounders** pitch on the lawn.
+  - Energy runs down with work: nobody gets through a watch without a break (a break is due after about four hours at a desk, exhaustion after six). Energy only comes back sitting down at a **canteen** table (six seats), the **common room** (four armchairs) or the **rounders** pitch, and overnight in the billets; standing about is no rest. A cup of tea goes further in company (+25% per companion, up to three) and half as far across the table from a rival. Idle people sit down at a table nearby and get up when work comes in; the tired turn them out of their seats. With nowhere at all to sit, people only catch their breath slowly.
   - Morale goes up with breaks and successes and down with failures, night work and long days. Two days of very low morale and someone asks for a transfer.
-  - From the Battle of Britain onwards there are three **watches** (day 09–16, evening 16–24, night 00–09), and off-watch staff go back to their billets. A desk left half-way through a message goes cold: picked up within the hour nothing is lost, but after that whoever takes it on must read back through the worksheet, losing up to half the work after six hours. Keep every watch staffed.
+  - From the Battle of Britain onwards there are three **watches** (day 08–16, evening 16–24, night 00–08; a weekly rota can change them round), and off-watch staff go back to their billets. A desk left half-way through a message goes cold: picked up within the hour nothing is lost, but after that whoever takes it on must read back through the worksheet, losing up to half the work after six hours. Keep every watch staffed.
 - **Experience.** People get better with practice: after about 67 hours of desk or machine work they go up to ★★, and after 200 to ★★★. Faster work and fewer mistakes, but each step brings a pay rise, and losing a seasoned hand to a call-up hurts.
 - **Traits.** Some recruits are crossword fiends, native German speakers, night owls, chess players, tireless or meticulous. A few are careless talkers, and you only find out when MI5 does.
 - **Flash requests.** From early 1940, every few days a MOST IMMEDIATE request lands: a handful of messages due within hours, at three times the pay. Answer within three hours. Ignoring one costs reputation, declining costs a little less, and missing one after accepting costs a lot. Take them when you're already reading that network today. Every desk works on the most urgent message in its tray first.

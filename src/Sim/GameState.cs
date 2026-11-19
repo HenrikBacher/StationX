@@ -158,7 +158,7 @@ public sealed partial class GameState
         DailySecurity();
         foreach (var k in Flows.Keys.ToList())
             if ((Flows[k] *= 0.5) < 0.25) Flows.Remove(k);
-        if (Day % 7 == 0) { WeeklyAccounts(); CoverLeft = Defs.CoverPerWeek; }
+        if (Day % 7 == 0) { WeeklyAccounts(); CoverLeft = Defs.CoverPerWeek; WeeklyRota(); }
         if (Day % 7 == 3) RefreshCandidates();
         if (SharkBlackout) TonnageLost += Rng.Range(14000, 26000);
         if (ActIndex >= 1) AdjustRep(-DailyExpectation, "Whitehall's expectations");

@@ -25,7 +25,7 @@ public partial class Hud
                                         "Suspicion fades by itself, a few points a day.", 13, UiTheme.TextDim));
 
         _sideBox.AddChild(UiTheme.Caps("German suspicion", 12, UiTheme.Accent));
-        foreach (var sv in Enum.GetValues<Service>())
+        foreach (var sv in Enum.GetValues<Service>().Where(S.ServiceInPlay))
         {
             double v = S.SuspicionOf(sv);
             bool locked = S.LockdownUntil.TryGetValue(sv, out var until) && S.Day <= until;
@@ -231,6 +231,10 @@ public partial class Hud
             "Leaks raise the Abwehr's suspicion: worksheets left out overnight on desks abandoned mid-message, and staff lodged far away talking on the bus. Keep the watches manned and billets found. When the Abwehr and SD bar climbs past half, a security sweep (Intelligence) plugs the leaks, at an hour of everyone's time.");
         yield return ("handover", S.Stats.ColdHandovers >= 3,
             "Desks are being left half-way through a message for hours. Whoever picks one up must read back through the worksheet: within the hour nothing is lost, after six hours half the work is. Keep enough people on every watch to take over the desks; Balance watches (Staff) spreads them out.");
+        yield return ("nights", S.LongNights > 0,
+            "Some of the night watch have done more than a week of nights without a break, and their morale is draining twice as fast. Tick Rotate weekly under Staff (H) to change the watches round each week, as Hut 6 did; night owls are happy on nights for good.");
+        yield return ("teaqueue", S.WaitingForTea >= 2,
+            "People due a tea break are standing about because every seat is taken, and they get no rest until one frees up. Build another canteen table (Build, B), best one in each busy hut so nobody walks far for a cup.");
         yield return ("stores", S.StoresLow,
             "The stores are running low: every message needs its dockets and worksheets at registration, and without them the desks work at half speed. Order more under Staff; the lorry takes most of a day. A standing order reorders by itself, at a quarter more.");
         yield return ("inspection", S.InspectionDue,
@@ -286,7 +290,7 @@ public partial class Hud
         if (S.Stats.DeliveredTotal == 0)
             return ("wait", "Good. Let it run: press 3 for top speed. Press F to see where paper flows and where it is held up.");
         if (!Has(StationType.Canteen) && S.AverageEnergy < 0.6)
-            return ("tea", "People are tiring. A canteen lets them take a tea break and come back fresh.");
+            return ("tea", "People are tiring, and standing about is no rest. A canteen table lets them take a tea break and come back fresh: nobody lasts a whole watch without one.");
         if (S.Day >= 2 && Rig_Quarter() == 0)
             return ("rotate", "You can turn the view with , and . (or the ⟲ ⟳ buttons) to see behind tall walls.");
         return null;
@@ -316,6 +320,13 @@ public partial class Hud
         {
             case "pause": ShowPauseMenu(); break;
             case "settings": ShowSettings(); break;
+            case "update":
+                Updater.DebugOffer("0.28.0", "New\n- Breaks matter: nobody gets through a watch without a cup of tea, and tea goes further in company\n" +
+                                             "- Three watches on the historical hours, with an optional weekly rota\n\nFixes\n" +
+                                             "- New chapters' recruits arrive at once\n\n### All changes since v0.27.0\n- x");
+                Updater.DebugOffer("0.27.1", "Fixes\n- Teleprinter filters only list networks on the air");
+                ShowUpdate();
+                break;
             case "save": ShowSaves(true); break;
             case "load": ShowSaves(false); break;
             case "newgame": ShowNewGame(); break;
@@ -431,6 +442,7 @@ public partial class Hud
         Toggle("Hints and tips", Settings.Hints, x => { Settings.Hints = x; _hintsDone.Clear(); });
         Toggle("Film grain and vignette", Settings.FilmGrain, x => Settings.FilmGrain = x);
         Toggle("Fullscreen", Settings.Fullscreen, x => Settings.Fullscreen = x);
+        Toggle("Check for updates", Settings.CheckUpdates, x => { Settings.CheckUpdates = x; if (x) Updater.Check(); });
         var back = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.End };
         back.AddChild(PaperButton("Done", () => { if (_titleOpen) ShowTitle(); else ShowPauseMenu(); }));
         v.AddChild(back);

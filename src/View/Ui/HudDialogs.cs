@@ -112,6 +112,52 @@ public partial class Hud
         row.AddChild(PaperButton("Settings", ShowSettings));
         row.AddChild(PaperButton("Quit", () => GetTree().Quit()));
         v.AddChild(row);
+        if (Updater.Latest is { } latest)
+        {
+            var up = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center };
+            up.AddThemeConstantOverride("separation", 12);
+            up.AddChild(Ink(Updater.Status ?? $"Version {latest} is out.", 13, Fonts.BodyBold, UiTheme.Stamp));
+            if (!Updater.Busy) up.AddChild(PaperButton("Update…", ShowUpdate));
+            v.AddChild(up);
+        }
+        if (!_updaterHooked)
+        {
+            _updaterHooked = true;
+            Updater.Changed += () => { if (_titleOpen && IsInsideTree()) ShowTitle(); };
+        }
+    }
+
+    bool _updaterHooked;
+
+    /// <summary>What the new version brings, and the player's go-ahead to install it.</summary>
+    void ShowUpdate()
+    {
+        _titleOpen = false;
+        var v = Paper(720);
+        v.AddChild(Ink($"Version {Updater.Latest} is ready", 28, Fonts.Heading));
+        v.AddChild(Ink($"You have {(Updater.Current == "" ? "a development build" : $"version {Updater.Current}")}. Your saves and settings are kept. The game downloads the new version " +
+                       "and restarts.", 14));
+        var scroll = new ScrollContainer { CustomMinimumSize = new Vector2(0, 360), HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
+        var notes = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+        notes.AddThemeConstantOverride("separation", 8);
+        foreach (var (version, text) in Updater.Notes)
+        {
+            if (Updater.Notes.Count > 1) notes.AddChild(Ink($"Version {version}", 15, Fonts.BodyBold, UiTheme.Stamp));
+            foreach (var line in text.Split('\n'))
+            {
+                var l = line.Trim();
+                if (l.Length == 0) continue;
+                bool heading = l is "New" or "Fixes";
+                notes.AddChild(heading ? Ink(l, 13, Fonts.BodyBold, UiTheme.Stamp) : Ink(l, 14));
+            }
+        }
+        scroll.AddChild(notes);
+        v.AddChild(scroll);
+        var row = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.End };
+        row.AddThemeConstantOverride("separation", 12);
+        row.AddChild(PaperButton("Not now", ShowTitle));
+        row.AddChild(PaperButton("Update and restart", () => { Updater.Install(); ShowTitle(); }));
+        v.AddChild(row);
     }
 
     public void ShowBriefing()

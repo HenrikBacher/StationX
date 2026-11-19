@@ -83,7 +83,7 @@ public sealed partial class GameState
             .ThenBy(m => m.Id)
             .ToList();
         if (waiting.Count == 0) return;
-        int idle = Staff.Count(s => s.Idle);
+        int idle = Staff.Count(s => s.Available);
         foreach (var m in waiting)
         {
             if (idle == 0) break;
@@ -259,9 +259,8 @@ public sealed partial class GameState
         int bestD = int.MaxValue;
         foreach (var s in Staff)
         {
-            if (!s.Idle || s.HeadOf != null || !filter(s)) continue;
-            // Tired people aren't sent back to work: with nowhere to rest they catch their breath where they stand
-            // (a few minutes), rather than being sat down and stood up again every tick.
+            if (!s.Available || s.HeadOf != null || !filter(s)) continue;
+            // Tired people aren't sent back to work: they need a seat and a cup of tea first.
             if (s.Tired) continue;
             int d = Manhattan(s.TilePos, near);
             if (d < bestD) { bestD = d; best = s; }

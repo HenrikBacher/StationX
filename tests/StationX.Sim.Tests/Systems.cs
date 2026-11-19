@@ -103,6 +103,71 @@ public class PeopleTests
     }
 
     [Fact]
+    public void NobodyGetsThroughAWatchWithoutABreak()
+    {
+        double fresh = 1, minutes = 8 * 60;
+        Assert.True(fresh - Defs.EnergyDrainWorking * minutes < Defs.BreakAt, "a whole watch at a desk must call for a break");
+        Assert.True(fresh - Defs.EnergyDrainWorking * 4 * 60 > Defs.BreakAt, "but not in the first few hours");
+    }
+
+    [Fact]
+    public void StandingAboutIsNoRestWhenThereIsACanteen()
+    {
+        var g = GameState.NewGame(5);
+        var tea = g.Place(StationType.Canteen, 12, 6, 0, free: true)!;
+        // Every seat taken by the tired, so the clerk can't sit down.
+        for (int i = 0; i < tea.Def.Seats; i++)
+        {
+            var o = TestUtil.Add(g, Role.Linguist, tea.UseTile.x + 0.5, tea.UseTile.y + 0.5);
+            o.Energy = 0.01;
+            o.Task = new StaffTask { Kind = TaskKind.Rest, Dest = tea.Id, Seat = i };
+        }
+        var p = TestUtil.Add(g, Role.Clerk, 5.5, 8.5);
+        p.Energy = 0.2;
+        g.Advance(10);
+        Assert.Null(p.Task);
+        Assert.True(p.Energy <= 0.2 + 1e-9, $"energy {p.Energy}");
+        Assert.True(g.WaitingForTea >= 1);
+    }
+
+    [Fact]
+    public void TeaGoesFurtherInCompanyButNotWithARival()
+    {
+        double Gain(int companions, bool rival)
+        {
+            var g = GameState.NewGame(5);
+            var tea = g.Place(StationType.Canteen, 12, 6, 0, free: true)!;
+            var p = TestUtil.Add(g, Role.Clerk, 12.5, 8.5);
+            var others = Enumerable.Range(0, companions).Select(_ => TestUtil.Add(g, Role.Linguist, 12.5, 8.5)).ToList();
+            if (rival) { p.Rival = others[0].Id; others[0].Rival = p.Id; }
+            foreach (var x in others.Prepend(p)) { x.Energy = 0.1; x.Task = new StaffTask { Kind = TaskKind.Rest, Dest = tea.Id, Seat = others.IndexOf(x) + 1 }; x.Path.Clear(); }
+            double before = p.Energy;
+            g.Advance(10);
+            return p.Energy - before;
+        }
+        double alone = Gain(0, false), company = Gain(3, false), withRival = Gain(3, true);
+        Assert.True(company > alone * 1.5, $"alone {alone} company {company}");
+        Assert.True(withRival < alone, $"alone {alone} rival {withRival}");
+    }
+
+    [Fact]
+    public void IdlePeopleSitDownNearbyAndGetUpForWork()
+    {
+        var g = GameState.NewGame(5);
+        var tea = g.Place(StationType.Canteen, 12, 6, 0, free: true)!;
+        foreach (var s in g.Staff) s.Energy = 0.6;
+        TestUtil.Run(g, 0.01);
+        Assert.Contains(g.Staff, s => s.Task is { Kind: TaskKind.Rest, Loafing: true });
+        // Work arrives: the cryptanalyst gets up from the table for the hand-cipher desk.
+        g.Place(StationType.Registration, 4, 3, 0, free: true);
+        var hand = g.Place(StationType.HandCipher, 6, 3, 0, free: true)!;
+        g.Place(StationType.Translation, 9, 3, 0, free: true);
+        g.AddScripted(Net.Police, 4, 4, 0, 0, "t", "t", "t");
+        for (int t = 0; t < 24 * 60 && hand.OperatorId == null; t += 5) g.Advance(5);
+        Assert.NotNull(hand.OperatorId);
+    }
+
+    [Fact]
     public void OffWatchStaffGoHomeAndComeBack()
     {
         var g = GameState.NewGame(5);
@@ -114,6 +179,35 @@ public class PeopleTests
         while (g.Now < until) { g.Advance(30); g.Events.Clear(); }
         Assert.False(night.Away);
         Assert.True(night.Energy > 0.9, $"rested: {night.Energy}");   // fresh, less the walk in
+    }
+
+    [Fact]
+    public void WeeklyRotaChangesTheWatchesRound()
+    {
+        var g = GameState.NewGame(5);
+        g.DebugSkipToAct(Defs.WatchesFromAct);
+        var a = TestUtil.Add(g, Role.Wren, shift: Shift.Day);
+        var b = TestUtil.Add(g, Role.Wren, shift: Shift.Night);
+        g.SetRotation(true);
+        while (g.Day % 7 != 6) { g.Advance(Defs.MinutesPerDay); g.Events.Clear(); }
+        g.Advance(Defs.MinutesPerDay);
+        Assert.Equal(Shift.Evening, a.Shift);
+        Assert.Equal(Shift.Day, b.Shift);
+    }
+
+    [Fact]
+    public void AWeekOfNightsWearsPeopleDown()
+    {
+        var g = GameState.NewGame(5);
+        g.DebugSkipToAct(Defs.WatchesFromAct);
+        var p = TestUtil.Add(g, Role.Wren, shift: Shift.Night);
+        p.Traits.Remove(Trait.NightOwl);
+        for (int i = 0; i < Defs.LongNightsAfter + 2; i++) { g.Advance(Defs.MinutesPerDay); g.Events.Clear(); }
+        Assert.True(p.NightsRunning > Defs.LongNightsAfter);
+        Assert.True(g.LongNights > 0);
+        g.SetShift(p.Id, Shift.Day);
+        g.Advance(Defs.MinutesPerDay);
+        Assert.Equal(0, p.NightsRunning);
     }
 
     [Fact]
@@ -913,7 +1007,7 @@ public class MinistryTests
         double rep = g.Reputation;
         g.DebugWeeklyAccounts();
         Assert.Contains(g.Events, e => e.Text.Contains("complains to the Foreign Office"));
-        Assert.True(g.Reputation <= rep - Defs.NeglectRep + 0.01);
+        Assert.True(g.Reputation <= rep - Defs.NeglectRep * Defs.Difficulties[g.Difficulty].RepLossMult + 0.01);
     }
 }
 
@@ -933,6 +1027,23 @@ public class WrenShortageTests
         Assert.Equal(1, Wrens(Defs.WrenShortageFrom));
         Assert.Equal(1, Wrens(Campaign.ActionThisDay - 1));
         Assert.Equal(3, Wrens(Campaign.ActionThisDay));
+    }
+
+    [Fact]
+    public void NewChapterSendsItsNewRecruitsAtOnce()
+    {
+        int Count(GameState g, Role r) => g.Candidates.Count(c => c.Role == r && c.Notable == null);
+        var g = GameState.NewGame(61);
+        Assert.Equal(0, Count(g, Role.Messenger));
+        g.DebugSkipToAct(1);
+        Assert.Equal(1, Count(g, Role.Messenger));
+        Assert.Equal(0, Count(g, Role.Wren));
+        g.DebugSkipToAct(2);
+        Assert.Equal(2, Count(g, Role.Wren));   // Hut 6: 'Wrens are joining us', without waiting for the weekly intake
+        g.DebugRefreshCandidates();
+        int wrens = Count(g, Role.Wren);
+        g.DebugSkipToAct(Campaign.ActionThisDay);
+        Assert.Equal(wrens + 2, Count(g, Role.Wren));   // the Admiralty's Wrens at last
     }
 }
 

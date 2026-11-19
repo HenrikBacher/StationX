@@ -9,7 +9,7 @@ public static class Settings
 
     public static float MasterVolume = 0.8f, SfxVolume = 0.8f, AmbienceVolume = 0.6f;
     public static float UiScale = 1f;
-    public static bool EdgeScroll = true, Hints = true, Fullscreen, FilmGrain = true;
+    public static bool EdgeScroll = true, Hints = true, Fullscreen, FilmGrain = true, CheckUpdates = true;
 
     public static void Load()
     {
@@ -24,6 +24,7 @@ public static class Settings
         FilmGrain = (bool)cfg.GetValue("display", "film_grain", FilmGrain);
         EdgeScroll = (bool)cfg.GetValue("controls", "edge_scroll", EdgeScroll);
         Hints = (bool)cfg.GetValue("controls", "hints", Hints);
+        CheckUpdates = (bool)cfg.GetValue("updates", "check", CheckUpdates);
     }
 
     /// <summary>False in self-test and screenshot runs: they use defaults and never write the player's settings.</summary>
@@ -41,6 +42,7 @@ public static class Settings
         cfg.SetValue("display", "film_grain", FilmGrain);
         cfg.SetValue("controls", "edge_scroll", EdgeScroll);
         cfg.SetValue("controls", "hints", Hints);
+        cfg.SetValue("updates", "check", CheckUpdates);
         cfg.Save(Path);
     }
 

@@ -92,6 +92,8 @@ public sealed class StaffTask
     public int Dest { get; set; } = -1;
     public List<int> Msgs { get; set; } = new();
     public int Seat { get; set; }
+    /// <summary>A break taken for want of work rather than from tiredness: they'll get up when work comes in.</summary>
+    public bool Loafing { get; set; }
 }
 
 public sealed class Staff
@@ -110,6 +112,8 @@ public sealed class Staff
     /// <summary>Careless talkers aren't known to be one until MI5 notices.</summary>
     public bool CarelessKnown { get; set; }
     public Shift Shift { get; set; } = Shift.Office;
+    /// <summary>Nights worked in a row on the night watch.</summary>
+    public int NightsRunning { get; set; }
     public int? Pinned { get; set; }
     /// <summary>The building this person is posted to (zone id), or null to work wherever they're needed.</summary>
     public string? Posted { get; set; }
@@ -129,6 +133,8 @@ public sealed class Staff
 
     public (int x, int y) TilePos => ((int)Math.Floor(X), (int)Math.Floor(Y));
     public bool Idle => Task == null && !Leaving && !Away;
+    /// <summary>Free to be given work: idle, or sitting over a cup of tea for want of anything to do.</summary>
+    public bool Available => Idle || (Task is { Kind: TaskKind.Rest, Loafing: true } && !Leaving && !Away && !Tired);
     public bool Has(Trait t) => Traits.Contains(t);
     public bool Tired => Energy < Defs.BreakAt;
 

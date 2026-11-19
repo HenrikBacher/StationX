@@ -13,6 +13,10 @@ public sealed class AutoPlayer
     readonly GameState g;
     public AutoPlayer(GameState g) { this.g = g; }
 
+    /// <summary>Times people have queued for tea: each one, as the tip says, is another canteen table.</summary>
+    int _teaQueues;
+    double _teaQueueSeenAt = -1e9;
+
     static readonly Dictionary<StationType, string[]> PreferredZones = new()
     {
         [StationType.Registration] = new[] { "mansion", "hut6" },
@@ -56,7 +60,7 @@ public sealed class AutoPlayer
             StationType.Bombe => a >= 10 ? 4 : a >= 9 ? 3 : a >= 5 ? 2 : a >= 3 ? 1 : 0,
             StationType.Banburismus => a >= 9 ? 2 : a >= 7 ? 1 : 0,
             StationType.Bombe4 => a >= 11 ? 2 : 0,
-            StationType.Canteen => 1 + g.Staff.Count / 12,
+            StationType.Canteen => 1 + g.Staff.Count / 12 + _teaQueues,
             StationType.CommonRoom => a >= 1 ? 1 + g.Staff.Count / 20 : 0,
             StationType.Rounders => a >= 2 ? 1 : 0,
             StationType.Checking => a >= 9 ? 2 : a >= 3 ? 1 : 0,
@@ -133,6 +137,8 @@ public sealed class AutoPlayer
         if (g.Status == GameStatus.Won && ContinuePastEnigma && g.CanContinue) g.ContinueIntoTunny();
         if (g.Status != GameStatus.Playing) return;
         if (g.ActCompletePending) { g.ContinueAfterAct(); return; }
+        // The tea-queue tip: people queueing for a seat means another canteen table (at most one more a day).
+        if (g.WaitingForTea >= 2 && g.Now - _teaQueueSeenAt > Defs.MinutesPerDay) { _teaQueues++; _teaQueueSeenAt = g.Now; }
 
         // ULTRA: answer dilemmas, and ease off when the Germans grow suspicious.
         foreach (var d in g.Dilemmas.ToList())
@@ -212,6 +218,9 @@ public sealed class AutoPlayer
         // A sick bay once flu season comes.
         if (g.Winter && !g.HasSickBay && g.StationUnlocked(StationType.SickBay, out _) && g.Funds > 1200)
             TryBuildIn(StationType.SickBay, g.Grid.Zone("mansion")!);
+
+        // The weekly rota, as the nights tip says, once people have been stuck on nights for over a week.
+        if (g.LongNights > 0 && !g.RotateWatches) g.SetRotation(true);
 
         // A security sweep once the Abwehr's suspicion is high, as the papers tip says.
         if (g.SuspicionOf(Service.Security) >= 50 && g.CanSecuritySweep() == null)

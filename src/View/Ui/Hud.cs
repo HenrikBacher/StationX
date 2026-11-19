@@ -175,7 +175,7 @@ public partial class Hud : CanvasLayer
         int m = (int)S.MinuteOfDay;
         string shift = !S.WatchesAvailable
             ? (m is >= 7 * 60 and < 22 * 60 ? "working day" : "after hours")
-            : m < 9 * 60 ? "night watch" : m < 16 * 60 ? "day watch" : "evening watch";
+            : Defs.Shifts[Shift.Night].OnDuty(m) ? "night watch" : Defs.Shifts[Shift.Day].OnDuty(m) ? "day watch" : "evening watch";
         string mode = S.Mode == GameMode.FreePlay ? " · free play" : "";
         string sky = S.Weather switch { Weather.Fine => "fine", Weather.Overcast => "overcast", Weather.Rain => "rain", Weather.Fog => "fog", Weather.Snow => "snow", _ => "gale" };
         if (S.RaidOn) sky += " · AIR RAID";

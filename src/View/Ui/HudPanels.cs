@@ -244,18 +244,23 @@ public partial class Hud
         {
             var v = Card(UiTheme.Accent);
             v.AddChild(UiTheme.Label("Three watches", 15, UiTheme.Text, Fonts.BodyBold));
-            v.AddChild(UiTheme.Label("Day 09–16, evening 16–24, night 00–09. People on the long day (07–22) grow weary now the work never stops.", 12, UiTheme.TextDim));
+            v.AddChild(UiTheme.Label("Day 08–16, evening 16–24, night 00–08. People on the long day (07–22) grow weary now the work never stops; " +
+                                     "more than a week of nights straight wears anyone but a night owl down twice as fast.", 12, UiTheme.TextDim));
             foreach (var sh in new[] { Shift.Day, Shift.Evening, Shift.Night, Shift.Office })
             {
-                var counts = string.Join("  ", Enum.GetValues<Role>().Select(r => $"{Defs.Roles[r].Name[0]}{S.Staff.Count(x => x.Role == r && x.Shift == sh)}"));
+                var counts = string.Join("  ", Enum.GetValues<Role>().Where(S.RoleOpen).Select(r => $"{Defs.Roles[r].Name[0]}{S.Staff.Count(x => x.Role == r && x.Shift == sh)}"));
                 var l = UiTheme.Label($"{Defs.Shifts[sh].Name}", 12, UiTheme.Text);
                 l.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
                 v.AddChild(Row(l, UiTheme.Label(counts, 12, UiTheme.TextDim, Fonts.Typewriter)));
             }
-            v.AddChild(Row(Spacer(), UiTheme.Button("Balance watches", () => { S.BalanceWatches(null); _sideSig = ""; Toast("Everyone is spread across the three watches."); },
-                tooltip: "Spread every role evenly over day, evening and night. Night owls take the night.")));
+            var rota = new CheckBox { Text = "Rotate weekly", ButtonPressed = S.RotateWatches,
+                TooltipText = "Change the watches round every week (day to evening to night), as Hut 6 did, so nobody is stuck on nights. Night owls lose their pick of the night watch." };
+            rota.AddThemeFontSizeOverride("font_size", 12);
+            rota.Toggled += on => { S.SetRotation(on); _sideSig = ""; };
+            v.AddChild(Row(rota, Spacer(), UiTheme.Button("Balance watches", () => { S.BalanceWatches(null); _sideSig = ""; Toast("Everyone is spread across the three watches."); },
+                tooltip: "Spread every role evenly over day, evening and night. Night owls take the night, unless the watches rotate.")));
         }
-        foreach (Role role in Enum.GetValues<Role>())
+        foreach (Role role in Enum.GetValues<Role>().Where(S.RoleOpen))
         {
             var people = S.Staff.Where(s => s.Role == role).ToList();
             var rd = Defs.Roles[role];
@@ -500,7 +505,7 @@ public partial class Hud
     /// <summary>Which networks' intercepts come in on this teleprinter. Unrouted networks go to any teleprinter.</summary>
     void InspectTeleprinter(Station st)
     {
-        var nets = Enum.GetValues<Net>().Where(n => S.ActiveNets.Contains(n) || st.Receives?.Contains(n) == true).ToList();
+        var nets = Enum.GetValues<Net>().Where(S.ActiveNets.Contains).ToList();   // only networks that have come on the air
         if (nets.Count == 0) return;
         _inspBox.AddChild(UiTheme.Label(st.Receives == null ? "Receives every network. Untick one to send it to another teleprinter." : "Receives:", 12, UiTheme.TextDim));
         var grid = new GridContainer { Columns = 3 };

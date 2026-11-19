@@ -197,20 +197,50 @@ public sealed partial class GameState
     /// <summary>For tests.</summary>
     public void DebugRefreshCandidates() => RefreshCandidates();
 
+    /// <summary>The weekly intake of applicants in a given act.</summary>
+    List<Role> IntakeFor(int act)
+    {
+        var roles = new List<Role> { Role.Clerk, Role.Cryptanalyst, Role.Linguist, Role.Clerk };
+        if (act >= 1) roles.Add(Role.Messenger);
+        // The WRNS could spare few women for Bletchley until Churchill's 'Action this day' in October 1941.
+        int wrens = act < 2 ? 0 : Mode == GameMode.FreePlay ? 2 : act < Defs.WrenShortageFrom ? 2 : act < Campaign.ActionThisDay ? 1 : 3;
+        for (int i = 0; i < wrens; i++) roles.Add(Role.Wren);
+        if (act >= 5) roles.Add(Role.Messenger);
+        return roles;
+    }
+
+    /// <summary>Whether this kind of post has opened yet: no Wrens before Hut 6, no messengers in the first weeks.</summary>
+    public bool RoleOpen(Role r) => IntakeFor(ActIndex).Contains(r) || Staff.Any(s => s.Role == r) || Candidates.Any(c => c.Role == r);
+
+    /// <summary>Whether a German service has anything on the air yet that we read, or has noticed us already.</summary>
+    public bool ServiceInPlay(Service sv) => SuspicionOf(sv) > 0 || ActiveNets.Any(n => Defs.NetOf(n).Service == sv);
+
+    void AddCandidate(Role r)
+    {
+        int skill = Rng.Chance(0.15) ? 3 : Rng.Chance(0.4) ? 2 : 1;
+        Candidates.Add(NewPerson(r, skill));
+    }
+
     void RefreshCandidates()
     {
         Candidates.RemoveAll(c => c.Notable == null);
-        var roles = new List<Role> { Role.Clerk, Role.Cryptanalyst, Role.Linguist, Role.Clerk };
-        if (ActIndex >= 1) roles.Add(Role.Messenger);
-        // The WRNS could spare few women for Bletchley until Churchill's 'Action this day' in October 1941.
-        int wrens = ActIndex < 2 ? 0 : Mode == GameMode.FreePlay ? 2 : ActIndex < Defs.WrenShortageFrom ? 2 : ActIndex < Campaign.ActionThisDay ? 1 : 3;
-        for (int i = 0; i < wrens; i++) roles.Add(Role.Wren);
-        if (ActIndex >= 5) roles.Add(Role.Messenger);
-        foreach (var r in roles)
-        {
-            int skill = Rng.Chance(0.15) ? 3 : Rng.Chance(0.4) ? 2 : 1;
-            Candidates.Add(NewPerson(r, skill));
-        }
+        foreach (var r in IntakeFor(ActIndex)) AddCandidate(r);
+    }
+
+    /// <summary>
+    /// A new chapter that opens up a kind of post (messengers, the first Wrens, the Admiralty's Wrens after 'Action this
+    /// day') sends those applicants at once, rather than with the next weekly intake.
+    /// </summary>
+    void NewChapterIntake(int act)
+    {
+        if (act == 0) return;
+        var before = IntakeFor(act - 1);
+        // Their own dice, so the rest of the game rolls as it did before.
+        var shared = Rng;
+        Rng = new Rng((ulong)Mix(Seed, act, 0x1A7A) | 1);
+        foreach (var g in IntakeFor(act).GroupBy(r => r))
+            for (int i = before.Count(r => r == g.Key); i < g.Count(); i++) AddCandidate(g.Key);
+        Rng = shared;
     }
 
     public bool Hire(int candidateId)

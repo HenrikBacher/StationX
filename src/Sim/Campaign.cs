@@ -586,6 +586,7 @@ public sealed partial class GameState
         NextOfferAt = Now;
         foreach (var n in Campaign.NetsOf(Act)) ActiveNets.Add(n);
         if (index >= 10) ActiveNets.Add(Net.Shark);
+        NewChapterIntake(index);
         Act.OnStart?.Invoke(this);
         Emit(EventKind.ActStarted, $"Chapter {Act.Chapter}: {Act.ChapterTitle}. {Act.Title}");
     }
