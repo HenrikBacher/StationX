@@ -67,6 +67,7 @@ public partial class StationModel : Node3D
             case StationType.OutstationLink: Teleprinter(); OutstationSign(); break;
             case StationType.Testery: Desk(); Testery(); break;
             case StationType.Colossus: Colossus(); break;
+            case StationType.HeathRobinson: HeathRobinson(); break;
             case StationType.TunnyMachine: TunnyMachine(); break;
             case StationType.Index: CardIndex(); break;
             case StationType.TrafficAnalysis: Desk(); TrafficAnalysis(); break;
@@ -254,6 +255,63 @@ public partial class StationModel : Node3D
     }
 
     readonly List<MeshInstance3D> _valves = new();
+
+    /// <summary>
+    /// The first Newmanry machine: an angle-iron "bedstead" carrying two loops of tape over pulleys, beside a cabinet of
+    /// relays and counters. Smaller and rougher than Colossus.
+    /// </summary>
+    void HeathRobinson()
+    {
+        var steel = Gfx.SteelLight;
+        var cab = new Color("4a4a42");
+        // Relay and counter cabinet on the right
+        Mesh3.BoxAt(this, 0.25f, 0, -0.42f, 0.7f, 1.25f, 0.4f, cab);
+        Mesh3.BoxAt(this, 0.23f, 1.25f, -0.44f, 0.74f, 0.04f, 0.44f, cab.Lightened(0.1f));
+        for (int row = 0; row < 4; row++)
+            for (int col = 0; col < 5; col++)
+            {
+                var v = Mesh3.Cyl(this, 0.022f, 0.022f, 0.07f, new Vector3(0.33f + col * 0.12f, 0.55f + row * 0.17f, -0.0f), new Color("6a4a28"), 6);
+                _valves.Add(v);
+            }
+        // Counter display: a strip of cream dials
+        for (int i = 0; i < 5; i++)
+            Mesh3.Cyl(this, 0.035f, 0.035f, 0.01f, new Vector3(0.33f + i * 0.12f, 0.36f, 0.0f), Gfx.Cream, 10).RotationDegrees = new Vector3(90, 0, 0);
+        // The bedstead on the left: a tall angle-iron frame
+        float x0 = -0.95f, x1 = 0.1f, z0 = -0.35f, z1 = 0.25f, top = 1.35f;
+        foreach (var px in new[] { x0, x1 - 0.04f })
+            foreach (var pz in new[] { z0, z1 })
+                Mesh3.BoxAt(this, px, 0, pz, 0.04f, top, 0.04f, steel);
+        // Open angle-iron rails top and bottom, so the tapes show
+        foreach (var y in new[] { top, 0.05f })
+        {
+            Mesh3.BoxAt(this, x0, y, z0, x1 - x0, 0.04f, 0.04f, steel);
+            Mesh3.BoxAt(this, x0, y, z1, x1 - x0, 0.04f, 0.04f, steel);
+            Mesh3.BoxAt(this, x0, y, z0, 0.04f, 0.04f, z1 - z0 + 0.04f, steel);
+            Mesh3.BoxAt(this, x1 - 0.04f, y, z0, 0.04f, 0.04f, z1 - z0 + 0.04f, steel);
+        }
+        // Spindle bars carrying the pulleys
+        Mesh3.BoxAt(this, x0, top - 0.14f, -0.07f, x1 - x0, 0.03f, 0.03f, steel);
+        Mesh3.BoxAt(this, x0, 0.33f, -0.07f, x1 - x0, 0.03f, 0.03f, steel);
+        // Two tape loops, each over a top pulley and a bottom pulley, running in step
+        for (int loop = 0; loop < 2; loop++)
+        {
+            float lx = -0.7f + loop * 0.45f;
+            foreach (var py in new[] { top - 0.12f, 0.35f })
+            {
+                var wheel = Mesh3.Cyl(this, 0.08f, 0.08f, 0.04f, new Vector3(lx, py, -0.05f), new Color("2a2a28"), 12);
+                wheel.RotationDegrees = new Vector3(90, 0, 0);
+                Mesh3.Box(wheel, new Vector3(0.02f, 0.045f, 0.14f), Vector3.Zero, Gfx.SteelLight);
+                wheel.SetMeta("speed", 10f + loop * 2);
+                _spinners.Add(wheel);
+            }
+            float len = top - 0.12f - 0.35f;
+            foreach (var side in new[] { -0.08f, 0.08f })
+                Mesh3.Box(this, new Vector3(0.006f, len, 0.05f), new Vector3(lx + side, 0.35f + len / 2, -0.05f), Gfx.Paper);
+        }
+        // The photocell reading head between the loops
+        Mesh3.BoxAt(this, -0.55f, 0.62f, -0.12f, 0.16f, 0.12f, 0.14f, new Color("2c2c2a"));
+        Mesh3.Box(this, new Vector3(0.04f, 0.04f, 0.02f), new Vector3(-0.47f, 0.68f, 0.03f), new Color("e8c870"), 1.2f);
+    }
 
     void Colossus()
     {

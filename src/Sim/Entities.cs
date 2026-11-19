@@ -33,7 +33,7 @@ public sealed class Station
     public bool Working => Current != null && (OperatorPresent || IsMachine);
 
     /// <summary>Bombes and Colossus run by themselves once a Wren has set them going.</summary>
-    public bool IsMachine => Type is StationType.Bombe or StationType.Bombe4 or StationType.Colossus;
+    public bool IsMachine => Type is StationType.Bombe or StationType.Bombe4 or StationType.Colossus or StationType.HeathRobinson;
 
     /// <summary>0 when freshly serviced; breakdowns get likely past about 0.7.</summary>
     public double Wear { get; set; }

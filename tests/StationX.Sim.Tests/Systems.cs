@@ -1628,3 +1628,30 @@ public class SixtaTests
         Assert.All(g.SixtaRouted.Values, v => Assert.True(v <= Defs.SixtaNeeded));
     }
 }
+
+public class HeathRobinsonTests
+{
+    [Fact]
+    public void HeathRobinsonBreaksTunnyBeforeColossus()
+    {
+        var g = GameState.NewGame(13);
+        g.DebugSkipToAct(12);
+        g.Researched.Add(ResearchId.Turingery);
+        g.Grid.Zone("blockf")!.Unlocked = true;
+        foreach (var r in new[] { Role.Wren, Role.Wren, Role.Cryptanalyst, Role.Linguist, Role.Clerk }) TestUtil.Add(g, r);
+        g.Place(StationType.Registration, 5, 3, 0, free: true);
+        g.Place(StationType.Translation, 11, 3, 0, free: true);
+        g.Place(StationType.Testery, 21, 27, 0, free: true);
+        g.Place(StationType.TunnyMachine, 25, 27, 0, free: true);
+        g.Place(StationType.Index, 14, 8, 0, free: true);
+        Assert.False(g.StationUnlocked(StationType.HeathRobinson, out _));   // needs the research
+        g.Researched.Add(ResearchId.HeathRobinson);
+        var hr = g.Place(StationType.HeathRobinson, 32, 27, 0, free: true);
+        Assert.NotNull(hr);
+        Assert.Equal(StationType.HeathRobinson, g.KeyRoute(Net.Tunny));
+        Assert.True(hr!.IsMachine && hr.Wears);
+        g.AddScripted(Net.Tunny, 5, 5, 0, 0, "t", "t", "t");
+        TestUtil.Run(g, 3);
+        Assert.True(Stats.Get(g.Stats.BombeBreaks, Net.Tunny) > 0, "broken by machine");
+    }
+}

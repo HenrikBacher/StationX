@@ -81,6 +81,7 @@ Godot lives in `~/.local/opt/godot/` and is linked as `~/.local/bin/godot`. Expo
 - **Crises (from chapter 2).** Every so often the Park's power fails and every machine stops for hours: hire a generator for the Bombes (£250) or wait for the engineers. Or a battle opens and a run of MOST IMMEDIATE requests follows: cancel leave and put everyone on overtime for two days (£200, work 25% faster, people tire faster and grumble), or carry on as rostered.
 - **Choosing what to break.** There's never enough Bombe time. On the Enigma keys card each network has an order: *First* jumps its key attempt (and then its traffic) to the front of every queue; *Hold* skips that key today, leaving the Bombes to the others while its traffic waits.
 - **War map (O).** Each accepted request is a real operation: a convoy to route, a raid to meet, a battle to warn of, dated to the campaign (Dunkirk, the Blitz, BISMARCK, PQ 17, Alamein…). Deliver in time and it goes our way, which lifts morale and, for each operation won in the last week, the grant by 2% (up to 8%). Miss it and ships are sunk, raids go unopposed, and morale suffers. *Spread out the map* shows every operation in the theatre.
+- **Heath Robinson (Tunny chapter).** Research it and build one in the Newmanry: Newman's tape machine breaks Tunny wheel settings in under four hours (the Testery takes nine), but its tapes stretch and snap, so it wears out fast and a fifth of its runs come back inconclusive. Colossus, when it comes, takes over.
 - **Traffic analysis (from Victory).** Before a key is broken, its messages' externals say who is talking to whom. A traffic-analysis desk (clerk; Hut 6, Hut 8 or the Mansion) logs two of each network's messages a day; once it has, that day's cribs take 40% less time and its Bombe runs 15% less. Hut 6's traffic analysts became SIXTA.
 - **ULTRA's price.** When an operation is won, decide how its decrypts are used (War map, O): *Act* for the full result and more enemy suspicion; *With cover* (a reconnaissance aircraft sent to be seen first) for three-quarters of the result and little suspicion, two a week; or *Hold back* for nothing at all. Undecided after 12 hours, your ULTRA policy chooses.
 - **Postings.** In a person's inspector, *Posted to* keeps them to one building: they work, carry and wait only there. Messengers and anyone left on *Anywhere needed* do the walking between buildings.
@@ -176,7 +177,7 @@ godot --path . --resolution 1600x900 -- --selftest      # exits 1 on any failure
 Optional flags:
 
 - `--panel=requests|build|staff|research|huts|intel|stats`
-- `--modal=pause|settings|save|load|newgame|dilemma|end`
+- `--modal=pause|settings|save|load|newgame|dilemma|end` `--place=Type@x,y;...` puts stations down (free, building unlocked) for a visual check.
 - `--select=bombe`, `--briefing`, `--title`, `--build=Registration`
 - `--weather=fine|overcast|rain|fog|snow|storm`, `--raid`, `--head=hut6` (appoints the best cryptanalyst head of that hut)
 - `--quarter=0..3`, `--flows`, `--breakdown` (breaks the first machine and wears another)

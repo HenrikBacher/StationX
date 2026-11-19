@@ -33,6 +33,7 @@ public sealed class AutoPlayer
         [StationType.OutstationLink] = new[] { "hut11" },
         [StationType.Testery] = new[] { "blockf", "mansion" },
         [StationType.Colossus] = new[] { "blockf" },
+        [StationType.HeathRobinson] = new[] { "blockf" },
         [StationType.TunnyMachine] = new[] { "blockf", "hut3" },
     };
 
@@ -62,6 +63,7 @@ public sealed class AutoPlayer
             StationType.Testery => a >= 12 ? 2 : 0,
             StationType.TunnyMachine => a >= 12 ? 1 : 0,
             StationType.Colossus => a >= 13 ? 1 : 0,
+            StationType.HeathRobinson => a >= 12 && Have(StationType.Colossus) == 0 ? 1 : 0,
             _ => 0,
         };
     }
@@ -117,7 +119,7 @@ public sealed class AutoPlayer
         StationType.Typex, StationType.Zygalski, StationType.Crib, StationType.Bombe,
         StationType.Banburismus, StationType.Bombe4, StationType.Dispatch, StationType.Index, StationType.TrafficAnalysis,
         StationType.Checking, StationType.Canteen, StationType.CommonRoom, StationType.Rounders,
-        StationType.OutstationLink, StationType.Testery, StationType.TunnyMachine, StationType.Colossus,
+        StationType.OutstationLink, StationType.Testery, StationType.TunnyMachine, StationType.HeathRobinson, StationType.Colossus,
     };
 
     int Have(StationType t) => g.Stations.Count(s => s.Type == t && !s.PendingRemoval && !s.Obsolete);
@@ -247,7 +249,7 @@ public sealed class AutoPlayer
             [Role.Clerk] = Need(Have(StationType.Registration) + Have(StationType.Dispatch) + Have(StationType.Index) + Have(StationType.TrafficAnalysis) + (g.ActIndex < 1 ? 1 : 0)),
             [Role.Messenger] = g.ActIndex < 1 ? 0 : Need(g.Grid.Zones.Count(z => z.Unlocked) + g.ActIndex / 3),
             [Role.Cryptanalyst] = Need(Math.Max(Have(StationType.HandCipher), Want(StationType.HandCipher)) + Have(StationType.Crib) + Have(StationType.Zygalski) + Have(StationType.Banburismus) + Have(StationType.Testery)),
-            [Role.Wren] = Need(Have(StationType.Bombe) + Have(StationType.Bombe4) + Have(StationType.Typex) + Have(StationType.Checking)
+            [Role.Wren] = Need(Have(StationType.Bombe) + Have(StationType.Bombe4) + Have(StationType.Typex) + Have(StationType.Checking) + Have(StationType.HeathRobinson)
                                + Have(StationType.OutstationLink) + Have(StationType.Colossus) + Have(StationType.TunnyMachine)),
             [Role.Linguist] = Need(Have(StationType.Translation)),
         };

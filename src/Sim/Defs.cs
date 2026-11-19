@@ -12,7 +12,7 @@ public enum StationType
     Bombe, Bombe4, Typex, Translation, Dispatch,
     Canteen, CommonRoom, Rounders, Checking, Tube, OutstationLink,
     Testery, Colossus, TunnyMachine,
-    Stove, SickBay, Index, TrafficAnalysis,
+    Stove, SickBay, Index, TrafficAnalysis, HeathRobinson,
 }
 
 public enum Family { Hand, Enigma, Lorenz }
@@ -42,7 +42,7 @@ public enum ResearchId
 {
     CardIndex, ZygalskiSheets, Cillies, Bombe, DiagonalBoard, Hut3Reporting,
     Banburismus, Hollerith, ShortWeatherCipher, FourRotorBombe,
-    PneumaticTubes, Turingery, Colossus,
+    PneumaticTubes, Turingery, Colossus, HeathRobinson,
 }
 
 public sealed record StationDef(
@@ -236,12 +236,18 @@ public static partial class Defs
         StationType.Bombe4 => 1800,       // the four-rotor Bombes were notoriously temperamental
         StationType.Colossus => 3000,
         StationType.TunnyMachine => 1500, // tapes stretched and snapped
+        StationType.HeathRobinson => 700, // two tapes kept in step by sprockets: they stretched, slipped and snapped
         StationType.Typex => 3000,        // rotors, contacts and a printer, all worked hard
         _ => 0,
     };
 
     /// <summary>Repair time: a Typex is a far simpler machine than a Bombe.</summary>
-    public static double RepairMinutesFor(StationType t) => t == StationType.Typex ? RepairMinutes * 0.5 : RepairMinutes;
+    public static double RepairMinutesFor(StationType t) => t switch
+    {
+        StationType.Typex => RepairMinutes * 0.5,
+        StationType.HeathRobinson => RepairMinutes * 0.35,   // splice the tape and start again
+        _ => RepairMinutes,
+    };
     /// <summary>Chance per working minute of a breakdown, times wear squared.</summary>
     public const double BreakdownHazard = 0.006;
     public const double RepairMinutes = 300;
@@ -385,6 +391,9 @@ public static partial class Defs
         [StationType.Colossus] = new(StationType.Colossus, "Colossus",
             "Flowers' valve computer reads punched tape at 5,000 characters a second to find the chi-wheel settings.",
             6000, 3, 2, Role.Wren, 100, 2, ResearchId.Colossus, 13, Upkeep: 80),
+        [StationType.HeathRobinson] = new(StationType.HeathRobinson, "Heath Robinson",
+            "Max Newman's first machine for Tunny: two loops of punched tape run in step past photocells, counting to find the chi-wheel settings. Much faster than the Testery, but the tapes stretch and snap.",
+            1800, 2, 1, Role.Wren, 220, 2, ResearchId.HeathRobinson, 12, Upkeep: 30),
         [StationType.TunnyMachine] = new(StationType.TunnyMachine, "Tunny machine",
             "A British copy of the Lorenz SZ42. With the day's wheel settings, prints German high command teleprinter traffic.",
             600, 1, 1, Role.Wren, 30, 6, ResearchId.Turingery, 12, Upkeep: 10),
@@ -428,6 +437,8 @@ public static partial class Defs
             "Lamson tubes between the huts. Build tube stations so messages skip the long walks.", 12),
         [ResearchId.Turingery] = new(ResearchId.Turingery, "Turingery",
             "Turing's hand method for Tunny wheel patterns. Build Testery desks and Tunny machines.", 30),
+        [ResearchId.HeathRobinson] = new(ResearchId.HeathRobinson, "Heath Robinson",
+            "Newman's tape-comparing machine for the Newmanry, named after the cartoonist's contraptions. Build Heath Robinsons.", 30),
         [ResearchId.Colossus] = new(ResearchId.Colossus, "Colossus",
             "Tommy Flowers' valve computer, built at Dollis Hill in eleven months. Build Colossi.", 50),
     };
@@ -465,7 +476,7 @@ public static partial class Defs
             new[] { StationType.Inbox, StationType.Registration, StationType.Crib, StationType.Banburismus, StationType.Typex,
                     StationType.Translation, StationType.Index, StationType.Dispatch, StationType.TrafficAnalysis }),
         ["blockf"] = new("The Testery and the Newmanry: Tunny by hand and by Colossus.",
-            new[] { StationType.Inbox, StationType.Registration, StationType.Testery, StationType.Colossus, StationType.TunnyMachine,
+            new[] { StationType.Inbox, StationType.Registration, StationType.Testery, StationType.Colossus, StationType.HeathRobinson, StationType.TunnyMachine,
                     StationType.Translation, StationType.Index, StationType.Dispatch }),
     };
 

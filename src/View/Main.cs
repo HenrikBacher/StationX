@@ -184,6 +184,17 @@ public partial class Main : Node3D
                 }
             }
             if (args.ContainsKey("raid")) State.RaidUntil = State.Now + 120;
+            // --place=Type@x,y;Type@x,y : put stations down for a visual check (free, building unlocked).
+            if (args.TryGetValue("place", out var pl))
+                foreach (var item in pl.Split(';', StringSplitOptions.RemoveEmptyEntries))
+                {
+                    var parts = item.Split('@');
+                    var xy = parts[1].Split(',');
+                    int px = int.Parse(xy[0]), py = int.Parse(xy[1]);
+                    if (State.Grid.ZoneAt(px, py) is { } pz) pz.Unlocked = true;
+                    if (State.Place(Enum.Parse<StationType>(parts[0], true), px, py, 0, free: true) == null)
+                        GD.PrintErr($"--place: could not place {item}");
+                }
             if (args.TryGetValue("head", out var hz) && State.Staff.Where(GameState.CanHead).OrderByDescending(x => x.Skill).FirstOrDefault() is { } hd)
                 State.AppointHead(hd.Id, hz);
             if (args.TryGetValue("weather", out var wx)) State.Weather = Enum.Parse<Weather>(wx, true);

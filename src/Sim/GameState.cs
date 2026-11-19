@@ -449,6 +449,7 @@ public sealed partial class GameState
         string what = st.Type switch
         {
             StationType.Bombe or StationType.Bombe4 => Rng.Pick(new[] { "a drum has seized", "the brushes have shorted", "a relay has burnt out" }),
+            StationType.HeathRobinson => Rng.Pick(new[] { "a tape has snapped", "the tapes have slipped out of step", "a tape has stretched and torn on the sprockets" }),
             StationType.TunnyMachine => "the tape has snapped",
             StationType.Typex => Rng.Pick(new[] { "a rotor contact has worn through", "the printer has jammed", "the keyboard has seized" }),
             _ => Rng.Pick(new[] { "a valve has blown", "the photocell has drifted" }),
@@ -679,6 +680,11 @@ public sealed partial class GameState
                 if (Rng.Chance(0.92)) KeyBreak(m, true);
                 else { Requeue(st, m); return; }
                 break;
+            case StationType.HeathRobinson:
+                // The counts were often marginal: a fifth of runs come back inconclusive and go round again.
+                if (Rng.Chance(0.8)) KeyBreak(m, true);
+                else { Requeue(st, m); return; }
+                break;
             case StationType.Typex:
             case StationType.TunnyMachine:
                 m.Next = StationType.Translation;
@@ -805,6 +811,7 @@ public sealed partial class GameState
         if (nd.Family == Family.Lorenz)
         {
             if (Researched.Contains(ResearchId.Colossus) && HasStation(StationType.Colossus)) return StationType.Colossus;
+            if (Researched.Contains(ResearchId.HeathRobinson) && HasStation(StationType.HeathRobinson)) return StationType.HeathRobinson;
             if (Researched.Contains(ResearchId.Turingery) && HasStation(StationType.Testery)) return StationType.Testery;
             return null;
         }
