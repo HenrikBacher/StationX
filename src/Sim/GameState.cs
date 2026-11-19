@@ -579,7 +579,7 @@ public sealed partial class GameState
     void MaybeStaleCribs()
     {
         if (ActIndex < Defs.StaleFromAct || !Rng.Chance(Defs.StaleChance)) return;
-        var nets = ActiveNets.Where(n => Defs.NetOf(n).Family == Family.Enigma && !Stale(n, Day) && !(FreeKeysUntil.TryGetValue(n, out var f) && Day <= f)).ToList();
+        var nets = ActiveNets.Where(n => Defs.NetOf(n).Family == Family.Enigma && InPlay(n) && !Stale(n, Day) && !(FreeKeysUntil.TryGetValue(n, out var f) && Day <= f)).ToList();
         if (nets.Count == 0) return;
         var net = Rng.Pick(nets);
         int days = Rng.Range(3, 6);

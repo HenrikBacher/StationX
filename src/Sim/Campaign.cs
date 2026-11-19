@@ -681,7 +681,19 @@ public sealed partial class GameState
         for (int k = ActIndex + 1; k <= index && k < Campaign.Acts.Length; k++) StartAct(k);
     }
 
-    /// <summary>Nets worth showing in the key board: Enigma nets currently in play.</summary>
+    /// <summary>
+    /// Nets worth showing in the key board: machine nets in play now, meaning the act's requests draw on them, a request
+    /// for them is offered or running, or their messages are still on the floor. A net whose traffic has dried up drops off.
+    /// </summary>
     public IEnumerable<Net> KeyBoardNets() =>
-        ActiveNets.Where(n => Defs.NetOf(n).Family != Family.Hand).OrderBy(n => n);
+        ActiveNets.Where(n => Defs.NetOf(n).Family != Family.Hand && InPlay(n)).OrderBy(n => NetOrder.IndexOf(n));
+
+    static readonly List<Net> NetOrder = Defs.Nets.Keys.ToList();
+
+    bool InPlay(Net n) =>
+        n == Net.Shark   // from The Blackout on, SHARK's silence is the story, requests or not
+        || Act.Pool.Any(p => p.Net == n)
+        || Act.Goals.Any(g => g.Net == n)
+        || Contracts.Any(c => c.Net == n && (c.State == ContractState.Offered || c.State == ContractState.Active))
+        || Messages.Values.Any(m => m.Net == n);
 }

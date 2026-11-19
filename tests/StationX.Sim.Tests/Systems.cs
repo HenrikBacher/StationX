@@ -1831,3 +1831,24 @@ public class TypexSlipTests
         Assert.Equal(0.035, GameState.TypexSlipChance(green), 6);
     }
 }
+
+public class KeyBoardTests
+{
+    [Fact]
+    public void NetsWithoutTrafficDropOffButSharkStays()
+    {
+        var g = GameState.NewGame(3);
+        int claymore = Array.FindIndex(Campaign.Acts, a => a.Title == "Operation Claymore");
+        g.DebugSkipToAct(claymore);
+        Assert.Contains(Net.Brown, g.KeyBoardNets());
+        int blackout = Array.FindIndex(Campaign.Acts, a => a.Title == "The Blackout");
+        g.DebugSkipToAct(blackout);
+        g.Contracts.Clear();
+        g.Messages.Clear();
+        var nets = g.KeyBoardNets().ToList();
+        Assert.DoesNotContain(Net.Brown, nets);
+        Assert.Contains(Net.Shark, nets);
+        // Listed in the definitions' order, so BROWN would sit among the Luftwaffe keys
+        Assert.Equal(nets.OrderBy(n => Defs.Nets.Keys.ToList().IndexOf(n)), nets);
+    }
+}
