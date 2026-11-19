@@ -144,6 +144,7 @@ public static partial class Defs
     // ULTRA and the war map: deciding how a won operation's decrypts are used.
     public const double OpDecideHours = 12, OpActSuspicion = 4, OpCoverSuspicion = 0.8;
     public const int CoverPerWeek = 2;
+    public const double WrongDragMinutes = 20;
     public const double CrowdSlow = 0.15;
     public const double CrowdFloor = 0.6;
 

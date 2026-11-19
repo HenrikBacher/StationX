@@ -528,6 +528,12 @@ public partial class Hud
             };
             _inspBox.AddChild(UiTheme.Label(what, 13, UiTheme.Accent));
             _inspBox.AddChild(new ProgressBar { MinValue = 0, MaxValue = 1, Value = st.Progress, ShowPercentage = false, CustomMinimumSize = new Vector2(0, 8) });
+            if (S.PuzzleFor(st.Id) != null)
+            {
+                int sid = st.Id;
+                _inspBox.AddChild(Row(UiTheme.Label("Place the crib yourself and the menu is done at once.", 12, UiTheme.TextDim),
+                    UiTheme.Button("Drag the crib…", () => ShowCribPuzzle(sid))));
+            }
         }
         if (st.Wears) InspectWear(st);
         int waiting = st.Output.Count(id => S.Messages.TryGetValue(id, out var mm) && mm.Next == null);

@@ -285,6 +285,7 @@ public partial class Hud
             case "dilemma": S.RaiseDilemma(S.DebugDilemma()); ShowDilemma(S.Dilemmas[0]); break;
             case "end": ShowEnd(true); break;
             case "warmap": ShowWarMap(); break;
+            case "crib" when S.Stations.FirstOrDefault(s => S.PuzzleFor(s.Id) != null) is { } cs: ShowCribPuzzle(cs.Id); break;
             case "intercept" when S.Archive.Count > 0:
                 var a = S.Archive[^1];
                 ShowIntercept(S.Intercept(a), ReadStage.Translated, a.Net, a.Day, false, null);

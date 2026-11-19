@@ -1655,3 +1655,38 @@ public class HeathRobinsonTests
         Assert.True(Stats.Get(g.Stats.BombeBreaks, Net.Tunny) > 0, "broken by machine");
     }
 }
+
+public class CribPuzzleTests
+{
+    [Fact]
+    public void EveryPuzzleHasExactlyOneClearPosition()
+    {
+        for (int seed = 0; seed < 300; seed++)
+        {
+            var p = CribPuzzle.Make(seed, seed % 2 == 0 ? Net.Red : Net.Dolphin);
+            var clear = Enumerable.Range(0, p.Positions).Where(p.Possible).ToList();
+            Assert.Single(clear);
+            Assert.Equal(p.Answer, clear[0]);
+            Assert.True(p.Cipher.Length > p.Crib.Length + 5);
+        }
+    }
+
+    [Fact]
+    public void DraggingTheCribFinishesTheMenu()
+    {
+        var g = TestUtil.BombeLine(12, checking: true);
+        g.AddScripted(Net.Red, 4, 4, 0, 0, "t", "t", "t");
+        var crib = g.Stations.First(s => s.Type == StationType.Crib);
+        for (int i = 0; i < 2000 && g.PuzzleFor(crib.Id) == null; i++) g.Advance(1);
+        var p = g.PuzzleFor(crib.Id);
+        Assert.NotNull(p);
+        double total = crib.WorkTotal;
+        int wrong = p!.Answer == 0 ? 1 : 0;
+        Assert.False(g.DragCrib(crib.Id, wrong));
+        Assert.Equal(total + Defs.WrongDragMinutes, crib.WorkTotal);
+        Assert.True(g.DragCrib(crib.Id, p.Answer));
+        Assert.Equal(crib.WorkTotal, crib.WorkDone);
+        Assert.Null(g.PuzzleFor(crib.Id));
+        Assert.Equal(1, g.Stats.CribsDragged);
+    }
+}

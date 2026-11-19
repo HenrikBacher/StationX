@@ -189,6 +189,8 @@ public sealed class Message
     public Loc Loc { get; set; } = Loc.Output;
     public int LocId { get; set; }
     public bool Reserved { get; set; }
+    /// <summary>The player placed this key attempt's crib by hand.</summary>
+    public bool Dragged { get; set; }
     public bool Carrier { get; set; }
     public bool Banbury { get; set; }
     public double CribQuality { get; set; } = 0.8;
@@ -253,6 +255,7 @@ public sealed class Stats
     public int MilestonesMet { get; set; }
     public int MilestonesMissed { get; set; }
     public int OpsWithheld { get; set; }
+    public int CribsDragged { get; set; }
     public int StandingAccepted { get; set; }
     public int DilemmasResolved { get; set; }
     public HashSet<string> ScriptedDone { get; set; } = new();
