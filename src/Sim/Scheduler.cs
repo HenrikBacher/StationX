@@ -136,11 +136,17 @@ public sealed partial class GameState
             if (!s.Idle || s.Path.Count > 0 || s.HeadOf != null || !OnDuty(s) || s.Arriving(Now)) continue;
             var here = s.TilePos;
             var zone = Grid.ZoneAt(here.x, here.y);
-            bool inTheWay = zone == null || (s.Posted != null && zone.Id != s.Posted) || Stations.Any(st => st.UseTile == here) || Grid.NearDoorway(here.x, here.y) ||
+            bool inTheWay = zone == null || (s.Posted != null && zone.Id != s.Posted) || IsUseTile(here) || Grid.NearDoorway(here.x, here.y) ||
                             zone.InsideDoor == here || Grid.RoomAt(here.x, here.y) is { Corridor: true };
             if (!inTheWay || !Rng.Chance(0.15)) continue;
             if (WaitingSpot(s) is { } spot) SendTo(s, spot);
         }
+    }
+
+    bool IsUseTile((int x, int y) tile)
+    {
+        foreach (var st in Stations) if (st.UseTile == tile) return true;
+        return false;
     }
 
     (int x, int y)? WaitingSpot(Staff s)
@@ -161,15 +167,18 @@ public sealed partial class GameState
         var uses = new HashSet<(int, int)>(Stations.Select(st => st.UseTile));
         (int x, int y)? best = null;
         int bestScore = int.MaxValue;
+        var fromRoom = Grid.RoomAt(from.x, from.y);
+        var door = zone.InsideDoor;
         for (int y = zone.Y + 1; y < zone.Y + zone.H - 1; y++)
             for (int x = zone.X + 1; x < zone.X + zone.W - 1; x++)
             {
-                if (!Grid.Walkable(x, y) || uses.Contains((x, y)) || standing.Contains((x, y)) || Grid.NearDoorway(x, y) || zone.InsideDoor == (x, y)) continue;
-                if (Grid.RoomAt(x, y) is { Corridor: true }) continue;
+                if (!Grid.Walkable(x, y) || uses.Contains((x, y)) || standing.Contains((x, y)) || Grid.NearDoorway(x, y) || door == (x, y)) continue;
+                var room = Grid.RoomAt(x, y);
+                if (room is { Corridor: true }) continue;
                 // By a wall or partition, out of the way.
                 bool byWall = x == zone.X + 1 || y == zone.Y + 1 || x == zone.X + zone.W - 2 || y == zone.Y + zone.H - 2 ||
                               Grid.Blocked(x, y, x + 1, y) || Grid.Blocked(x, y, x - 1, y) || Grid.Blocked(x, y, x, y + 1) || Grid.Blocked(x, y, x, y - 1);
-                int score = Manhattan((x, y), from) + (byWall ? 0 : 4) + (Grid.RoomAt(x, y) == Grid.RoomAt(from.x, from.y) ? 0 : 6);
+                int score = Manhattan((x, y), from) + (byWall ? 0 : 4) + (room == fromRoom ? 0 : 6);
                 if (score < bestScore) { bestScore = score; best = (x, y); }
             }
         return best;

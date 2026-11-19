@@ -66,7 +66,7 @@ public sealed partial class GameState
             if (t is { Kind: TaskKind.Rest } && s.Path.Count == 0 && StationById(t.Dest) is { } rest)
             {
                 // A cup of tea goes further in company, and nowhere at all across the table from a rival.
-                int company = RestingAt(rest.Id, s);
+                int company = RestingAt(rest.Id, s, Defs.RestCompanyMax);
                 bool rival = RivalRestingAt(s, rest.Id);
                 double rate = rival ? Defs.RestRivalMult : 1 + Defs.RestCompany * Math.Min(company, Defs.RestCompanyMax);
                 s.Energy = Math.Min(1, s.Energy + Defs.EnergyRecoverRest * rate * dt);
@@ -175,13 +175,34 @@ public sealed partial class GameState
         (st.Type != StationType.Rounders || MinuteOfDay is >= 8 * 60 and < 19 * 60 && Weather is Weather.Fine or Weather.Overcast);
 
     /// <summary>Others sitting (not still walking up) at a rest station.</summary>
-    public int RestingAt(int stationId, Staff? except = null) =>
-        Staff.Count(o => o != except && o.Task is { Kind: TaskKind.Rest } t && t.Dest == stationId && o.Path.Count == 0 && !o.Away);
+    public int RestingAt(int stationId, Staff? except = null) => RestingAt(stationId, except, int.MaxValue);
+
+    /// <summary>As <see cref="RestingAt(int, Staff?)"/>, but stops counting at <paramref name="upTo"/>.</summary>
+    int RestingAt(int stationId, Staff? except, int upTo)
+    {
+        int n = 0;
+        foreach (var o in Staff)
+            if (o != except && o.Task is { Kind: TaskKind.Rest } t && t.Dest == stationId && o.Path.Count == 0 && !o.Away && ++n >= upTo) break;
+        return n;
+    }
 
     public bool RivalRestingAt(Staff s, int stationId) =>
         s.Rival is int rid && StaffById(rid) is { Task: { Kind: TaskKind.Rest } rt } && rt.Dest == stationId;
 
-    int SeatsTaken(Station st) => Staff.Count(x => x.Task is { Kind: TaskKind.Rest } t && t.Dest == st.Id);
+    readonly Dictionary<int, int> _seatsTaken = new(), _restingAt = new();
+
+    /// <summary>Seats taken (by anyone on a break there, sitting or still on the way) and people sitting, per rest station.</summary>
+    void CountRests()
+    {
+        _seatsTaken.Clear();
+        _restingAt.Clear();
+        foreach (var o in Staff)
+        {
+            if (o.Task is not { Kind: TaskKind.Rest } t) continue;
+            _seatsTaken[t.Dest] = _seatsTaken.GetValueOrDefault(t.Dest) + 1;
+            if (o.Path.Count == 0 && !o.Away) _restingAt[t.Dest] = _restingAt.GetValueOrDefault(t.Dest) + 1;
+        }
+    }
 
     /// <summary>
     /// Tea break. Unhappy people head for the common room or the rounders pitch. The tired go wherever there's a seat,
@@ -193,14 +214,18 @@ public sealed partial class GameState
         Station? best = null;
         Staff? bump = null;
         int bestScore = int.MaxValue;
+        // Who sits where, counted once for every table rather than once per table (this runs for everyone idle, every tick).
+        bool counted = false;
+        var rival = s.Rival is int rid ? StaffById(rid) : null;
         foreach (var st in Stations)
         {
             if (!RestOpen(st)) continue;
             int score = Manhattan(st.UseTile, s.TilePos);
             // The idle only sit down in their own building, close by, so they're quickly back when work comes.
             if (loafing && (score > Defs.LoafRange || Grid.ZoneAt(st.UseTile.x, st.UseTile.y) != Grid.ZoneAt(s.TilePos.x, s.TilePos.y))) continue;
+            if (!counted) { CountRests(); counted = true; }
             Staff? loafer = null;
-            if (SeatsTaken(st) >= st.Def.Seats)
+            if (_seatsTaken.GetValueOrDefault(st.Id) >= st.Def.Seats)
             {
                 if (loafing) continue;
                 // Anyone sitting there for want of work, or already fresh, gives up their seat to the tired.
@@ -216,8 +241,8 @@ public sealed partial class GameState
                 score -= Defs.RoundersPull;
             }
             // Company draws people in; a rival at the table keeps them away.
-            score -= 2 * Math.Min(RestingAt(st.Id), Defs.RestCompanyMax);
-            if (RivalRestingAt(s, st.Id)) score += 30;
+            score -= 2 * Math.Min(_restingAt.GetValueOrDefault(st.Id), Defs.RestCompanyMax);
+            if (rival is { Task: { Kind: TaskKind.Rest } rt } && rt.Dest == st.Id) score += 30;
             if (score < bestScore) { bestScore = score; best = st; bump = loafer; }
         }
         if (best == null || !SendTo(s, best.UseTile)) return;

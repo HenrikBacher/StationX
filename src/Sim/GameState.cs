@@ -94,9 +94,25 @@ public sealed partial class GameState
     public Dictionary<int, DateOnly> ActStarts { get; set; } = new();
     public Act Act => Campaign.Acts[ActIndex];
 
-    public Station? StationById(int id) => Stations.Find(s => s.Id == id);
-    public Staff? StaffById(int id) => Staff.Find(s => s.Id == id);
-    public Contract? ContractById(int id) => Contracts.Find(c => c.Id == id);
+    // Plain loops rather than Find(lambda): these run for every person every tick, and each lambda capturing the id
+    // was an allocation.
+    public Station? StationById(int id)
+    {
+        foreach (var s in Stations) if (s.Id == id) return s;
+        return null;
+    }
+
+    public Staff? StaffById(int id)
+    {
+        foreach (var s in Staff) if (s.Id == id) return s;
+        return null;
+    }
+
+    public Contract? ContractById(int id)
+    {
+        foreach (var c in Contracts) if (c.Id == id) return c;
+        return null;
+    }
 
     public void Emit(EventKind kind, string text) => Events.Add(new GameEvent(kind, text));
 
@@ -182,11 +198,31 @@ public sealed partial class GameState
 
     // ------------------------------------------------------------- movement
 
-    readonly Dictionary<(int x, int y), int> _crowd = new();
+    // People per tile this tick, as a flat array (cleared tile by tile) rather than a dictionary; anyone somehow off
+    // the map is counted in a dictionary instead.
+    readonly int[] _crowd = new int[Grid.Width * Grid.Height];
+    readonly List<int> _crowded = new();
+    readonly Dictionary<(int x, int y), int> _crowdOff = new();
+
+    int CrowdAt((int x, int y) t) => Grid.InBounds(t.x, t.y) ? _crowd[t.y * Grid.Width + t.x] : _crowdOff.GetValueOrDefault(t);
+
+    void ClearCrowd()
+    {
+        foreach (int i in _crowded) _crowd[i] = 0;
+        _crowded.Clear();
+        _crowdOff.Clear();
+    }
+
+    void AddToCrowd((int x, int y) t)
+    {
+        if (!Grid.InBounds(t.x, t.y)) { _crowdOff[t] = _crowdOff.GetValueOrDefault(t) + 1; return; }
+        int i = t.y * Grid.Width + t.x;
+        if (_crowd[i]++ == 0) _crowded.Add(i);
+    }
 
     double CrowdFactor(Staff s)
     {
-        int others = _crowd.GetValueOrDefault(s.TilePos) - 1 + (s.Path.Count > 0 ? _crowd.GetValueOrDefault(s.Path[0]) : 0);
+        int others = CrowdAt(s.TilePos) - 1 + (s.Path.Count > 0 ? CrowdAt(s.Path[0]) : 0);
         return others <= 0 ? 1 : Math.Max(Defs.CrowdFloor, 1 / (1 + Defs.CrowdSlow * others));
     }
 
@@ -204,12 +240,12 @@ public sealed partial class GameState
         double step = Defs.WalkTilesPerMinute * dt;
         double outdoors = OutdoorPace;
         // Crowding: people squeezing past each other (and past those sitting at their desks) slow down.
-        _crowd.Clear();
+        ClearCrowd();
         _standing.Clear();
         foreach (var o in Staff)
         {
             if (o.Away) continue;
-            _crowd[o.TilePos] = _crowd.GetValueOrDefault(o.TilePos) + 1;
+            AddToCrowd(o.TilePos);
             // Only someone busy where they stand (at a desk, at a table) is in the way; the idle step aside, and nobody
             // holds up a doorway or a corridor.
             if (o.Path.Count == 0 && o.Task != null && !Grid.NearDoorway(o.TilePos.x, o.TilePos.y) && Grid.RoomAt(o.TilePos.x, o.TilePos.y) is not { Corridor: true })
