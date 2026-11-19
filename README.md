@@ -132,7 +132,7 @@ Godot lives in `~/.local/opt/godot/` and is linked as `~/.local/bin/godot`. Expo
 - **Free play.** No objectives and no closure. Start at any chapter, with everything before it already built and researched. The war moves on every ten days.
 - **Difficulty.** Easy, Normal and Hard change starting funds, the grant, deadlines, how fast suspicion grows and how much a missed deadline costs.
 
-A **Needs attention** list under the Enigma keys shows broken or badly worn machines, freezing huts, unanswered flash requests, an overdraft, desks nobody on the staff can work, air raids, overcrowded billets, illness and ministries left waiting. Click one to go to it.
+A **Needs attention** list under the Enigma keys shows broken or badly worn machines, freezing huts, unanswered flash requests, requests about to be missed, decrypts waiting for a card index nobody has built, people with nowhere to sit for their break, networks short of receiver sets, an overdraft, desks nobody on the staff can work, air raids, overcrowded billets, illness and ministries left waiting. Each says what to do; click one to go to it.
 
 At the end of a campaign you get a **score** (decrypts, requests, reputation and speed, less missed deadlines and shipping lost; ×0.75 on Easy, ×1.4 on Hard) and an honour, from "Thanked by the Director" to Churchill's "geese that laid the golden eggs". The best score on each difficulty is kept in `user://records.cfg`.
 
@@ -159,7 +159,7 @@ The game autosaves every morning. It also has three save slots and a quicksave.
 | F9 (debug builds) | +£5000, +50 breakthroughs |
 | F10 (debug builds) | skip to the next act |
 
-The settings (in the pause menu or on the title screen) cover volume, interface size, edge scrolling, hints and tips (a chapter-1 walkthrough, then one tip the first time each later system comes up), film grain and fullscreen. They are saved to `user://settings.cfg`. Saves go in `user://saves/`.
+The settings (in the pause menu or on the title screen) cover volume, interface size (in a small window the interface keeps to a readable size), edge scrolling, hints and tips (a chapter-1 walkthrough, then one tip the first time each later system comes up), film grain and fullscreen. They are saved to `user://settings.cfg`. Saves go in `user://saves/`.
 
 ## Layout
 

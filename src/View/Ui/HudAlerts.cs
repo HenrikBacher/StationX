@@ -34,9 +34,13 @@ public partial class Hud
             list.Add(new Alert($"MOST IMMEDIATE from the {Defs.IssuerNames[f.Issuer]}: answer within {Hours(Math.Max(0, f.OfferExpires - S.Now))}",
                 Gfx.Bad, () => ShowFlash(f), Pulse: true));
         foreach (var st in S.Stations.Where(s => s.Wears && s.IsDown(S.Now) && !s.Servicing))
-            Station(st, $"{st.Def.Name} #{st.Id} broken down", Gfx.Bad);
+            Station(st, $"{st.Def.Name} #{st.Id} broken down: fitters due {(int)(st.DownUntil % Defs.MinutesPerDay / 60):00}:{(int)(st.DownUntil % 60):00}", Gfx.Bad);
+        // A request that will be missed unless its paper goes first.
+        foreach (var c in S.Contracts.Where(c => c.State == ContractState.Active && !c.Standing && c.Quantity > c.Delivered && c.Due - S.Now < 6 * 60))
+            list.Add(new Alert($"{c.Title} due in {Hours(c.Due - S.Now)}, {c.Quantity - c.Delivered} to go" + (c.Priority ? "" : ": put it first"),
+                Gfx.Bad, () => OpenPanel("requests")));
         if (S.Operations.Count(o => o.AwaitingUse) is int dec and > 0)
-            list.Add(new Alert($"{dec} operation{(dec == 1 ? "" : "s")} waiting: act, cover or hold back", Gfx.Warn, () => OpenPanel("war")));
+            list.Add(new Alert($"{dec} operation{(dec == 1 ? "" : "s")} won: act, cover or hold back", Gfx.Warn, () => OpenPanel("war")));
         if (S.PowerCut)
             list.Add(new Alert(S.Generator ? $"Power cut: only the Bombes run, on the generator ({Math.Max(1, (int)((S.PowerCutUntil - S.Now) / 60 + 0.5))} h)"
                                            : $"Power cut: the machines have stopped ({Math.Max(1, (int)((S.PowerCutUntil - S.Now) / 60 + 0.5))} h)", Gfx.Bad, () => { }));
@@ -45,9 +49,17 @@ public partial class Hud
         if (S.RaidOn)
             list.Add(new Alert($"Air raid: desk work at half pace until the all-clear ({Math.Max(1, (int)((S.RaidUntil - S.Now) / 60 + 0.5))} h)", Gfx.Bad, () => { }));
         foreach (var (issuer, days) in S.NeglectedMinistries())
-            list.Add(new Alert($"{Defs.IssuerNames[issuer]}: nothing from us for {days:0} days", days >= Defs.NeglectDays - 2 ? Gfx.Bad : Gfx.Warn, () => OpenPanel("requests")));
+            list.Add(new Alert($"{Defs.IssuerNames[issuer]}: nothing from us for {days:0} days. Take one of its requests", days >= Defs.NeglectDays - 2 ? Gfx.Bad : Gfx.Warn, () => OpenPanel("requests")));
+        // Decrypts for Hut 3's card index, with no index to read them against.
+        if (S.Messages.Values.Count(m => m.Next == StationType.Index) is int unindexed and > 0 && !S.Stations.Any(s => s.Type == StationType.Index))
+            list.Add(new Alert($"{unindexed} decrypt{(unindexed == 1 ? "" : "s")} waiting for a card index: build one (Hut 3, Hut 8 or the Mansion)", Gfx.Bad, () => OpenPanel("build")));
+        if (S.WaitingForTea >= 2)
+            list.Add(new Alert($"{S.WaitingForTea} people due a break with nowhere to sit: build a canteen table", Gfx.Warn, () => OpenPanel("build")));
+        foreach (var n in S.CoveredNets().Where(n => !S.Searching(n) && S.CoverShare(n) < 1
+                     && S.Contracts.Any(c => c.Net == n && c.State == ContractState.Active)))
+            list.Add(new Alert($"{Defs.NetOf(n).Name} has {S.CoverOf(n)} of {Defs.SetsWanted} receiver sets: add one (Y-stations)", Gfx.Warn, () => OpenPanel("ystations")));
         if (S.SickCount >= 3)
-            list.Add(new Alert($"{S.SickCount} staff off sick", Gfx.Warn, () => OpenPanel("staff")));
+            list.Add(new Alert($"{S.SickCount} staff off sick" + (S.Stations.Any(s => s.Type == StationType.SickBay) || !S.StationUnlocked(StationType.SickBay, out _) ? "" : ": a sick bay in the Mansion gets them back sooner"), Gfx.Warn, () => OpenPanel("staff")));
         if (S.Overcrowded > 0)
             list.Add(new Alert($"{S.Overcrowded} staff lodged far away: requisition billets", Gfx.Warn, () => OpenPanel("staff")));
         if (S.OutOfStores)
@@ -63,7 +75,7 @@ public partial class Hud
                 list.Add(new Alert($"{z.Name} is freezing: build a coke stove", Gfx.Warn,
                     () => { _main.CenterOnTile(z.X + z.W / 2f, z.Y + z.H / 2f); ShowZone(z); }));
         foreach (var st in S.Stations.Where(s => s.Def.Operator is Role && !s.Obsolete && s.Input.Count > 0 && !S.CanBeStaffed(s)))
-            Station(st, $"Nobody can work the {st.Def.Name.ToLowerInvariant()}: hire a {Defs.Roles[st.Def.Operator!.Value].Name.ToLowerInvariant()}", Gfx.Warn);
+            Station(st, $"Nobody can work the {st.Def.Name.ToLowerInvariant()}: hire a {RoleWord(st.Def.Operator!.Value)}", Gfx.Warn);
         return list;
     }
 
