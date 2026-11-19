@@ -11,7 +11,6 @@ namespace StationX.View;
 public static class Mesh3
 {
     static readonly Dictionary<(Color, float, bool), StandardMaterial3D> Mats = new();
-    static readonly Dictionary<Vector3, BoxMesh> Boxes = new();
     static readonly Dictionary<(float, float, float), CylinderMesh> Cyls = new();
     static readonly Dictionary<float, SphereMesh> Spheres = new();
 
@@ -45,10 +44,66 @@ public static class Mesh3
         NoDepthTest = false,
     };
 
-    static BoxMesh BoxMesh(Vector3 size)
+    static readonly Dictionary<Vector3, Mesh> Bevelled = new();
+
+    /// <summary>
+    /// A box with chamfered edges and corners: each edge catches a thin highlight, so furniture and walls read as made
+    /// things rather than blocks. Very thin pieces (papers, threads, labels) stay plain boxes.
+    /// </summary>
+    static Mesh BoxMesh(Vector3 size)
     {
-        if (!Boxes.TryGetValue(size, out var m)) Boxes[size] = m = new BoxMesh { Size = size };
+        if (Bevelled.TryGetValue(size, out var cached)) return cached;
+        float min = Mathf.Min(size.X, Mathf.Min(size.Y, size.Z));
+        float b = Mathf.Min(0.022f, min * 0.18f);
+        Mesh m = b < 0.004f ? new BoxMesh { Size = size } : ChamferedBox(size / 2, b);
+        Bevelled[size] = m;
         return m;
+    }
+
+    static ArrayMesh ChamferedBox(Vector3 h, float b)
+    {
+        // For each corner (sx, sy, sz) three points, one on each of the faces that meet there.
+        Vector3 P(int axis, int sx, int sy, int sz) => axis switch
+        {
+            0 => new Vector3(sx * h.X, sy * (h.Y - b), sz * (h.Z - b)),
+            1 => new Vector3(sx * (h.X - b), sy * h.Y, sz * (h.Z - b)),
+            _ => new Vector3(sx * (h.X - b), sy * (h.Y - b), sz * h.Z),
+        };
+        var st = new SurfaceTool();
+        st.Begin(Mesh.PrimitiveType.Triangles);
+        void Tri(Vector3 a, Vector3 c, Vector3 d)
+        {
+            var n = (c - a).Cross(d - a);
+            // Godot's front faces wind clockwise seen from outside: the cross product points inward.
+            if (n.Dot(a + c + d) > 0) (c, d) = (d, c);
+            var outward = -(c - a).Cross(d - a).Normalized();
+            st.SetNormal(outward); st.AddVertex(a);
+            st.SetNormal(outward); st.AddVertex(c);
+            st.SetNormal(outward); st.AddVertex(d);
+        }
+        void Quad(Vector3 a, Vector3 c, Vector3 d, Vector3 e) { Tri(a, c, d); Tri(a, d, e); }
+        int[] S = { -1, 1 };
+        // Faces
+        foreach (var s in S)
+        {
+            Quad(P(0, s, -1, -1), P(0, s, 1, -1), P(0, s, 1, 1), P(0, s, -1, 1));
+            Quad(P(1, -1, s, -1), P(1, 1, s, -1), P(1, 1, s, 1), P(1, -1, s, 1));
+            Quad(P(2, -1, -1, s), P(2, 1, -1, s), P(2, 1, 1, s), P(2, -1, 1, s));
+        }
+        // Edge chamfers
+        foreach (var a in S)
+            foreach (var c in S)
+            {
+                Quad(P(0, a, c, -1), P(0, a, c, 1), P(1, a, c, 1), P(1, a, c, -1));   // along Z
+                Quad(P(0, a, -1, c), P(0, a, 1, c), P(2, a, 1, c), P(2, a, -1, c));   // along Y
+                Quad(P(1, -1, a, c), P(1, 1, a, c), P(2, 1, a, c), P(2, -1, a, c));   // along X
+            }
+        // Corner facets
+        foreach (var x in S)
+            foreach (var y in S)
+                foreach (var z in S)
+                    Tri(P(0, x, y, z), P(1, x, y, z), P(2, x, y, z));
+        return st.Commit();
     }
 
     public static MeshInstance3D Box(Node3D parent, Vector3 size, Vector3 center, Color c, float emission = 0)
