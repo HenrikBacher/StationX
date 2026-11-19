@@ -136,6 +136,8 @@ public static partial class Defs
     /// <summary>Share of naval decrypts that turn out to be Offizier messages, and their time at the hand-cipher desk.</summary>
     public const double OffizierShare = 0.2, OffizierMult = 0.8;
     /// <summary>Intelligence goes off: decrypts delivered this many minutes after interception earn half the points, then none.</summary>
+    /// <summary>Chance a Wren sets a Typex wrongly, by skill 1..3 (doubled when worn out; halved for the meticulous or a Typex specialist).</summary>
+    public static readonly double[] TypexSlip = { 0, 0.07, 0.04, 0.02 };
     public const double StaleIntelAfter = 24 * 60, DeadIntelAfter = 48 * 60;
     public const int InspectionEveryDays = 9;
     public const double InspectionGoodRep = 2;
@@ -290,7 +292,7 @@ public static partial class Defs
         [Trait.NightOwl] = new(Trait.NightOwl, "Night owl", "Tires a third more slowly between 20:00 and 06:00.", true),
         [Trait.ChessPlayer] = new(Trait.ChessPlayer, "Chess player", "20% faster at crib desks and Banburismus.", true),
         [Trait.Tireless] = new(Trait.Tireless, "Tireless", "Tires 30% more slowly.", true),
-        [Trait.Meticulous] = new(Trait.Meticulous, "Meticulous", "Fewer mistakes on hand ciphers, sheets and checking.", true),
+        [Trait.Meticulous] = new(Trait.Meticulous, "Meticulous", "Fewer mistakes on hand ciphers, sheets, checking and Typex settings.", true),
         [Trait.CarelessTalker] = new(Trait.CarelessTalker, "Careless talker", "Says too much in the pub. Raises German suspicion and draws MI5's attention.", false),
     };
 

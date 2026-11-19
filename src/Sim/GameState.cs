@@ -689,6 +689,13 @@ public sealed partial class GameState
                 else { Requeue(st, m); return; }
                 break;
             case StationType.Typex:
+                if (op != null && Rng.Chance(TypexSlipChance(op)))
+                {
+                    // A wheel set one place out: the output is gibberish and the message has to be set up again.
+                    Stats.TypexSlips++;
+                    Requeue(st, m);
+                    return;
+                }
                 // Under the naval key, an Offizier message is still gibberish: the inner layer is unpicked by hand.
                 if (net.Naval && !m.Offizier && Campaign.OffizierFrom >= 0 && ActIndex >= Campaign.OffizierFrom && HasStation(StationType.HandCipher)
                     && new Random(Mix(Seed, m.Id, 0x0FF1)).NextDouble() < Defs.OffizierShare)
@@ -790,6 +797,15 @@ public sealed partial class GameState
         OnDecryptUsed(m);
         var c = ContractById(m.ContractId);
         if (c != null && c.State == ContractState.Active) c.Delivered++;
+    }
+
+    public static double TypexSlipChance(Staff op)
+    {
+        double p = Defs.TypexSlip[Math.Clamp(op.Skill, 1, 3)];
+        if (op.Energy < 0.3) p *= 2;
+        if (op.Has(Trait.Meticulous)) p *= 0.5;
+        if (op.Specialties.Contains(StationType.Typex)) p *= 0.5;
+        return p;
     }
 
     /// <summary>Breakthrough points a decrypt earns now: news goes off, so late ones earn half, very late ones nothing.</summary>

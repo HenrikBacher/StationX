@@ -264,6 +264,8 @@ public sealed class Stats
     public int OffizierRead { get; set; }
     /// <summary>Decrypts delivered more than a day after they were intercepted.</summary>
     public int LateDecrypts { get; set; }
+    /// <summary>Typex runs that came out as gibberish because the wheels were set wrong.</summary>
+    public int TypexSlips { get; set; }
     public int InspectionsPassed { get; set; }
     public int InspectionsFailed { get; set; }
     public int StandingAccepted { get; set; }

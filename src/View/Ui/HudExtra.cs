@@ -136,6 +136,7 @@ public partial class Hud
         if (st.OpsWithheld > 0) more.Add($"{st.OpsWithheld} operations held back to protect the source");
         if (st.CribsDragged > 0) more.Add($"{st.CribsDragged} cribs placed by hand");
         if (st.BanburiesSlid > 0) more.Add($"{st.BanburiesSlid} Banbury sheets slid by hand");
+        if (st.TypexSlips > 0) more.Add($"{st.TypexSlips} Typex runs set up wrongly and done again");
         if (st.LateDecrypts > 0) more.Add($"{st.LateDecrypts} decrypts delivered a day or more late");
         if (more.Count > 0) _sideBox.AddChild(UiTheme.Label(char.ToUpperInvariant(more[0][0]) + string.Join(" · ", more)[1..], 12, UiTheme.TextDim));
     }
@@ -192,42 +193,49 @@ public partial class Hud
 
     (string id, string text)? NextHint() => Walkthrough() ?? Situation();
 
+    /// <summary>Every situational tip: id (shown once per id), when it applies, and its text.</summary>
+    IEnumerable<(string id, bool when, string text)> Tips()
+    {
+        yield return ("vetting", S.Staff.Any(s => s.Arriving(S.Now)),
+            "New recruits are vetted and put on a train: they take most of a day to report. Hire ahead of need, not when the pile is already on the desk.");
+        yield return ("raid", S.RaidOn,
+            "An air raid. Desk work runs at half pace in the blackout until the all-clear; the Bombes run on. In the Blitz, don't count on the night watch.");
+        yield return ("sick", S.SickCount > 0,
+            "Someone is off sick. Illness spreads, worst in winter. Stoves in the huts, enough billets and a sick bay in the Mansion keep it down.");
+        yield return ("billets", S.Overcrowded > 0,
+            "More staff than billets: the newest are lodged miles away, slower and unhappy. Requisition more billets from Staff (H).");
+        yield return ("cold", S.Winter && S.ColdZones() is { Count: > 0 },
+            "Winter. People in a timber hut without a coke stove tire faster and fall ill more. A stove is £60.");
+        yield return ("worn", S.Stations.Any(s => s.Wears && s.Wear > 0.7 && !s.IsDown(S.Now)),
+            "A machine is badly worn (the orange lamp). Service it from its panel while it's idle: an hour now saves five hours of breakdown later.");
+        yield return ("stale", S.ActiveNets.Any(n => S.Stale(n, S.Day)),
+            "The Germans have changed a habit and our cribs for one network are poor for a few days (see the key panel). Its Bombe runs take longer: give it more Bombe time or take fewer of its requests.");
+        yield return ("sixta", S.ActIndex >= Defs.SixtaFromAct && S.Stations.Any(s => s.Type == StationType.Crib) && !S.Stations.Any(s => s.Type == StationType.TrafficAnalysis),
+            "Hut 6's traffic analysts read what's outside a message: callsigns, frequencies, who sends to whom. A traffic-analysis desk (Build, B) by the crib desks logs two of each network's messages a day, and that key's cribs and Bombe runs go quicker.");
+        yield return ("typexslip", S.Stats.TypexSlips > 0,
+            "A Typex came out as gibberish: the Wren set a wheel one place out, and the message goes through again. Green or worn-out operators slip more often; experienced, rested Wrens and Typex specialists rarely do.");
+        yield return ("staleintel", S.Messages.Values.Any(m => S.Now - m.Created > Defs.StaleIntelAfter),
+            "Intelligence goes off. A decrypt delivered more than a day after it was intercepted earns half the breakthroughs; after two days, none. It still counts for its request. Clear backlogs before they go stale.");
+        yield return ("offizier", S.Messages.Values.Any(m => m.Offizier && m.Next == StationType.HandCipher),
+            "An Offizier message: under the day's naval key it's enciphered again on an officers-only setting. After the Typex it goes to a hand-cipher desk to be unpicked. If naval traffic is heavy, build a second hand-cipher desk.");
+        yield return ("inspection", S.InspectionDue,
+            "A visitor from Whitehall is coming. They judge what they see: overflowing in-trays, broken machines, glum faces, a request about to be missed, an overdrawn account. A smooth-running Park earns reputation; a shambles loses it.");
+        yield return ("priorities", S.KeysQueueing,
+            "Keys are queueing for the Bombes. On the Enigma keys card, put the network with the most pressing request First; a network you have no requests for can go on Hold, leaving the Bombes to the others.");
+        yield return ("neglect", S.NeglectedMinistries().Any(),
+            "A ministry has had nothing from us for days. Leave one waiting ten days and it complains to the Foreign Office every week. Take one of its requests.");
+        yield return ("layout", S.Staff.Count >= 18 && S.Stats.DeliveredTotal > 40 && S.Stats.HandOvers < S.Stats.DeliveredTotal / 4,
+            "Put each step's desk beside the next one (registration, Typex, translation, despatch): neighbouring desks pass paper across without a runner. And keep aisles clear: people squeezing past each other walk slower.");
+        yield return ("allhands", S.CanCallAllHands() == null && S.Contracts.Any(c => c.State == ContractState.Active && c.Due - S.Now < 6 * 60 && c.Quantity - c.Delivered >= 2),
+            "A request is about to be missed. In an emergency, Staff (H) → Call all hands brings everyone off watch back in for four hours. It costs overtime and morale, and works once a week.");
+    }
+
+    /// <summary>Tip ids used more than once (each would hide the other); for the self-test.</summary>
+    public string[] DuplicateTipIds() => Tips().GroupBy(t => t.id).Where(g => g.Count() > 1).Select(g => g.Key).ToArray();
+
     /// <summary>Tips for later systems, each shown once when its situation first comes up.</summary>
     (string id, string text)? Situation()
     {
-        IEnumerable<(string id, bool when, string text)> Tips()
-        {
-            yield return ("vetting", S.Staff.Any(s => s.Arriving(S.Now)),
-                "New recruits are vetted and put on a train: they take most of a day to report. Hire ahead of need, not when the pile is already on the desk.");
-            yield return ("raid", S.RaidOn,
-                "An air raid. Desk work runs at half pace in the blackout until the all-clear; the Bombes run on. In the Blitz, don't count on the night watch.");
-            yield return ("sick", S.SickCount > 0,
-                "Someone is off sick. Illness spreads, worst in winter. Stoves in the huts, enough billets and a sick bay in the Mansion keep it down.");
-            yield return ("billets", S.Overcrowded > 0,
-                "More staff than billets: the newest are lodged miles away, slower and unhappy. Requisition more billets from Staff (H).");
-            yield return ("cold", S.Winter && S.ColdZones() is { Count: > 0 },
-                "Winter. People in a timber hut without a coke stove tire faster and fall ill more. A stove is £60.");
-            yield return ("worn", S.Stations.Any(s => s.Wears && s.Wear > 0.7 && !s.IsDown(S.Now)),
-                "A machine is badly worn (the orange lamp). Service it from its panel while it's idle: an hour now saves five hours of breakdown later.");
-            yield return ("stale", S.ActiveNets.Any(n => S.Stale(n, S.Day)),
-                "The Germans have changed a habit and our cribs for one network are poor for a few days (see the key panel). Its Bombe runs take longer: give it more Bombe time or take fewer of its requests.");
-            yield return ("sixta", S.ActIndex >= Defs.SixtaFromAct && S.Stations.Any(s => s.Type == StationType.Crib) && !S.Stations.Any(s => s.Type == StationType.TrafficAnalysis),
-                "Hut 6's traffic analysts read what's outside a message: callsigns, frequencies, who sends to whom. A traffic-analysis desk (Build, B) by the crib desks logs two of each network's messages a day, and that key's cribs and Bombe runs go quicker.");
-            yield return ("stale", S.Messages.Values.Any(m => S.Now - m.Created > Defs.StaleIntelAfter),
-                "Intelligence goes off. A decrypt delivered more than a day after it was intercepted earns half the breakthroughs; after two days, none. It still counts for its request. Clear backlogs before they go stale.");
-            yield return ("offizier", S.Messages.Values.Any(m => m.Offizier && m.Next == StationType.HandCipher),
-                "An Offizier message: under the day's naval key it's enciphered again on an officers-only setting. After the Typex it goes to a hand-cipher desk to be unpicked. If naval traffic is heavy, build a second hand-cipher desk.");
-            yield return ("inspection", S.InspectionDue,
-                "A visitor from Whitehall is coming. They judge what they see: overflowing in-trays, broken machines, glum faces, a request about to be missed, an overdrawn account. A smooth-running Park earns reputation; a shambles loses it.");
-            yield return ("priorities", S.KeysQueueing,
-                "Keys are queueing for the Bombes. On the Enigma keys card, put the network with the most pressing request First; a network you have no requests for can go on Hold, leaving the Bombes to the others.");
-            yield return ("neglect", S.NeglectedMinistries().Any(),
-                "A ministry has had nothing from us for days. Leave one waiting ten days and it complains to the Foreign Office every week. Take one of its requests.");
-            yield return ("layout", S.Staff.Count >= 18 && S.Stats.DeliveredTotal > 40 && S.Stats.HandOvers < S.Stats.DeliveredTotal / 4,
-                "Put each step's desk beside the next one (registration, Typex, translation, despatch): neighbouring desks pass paper across without a runner. And keep aisles clear: people squeezing past each other walk slower.");
-            yield return ("allhands", S.CanCallAllHands() == null && S.Contracts.Any(c => c.State == ContractState.Active && c.Due - S.Now < 6 * 60 && c.Quantity - c.Delivered >= 2),
-                "A request is about to be missed. In an emergency, Staff (H) → Call all hands brings everyone off watch back in for four hours. It costs overtime and morale, and works once a week.");
-        }
         if (S.Mode == GameMode.FreePlay && S.ActIndex < 1) return null;
         foreach (var (id, when, text) in Tips())
             if (when && !S.TipsDismissed.Contains(id)) return (id, text);

@@ -86,6 +86,8 @@ public partial class Main
         try
         {
             await Frames(10);
+            var dupTips = Hud.DuplicateTipIds();
+            Check(dupTips.Length == 0, "tip ids are unique" + (dupTips.Length > 0 ? $" (duplicated: {string.Join(", ", dupTips)})" : ""));
             Settings.Hints = false;
             Hud.ShowBriefing();
             await Frames(2);

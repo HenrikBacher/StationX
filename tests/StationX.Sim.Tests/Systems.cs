@@ -1816,3 +1816,18 @@ public class StaleIntelTests
         Assert.Equal(0, g.PointsFor(m));
     }
 }
+
+public class TypexSlipTests
+{
+    [Fact]
+    public void GreenAndTiredWrensSlipMore()
+    {
+        var expert = new Staff { Role = Role.Wren, Skill = 3, Energy = 1 };
+        var green = new Staff { Role = Role.Wren, Skill = 1, Energy = 1 };
+        var tired = new Staff { Role = Role.Wren, Skill = 1, Energy = 0.1 };
+        Assert.True(GameState.TypexSlipChance(expert) < GameState.TypexSlipChance(green));
+        Assert.True(GameState.TypexSlipChance(green) < GameState.TypexSlipChance(tired));
+        green.Specialties.Add(StationType.Typex);
+        Assert.Equal(0.035, GameState.TypexSlipChance(green), 6);
+    }
+}
