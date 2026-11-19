@@ -397,7 +397,7 @@ public sealed partial class GameState
             if (!Messages.TryGetValue(id, out var m)) continue;
             // Networks put First come first; then only live requests set the order: work for a request already
             // missed or met waits until the rest is done.
-            double due = ContractById(m.ContractId) is { State: ContractState.Active } c ? c.Due : double.MaxValue;
+            double due = ContractById(m.ContractId) is { State: ContractState.Active } c ? WorkDue(c) : double.MaxValue;
             var key = (Rank(m), due);
             if (key.CompareTo(bestKey) < 0) { bestKey = key; best = id; }
         }

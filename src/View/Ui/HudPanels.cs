@@ -60,7 +60,7 @@ public partial class Hud
             "build" => $"{S.Funds / 50}|{S.ActIndex}|{string.Join(",", S.Researched)}|{S.IndicatorChanged}",
             "staff" => string.Join(",", S.Staff.Select(s => $"{s.Id}{s.Task?.Kind}{s.Leaving}{s.Away}{s.Shift}{(int)(s.Energy * 5)}{(int)(s.Morale * 5)}{s.FarBillet}{s.IsSick(S.Now)}{s.Arriving(S.Now)}{s.HeadOf}")) + $"|{S.Billets}{S.Funds >= Defs.BilletCost}{S.AllHands}{S.CanCallAllHands() == null}|" +
                        string.Join(",", S.Candidates.Select(c => c.Id)) + $"|{S.Funds / 25}",
-            "requests" => string.Join(",", S.Contracts.Select(c => $"{c.Id}{c.State}{c.Delivered}{c.Spawned}{(int)((c.State == ContractState.Offered ? c.OfferExpires : c.Due) - S.Now) / 60}")) +
+            "requests" => string.Join(",", S.Contracts.Select(c => $"{c.Id}{c.State}{c.Delivered}{c.Spawned}{c.MilestonesChecked}{(int)((c.State == ContractState.Offered ? c.OfferExpires : c.Due) - S.Now) / 60}")) +
                           $"|{string.Join(",", S.KeyBoardNets().Select(n => S.KeyRoute(n)))}",
             "research" => $"{S.Points}|{string.Join(",", S.Researched)}|{string.Join(",", S.ResearchAvailable)}",
             "huts" => $"{S.Funds / 100}|{S.OutstationBombes}|{S.CanBuyOutstation()}|" + string.Join(",", S.Grid.Zones.Select(z => $"{z.Available}{z.Unlocked}")),
@@ -306,7 +306,19 @@ public partial class Hud
             v.AddChild(bar);
             var status = UiTheme.Label($"{c.Delivered}/{c.Quantity} delivered · {c.Spawned - c.Delivered} in the huts · {c.Quantity - c.Spawned} still to be intercepted", 12, UiTheme.TextDim);
             v.AddChild(status);
-            v.AddChild(UiTheme.Label($"Due in {Hours(left)} · £{c.Reward:N0} on completion", 12, left < Defs.MinutesPerDay * 0.5 ? Gfx.Bad : UiTheme.Text));
+            if (c.Standing)
+            {
+                int next = c.MilestonesChecked + 1;
+                double at = GameState.MilestoneAt(c, next);
+                int need = c.PerDay * next;
+                bool behind = c.Delivered < need && at - S.Now < 8 * 60;
+                v.AddChild(UiTheme.Label(next <= c.TotalDays
+                        ? $"Day {next} of {c.TotalDays}: {need} delivered in all by {S.DateOf((int)(at / Defs.MinutesPerDay)):ddd} {(int)(at % Defs.MinutesPerDay) / 60:00}:{(int)(at % 60):00} ({Hours(at - S.Now)}) · milestones met {c.MilestonesMet}/{c.MilestonesChecked}"
+                        : $"Milestones met {c.MilestonesMet}/{c.TotalDays}", 12, behind ? Gfx.Bad : UiTheme.Text));
+                v.AddChild(UiTheme.Label($"£{c.MilestonePay:N0} for each day met · £{c.Reward:N0} bonus on completion (half if a day was missed)", 12, UiTheme.TextDim));
+            }
+            else
+                v.AddChild(UiTheme.Label($"Due in {Hours(left)} · £{c.Reward:N0} on completion", 12, left < Defs.MinutesPerDay * 0.5 ? Gfx.Bad : UiTheme.Text));
         }
 
         _sideBox.AddChild(UiTheme.Caps($"Offered · {offers.Count}", 12, UiTheme.Accent));
@@ -316,7 +328,9 @@ public partial class Hud
             var v = Card(Gfx.NetColor(c.Net));
             ContractHeader(v, c);
             v.AddChild(UiTheme.Label(c.Flavour, 12, UiTheme.TextDim));
-            v.AddChild(UiTheme.Label($"{c.Quantity} messages within {Hours(c.Days * Defs.MinutesPerDay)} · £{c.Reward:N0} · reputation +{c.Rep}", 13, UiTheme.Text));
+            v.AddChild(UiTheme.Label(c.Standing
+                ? $"{c.PerDay} messages every day for {c.TotalDays} days · £{c.MilestonePay:N0} each day met, £{c.Reward:N0} bonus · reputation +{c.Rep}. A day missed costs {Defs.MilestoneMissedRep} reputation."
+                : $"{c.Quantity} messages within {Hours(c.Days * Defs.MinutesPerDay)} · £{c.Reward:N0} · reputation +{c.Rep}", 13, UiTheme.Text));
             if (c.Flash)
                 v.AddChild(UiTheme.Label($"Urgent. Ignoring it costs {Defs.FlashIgnoredRep:0} reputation; declining costs {Defs.FlashIgnoredRep / 2:0}. Best taken when today's key is already broken.", 11, Gfx.Warn));
             var nd = Defs.NetOf(c.Net);

@@ -185,3 +185,23 @@ public class MoveDiag(ITestOutputHelper output)
         output.WriteLine($"delivered {g.Stats.DeliveredTotal - delivered0}");
     }
 }
+
+public class StandingProbe
+{
+    readonly Xunit.Abstractions.ITestOutputHelper o;
+    public StandingProbe(Xunit.Abstractions.ITestOutputHelper o) => this.o = o;
+    [Fact]
+    public void Probe()
+    {
+        if (Environment.GetEnvironmentVariable("PROBE") != "1") return;
+        var g = TestUtil.BombeLine(12, checking: true);
+        var c = g.MakeStanding(new ContractTemplate(Net.Red, 6, 6, 3, 3));
+        g.Contracts.Add(c); g.Accept(c.Id);
+        o.WriteLine($"perDay {c.PerDay} qty {c.Quantity} days {c.Days} spawns {string.Join(",", c.SpawnTimes.Select(t => ((t - c.AcceptedAt) / 60).ToString("0")))}");
+        for (int h = 0; h < 80; h += 4)
+        {
+            TestUtil.Run(g, 4.0 / 24);
+            o.WriteLine($"h{h + 4}: spawned {c.Spawned} delivered {c.Delivered} checked {c.MilestonesChecked} met {c.MilestonesMet} state {c.State}");
+        }
+    }
+}

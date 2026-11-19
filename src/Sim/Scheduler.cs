@@ -71,7 +71,7 @@ public sealed partial class GameState
         var waiting = Messages.Values
             .Where(m => m.Loc == Loc.Output && m.Next != null && !m.Reserved)
             .OrderBy(Rank)
-            .ThenBy(m => ContractById(m.ContractId)?.Due ?? double.MaxValue)
+            .ThenBy(m => ContractById(m.ContractId) is { } c ? WorkDue(c) : double.MaxValue)
             .ThenBy(m => m.Id)
             .ToList();
         if (waiting.Count == 0) return;

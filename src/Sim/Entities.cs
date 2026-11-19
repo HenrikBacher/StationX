@@ -231,6 +231,14 @@ public sealed class Contract
     public string? Tag { get; set; }
     /// <summary>A MOST IMMEDIATE request: hours, not days, and ignoring it is noticed.</summary>
     public bool Flash { get; set; }
+    /// <summary>A standing order: PerDay decrypts every day, checked against a running total each 24 hours.</summary>
+    public int PerDay { get; set; }
+    public bool Standing => PerDay > 0;
+    public int MilestonesChecked { get; set; }
+    public int MilestonesMet { get; set; }
+    /// <summary>Paid for each milestone met (the completion Reward is the bonus on top).</summary>
+    public int MilestonePay { get; set; }
+    public int TotalDays => (int)Math.Floor(Days);
     public ContractState State { get; set; }
     public List<double> SpawnTimes { get; set; } = new();
 }
@@ -242,6 +250,9 @@ public sealed class Stats
     public Dictionary<Net, int> Delivered { get; set; } = new();
     public Dictionary<Net, int> KeyBreaks { get; set; } = new();
     public Dictionary<Net, int> BombeBreaks { get; set; } = new();
+    public int MilestonesMet { get; set; }
+    public int MilestonesMissed { get; set; }
+    public int StandingAccepted { get; set; }
     public int DilemmasResolved { get; set; }
     public HashSet<string> ScriptedDone { get; set; } = new();
     /// <summary>Reputation gained and lost over the whole campaign, by cause.</summary>

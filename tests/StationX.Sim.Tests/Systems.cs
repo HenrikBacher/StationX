@@ -1494,3 +1494,42 @@ public class HeadStyleTests
         Assert.True(a.Morale > b.Morale + 0.03, $"{a.Morale} vs {b.Morale}");
     }
 }
+
+public class StandingOrderTests
+{
+    [Fact]
+    public void MilestonesPayDailyAndMissesCostReputation()
+    {
+        var g = TestUtil.BombeLine(12, checking: true);
+        var c = g.MakeStanding(new ContractTemplate(Net.Red, 6, 6, 3, 3));
+        Assert.True(c.Standing);
+        Assert.Equal(c.PerDay * Defs.StandingDays, c.Quantity);
+        g.Contracts.Add(c);
+        Assert.True(g.Accept(c.Id));
+        // Spread over the days: no more than a day's quota (plus one) comes in on the first day.
+        Assert.True(c.SpawnTimes.Count(t => t < c.AcceptedAt + Defs.MinutesPerDay) <= c.PerDay);
+        TestUtil.Run(g, 1.0 + Defs.MilestoneGraceDays + 0.02);
+        Assert.Equal(1, c.MilestonesChecked);
+        // Force a miss on day 2.
+        c.Delivered = 0;
+        int before = c.MilestonesMet;
+        TestUtil.Run(g, 1.0);
+        Assert.Equal(2, c.MilestonesChecked);
+        Assert.Equal(before, c.MilestonesMet);
+    }
+
+    [Fact]
+    public void FinishingEarlyCountsTheRemainingDays()
+    {
+        var g = TestUtil.BombeLine(12, checking: true);
+        var c = g.MakeStanding(new ContractTemplate(Net.Red, 6, 6, 3, 3));
+        g.Contracts.Add(c);
+        g.Accept(c.Id);
+        int funds = g.Funds;
+        c.Delivered = c.Quantity;
+        g.Advance(3);
+        Assert.Equal(ContractState.Completed, c.State);
+        Assert.Equal(c.TotalDays, c.MilestonesMet);
+        Assert.True(g.Funds >= funds + c.MilestonePay * c.TotalDays);
+    }
+}

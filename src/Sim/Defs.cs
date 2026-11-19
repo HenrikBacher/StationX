@@ -133,6 +133,9 @@ public static partial class Defs
     public const double StrainWarnAt = 0.75, StrainBreakChance = 0.3, RestLeaveDays = 4, BreakdownDays = 10;
     // Rivalries between cryptanalysts working in the same room.
     public const double RivalChance = 0.025, RivalWorkRate = 0.85, RivalMoralePerMinute = 0.00006;
+    // Standing orders: from the Fifteenth of September (act 6), some requests are N a day for a few days with daily milestones.
+    public const int StandingFromAct = 6, StandingDays = 3;
+    public const double StandingChance = 0.15, MilestoneMissedRep = 0.75, MilestoneRep = 0.5, MilestoneGraceDays = 1.25;
     public const double CrowdSlow = 0.15;
     public const double CrowdFloor = 0.6;
 

@@ -370,11 +370,16 @@ public sealed partial class GameState
     {
         c.State = ContractState.Active;
         c.AcceptedAt = Now;
+        if (c.Standing) Stats.StandingAccepted++;
         OpenOperation(c);
         c.Due = Now + c.Days * Defs.MinutesPerDay;
         // Urgent traffic is already in hand; routine traffic trickles in over the first part of the window.
         double window = c.Flash ? 30 : c.Days * Defs.MinutesPerDay * 0.6;
-        c.SpawnTimes = Enumerable.Range(0, c.Quantity)
+        c.SpawnTimes = c.Standing
+            // A day's quota comes in over each day of the order.
+            ? Enumerable.Range(0, c.Quantity).Select(i => Now + 20 + (i / c.PerDay) * Defs.MinutesPerDay + Rng.NextDouble() * Defs.MinutesPerDay * 0.55)
+                .OrderBy(t => t).ToList()
+            : Enumerable.Range(0, c.Quantity)
             .Select(_ => Now + 20 + Rng.NextDouble() * window)
             .OrderBy(t => t).ToList();
     }
@@ -527,6 +532,7 @@ public sealed partial class GameState
                 var tpl = pool[^1];
                 foreach (var p in pool) { r -= p.Weight; if (r <= 0) { tpl = p; break; } }
                 var c = MakeContract(tpl);
+                if (ActIndex >= Defs.StandingFromAct && new Random(Mix(Seed, c.Id, 0x57A)).NextDouble() < Defs.StandingChance) c = ToStanding(c, tpl);
                 Contracts.Add(c);
                 Emit(EventKind.Info, $"New request from the {Defs.IssuerNames[c.Issuer]}: {c.Title}.");
             }
@@ -567,11 +573,13 @@ public sealed partial class GameState
                         inbox.Output.Add(m.Id);
                         c.Spawned++;
                     }
+                    if (c.Standing) CheckMilestones(c);
                     if (c.Delivered >= c.Quantity)
                     {
                         c.State = ContractState.Completed;
                         var pol = Defs.Policies[Policy];
                         int reward = (int)(c.Reward * pol.Reward);
+                        if (c.Standing) reward = FinishStanding(c, reward);
                         Funds += reward;
                         AdjustRep(c.Rep * pol.Rep, "Requests completed");
                         ChangeMorale(0.02);
@@ -586,7 +594,8 @@ public sealed partial class GameState
                         c.State = ContractState.Failed;
                         Stats.ContractsFailed++;
                         ResolveOperation(c, won: false);
-                        AdjustRep(-(4 + c.Rep), "Missed deadlines");
+                        // A standing order's missed days have already cost something each.
+                        AdjustRep(c.Standing ? -(1 + 0.5 * (c.TotalDays - c.MilestonesMet)) : -(4 + c.Rep), "Missed deadlines");
                         ChangeMorale(-0.04);
                         Emit(EventKind.Bad, $"Missed deadline: {c.Title} for the {Defs.IssuerNames[c.Issuer]}. Reputation falls.");
                         if (c.Tag != null) (retries ??= new()).Add(c);
