@@ -415,12 +415,36 @@ public partial class StationModel : Node3D
     void Desk(float inset = 0.08f)
     {
         float w = W - inset * 2, d = H - 0.3f, z0 = -H / 2 + 0.08f;
-        Mesh3.BoxAt(this, -w / 2, DeskTop - 0.06f, z0, w, 0.06f, d, Gfx.Oak);
-        foreach (var lx in new[] { -w / 2 + 0.03f, w / 2 - 0.09f })
-            foreach (var lz in new[] { z0 + 0.03f, z0 + d - 0.09f })
-                Mesh3.BoxAt(this, lx, 0, lz, 0.06f, DeskTop - 0.06f, 0.06f, Gfx.OakDark);
-        // Modesty panel at the back
-        Mesh3.BoxAt(this, -w / 2 + 0.05f, 0.12f, z0 + 0.02f, w - 0.1f, DeskTop - 0.2f, 0.03f, Gfx.OakDark);
+        var oak = Gfx.Oak; var dark = Gfx.OakDark;
+        // Top with a slight overhang and a darker moulded edge under it
+        Mesh3.BoxAt(this, -w / 2, DeskTop - 0.035f, z0, w, 0.035f, d, oak);
+        Mesh3.BoxAt(this, -w / 2 + 0.03f, DeskTop - 0.05f, z0 + 0.03f, w - 0.06f, 0.015f, d - 0.06f, dark);
+        float apronY = DeskTop - 0.12f, apronH = 0.07f;
+        bool pedestal = w > 1.2f;
+        float pw = 0.36f, px = w / 2 - 0.05f - pw;      // pedestal on the right
+        // Apron rails front and back, with a pencil drawer in the knee-hole front
+        Mesh3.BoxAt(this, -w / 2 + 0.05f, apronY, z0 + 0.04f, w - 0.1f, apronH, 0.025f, dark);
+        Mesh3.BoxAt(this, -w / 2 + 0.05f, apronY, z0 + d - 0.065f, w - 0.1f, apronH, 0.025f, dark);
+        Mesh3.Box(this, new Vector3(0.05f, 0.012f, 0.012f), new Vector3(pedestal ? (-w / 2 + px) / 2 : 0, apronY + apronH / 2, z0 + d - 0.035f), Gfx.Brass);
+        // Turned legs (both on the left if there's a pedestal, all four otherwise)
+        foreach (var lx in pedestal ? new[] { -w / 2 + 0.07f } : new[] { -w / 2 + 0.07f, w / 2 - 0.07f })
+            foreach (var lz in new[] { z0 + 0.06f, z0 + d - 0.06f })
+            {
+                Mesh3.Cyl(this, 0.028f, 0.02f, apronY, new Vector3(lx, apronY / 2, lz), dark, 10);
+                Mesh3.Box(this, new Vector3(0.06f, apronH, 0.06f), new Vector3(lx, apronY + apronH / 2, lz), dark);
+            }
+        if (pedestal)
+        {
+            // A pedestal of three drawers with brass cup handles
+            Mesh3.BoxAt(this, px, 0.02f, z0 + 0.04f, pw, DeskTop - 0.07f, d - 0.08f, dark);
+            float dh = (DeskTop - 0.13f) / 3f;
+            for (int k = 0; k < 3; k++)
+            {
+                float y = 0.05f + k * dh;
+                Mesh3.BoxAt(this, px + 0.025f, y, z0 + d - 0.045f, pw - 0.05f, dh - 0.02f, 0.012f, oak);
+                Mesh3.Box(this, new Vector3(0.07f, 0.014f, 0.014f), new Vector3(px + pw / 2, y + dh / 2 - 0.01f, z0 + d - 0.03f), Gfx.Brass);
+            }
+        }
         Chair(new Vector3(0, 0, H / 2 + 0.22f));
     }
 
