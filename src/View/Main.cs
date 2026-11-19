@@ -163,7 +163,14 @@ public partial class Main : Node3D
             if (Saves.Read(slot, out var err) is { } loaded) LoadState(loaded);
             else GD.PrintErr($"Could not load {slot}: {err}");
         }
-        if (_selfTest) { _ = SelfTest(); return; }
+        if (_selfTest)
+        {
+            // Don't wait on vsync: a window behind others gets its frames throttled by the compositor, and the
+            // self-test then crawls (5 minutes instead of 6 seconds).
+            DisplayServer.WindowSetVsyncMode(DisplayServer.VSyncMode.Disabled);
+            _ = SelfTest();
+            return;
+        }
 
         if (_shotPath != null)
         {
