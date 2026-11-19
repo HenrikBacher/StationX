@@ -1,0 +1,96 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+namespace StationX.Sim;
+
+/// <summary>
+/// Visits from Whitehall. From the Battle of Britain on, every week or two a senior visitor is announced for the next
+/// day. When they come, they walk round the huts and judge what they see: in-trays piled up, machines standing broken,
+/// glum faces, requests about to be missed, an overdrawn account. A park running smoothly earns reputation; a shambles
+/// costs it. The player gets a day's warning to tidy up.
+/// </summary>
+public sealed partial class GameState
+{
+    /// <summary>When the announced visit happens (game minutes), or -1 if none is due.</summary>
+    public double InspectionAt { get; set; } = -1;
+    public string InspectionBy { get; set; } = "";
+    public int NextInspectionDay { get; set; }
+
+    static readonly string[] Visitors =
+    {
+        "\"C\", the head of the Secret Intelligence Service",
+        "the Director of Naval Intelligence",
+        "an Air Commodore from the Air Ministry",
+        "a brigadier from the War Office",
+        "the Foreign Office's man for GC&CS",
+    };
+
+    public bool InspectionDue => InspectionAt >= 0;
+
+    void PlanInspection()
+    {
+        if (ActIndex < Defs.InspectionsFromAct || InspectionDue || Day < NextInspectionDay) return;
+        // Separate dice, so visits don't shift every other random roll in the game.
+        var r = new Random(Mix(Seed, Day, 0x1A5B));
+        if (NextInspectionDay == 0)
+        {
+            // The first one comes a few days into the chapter that starts them.
+            NextInspectionDay = Day + 2 + r.Next(3);
+            return;
+        }
+        InspectionBy = Visitors[r.Next(Visitors.Length)];
+        InspectionAt = (Day + 1) * Defs.MinutesPerDay + (10 + r.Next(6)) * 60;
+        NextInspectionDay = Day + Defs.InspectionEveryDays + r.Next(5);
+        Emit(EventKind.Info, $"Tomorrow at {(int)(InspectionAt % Defs.MinutesPerDay / 60):00}:00, {InspectionBy} visits the Park. " +
+                             "Clear the in-trays, mend the machines and keep everyone cheerful.");
+    }
+
+    /// <summary>What a visitor would make of the Park right now: a score and the things they noticed.</summary>
+    public (int score, List<string> notes) InspectionVerdict()
+    {
+        int score = 0;
+        var notes = new List<string>();
+        int piled = Stations.Count(s => s.Def.InputCap > 0 && s.Input.Count >= s.Def.InputCap && s.Def.Operator != null);
+        if (piled == 0) { score++; notes.Add("not an in-tray overflowing"); }
+        else if (piled >= 3) { score -= 2; notes.Add($"in-trays piled high on {piled} desks"); }
+        else { score--; notes.Add("an in-tray or two overflowing"); }
+
+        int broken = Stations.Count(s => s.IsDown(Now) && !s.Servicing);
+        if (broken > 0) { score -= Math.Min(2, broken); notes.Add(broken == 1 ? "a machine standing broken" : $"{broken} machines standing broken"); }
+
+        var here = Staff.Where(s => !s.Away && s.SickUntil <= Now).ToList();
+        double morale = here.Count > 0 ? here.Average(s => s.Morale) : Defs.MoraleBaseline;
+        if (morale >= 0.65) { score++; notes.Add("cheerful, busy people"); }
+        else if (morale < 0.4) { score--; notes.Add("glum faces everywhere"); }
+
+        if (Contracts.Any(c => c.State == ContractState.Active && c.Due - Now < 6 * 60 && c.Quantity - c.Delivered >= 2))
+        { score--; notes.Add("a request about to be missed"); }
+        if (Funds < 0) { score--; notes.Add("the account overdrawn"); }
+        return (score, notes);
+    }
+
+    void TickInspection()
+    {
+        if (!InspectionDue || Now < InspectionAt) return;
+        InspectionAt = -1;
+        var (score, notes) = InspectionVerdict();
+        string saw = string.Join(", ", notes);
+        if (score >= 1)
+        {
+            AdjustRep(Defs.InspectionGoodRep, "Visits");
+            Stats.InspectionsPassed++;
+            Emit(EventKind.Good, $"{Cap(InspectionBy)} went round the huts and left impressed: {saw}.");
+        }
+        else if (score <= -2)
+        {
+            AdjustRep(-Defs.InspectionBadRep, "Visits");
+            Stats.InspectionsFailed++;
+            Emit(EventKind.Bad, $"{Cap(InspectionBy)} was not impressed: {saw}. Whitehall will hear of it.");
+        }
+        else
+            Emit(EventKind.Info, $"{Cap(InspectionBy)} looked round and said little: {saw}.");
+    }
+
+    static string Cap(string s) => s.Length == 0 ? s : s[0] == '"' ? s : char.ToUpperInvariant(s[0]) + s[1..];
+}

@@ -1690,3 +1690,49 @@ public class CribPuzzleTests
         Assert.Equal(1, g.Stats.CribsDragged);
     }
 }
+
+public class InspectionTests
+{
+    [Fact]
+    public void VisitsAreAnnouncedThenJudged()
+    {
+        var g = GameState.NewGame(21);
+        g.DebugSkipToAct(Defs.InspectionsFromAct);
+        int announced = 0, judged = 0;
+        for (int i = 0; i < 24 * 30 && judged == 0; i++)
+        {
+            bool before = g.InspectionDue;
+            g.Advance(60);
+            if (!before && g.InspectionDue) announced++;
+            if (g.Stats.InspectionsPassed + g.Stats.InspectionsFailed > 0 || (before && !g.InspectionDue)) judged++;
+        }
+        Assert.True(announced >= 1, "a visit was announced");
+        Assert.True(judged >= 1, "and then happened");
+    }
+
+    [Fact]
+    public void AShamblesScoresBadlyAndATidyParkWell()
+    {
+        var g = TestUtil.BombeLine(12, checking: true);
+        foreach (var s in g.Staff) s.Morale = 0.8;
+        g.Funds = 500;
+        Assert.True(g.InspectionVerdict().score >= 1);
+        g.Funds = -200;
+        foreach (var s in g.Staff) s.Morale = 0.2;
+        foreach (var st in g.Stations.Where(s => s.Wears)) st.DownUntil = g.Now + 600;
+        Assert.True(g.InspectionVerdict().score <= -2);
+    }
+
+    [Fact]
+    public void InspectionScheduleIsReproducible()
+    {
+        double At(int seed)
+        {
+            var g = GameState.NewGame(seed);
+            g.DebugSkipToAct(Defs.InspectionsFromAct);
+            for (int i = 0; i < 24 * 20 && !g.InspectionDue; i++) g.Advance(60);
+            return g.InspectionAt;
+        }
+        Assert.Equal(At(5), At(5));
+    }
+}

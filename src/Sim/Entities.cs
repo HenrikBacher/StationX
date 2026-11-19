@@ -256,6 +256,8 @@ public sealed class Stats
     public int MilestonesMissed { get; set; }
     public int OpsWithheld { get; set; }
     public int CribsDragged { get; set; }
+    public int InspectionsPassed { get; set; }
+    public int InspectionsFailed { get; set; }
     public int StandingAccepted { get; set; }
     public int DilemmasResolved { get; set; }
     public HashSet<string> ScriptedDone { get; set; } = new();

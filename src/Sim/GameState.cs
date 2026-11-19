@@ -128,6 +128,7 @@ public sealed partial class GameState
         TickRemote();
         TickRaids();
         TickCrises();
+        TickInspection();
         TickOperations();
 
         if (Now >= NextScheduleAt)
@@ -149,6 +150,7 @@ public sealed partial class GameState
         MaybeStaleCribs();
         PlanRaid();
         PlanCrisis();
+        PlanInspection();
         DailyPeople();
         DailyIntelligence();
         foreach (var k in Flows.Keys.ToList())

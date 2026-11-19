@@ -131,6 +131,11 @@ public static partial class Defs
     /// <summary>Walking slows by this much for each other person on the tile ahead or the one you're on.</summary>
     // Crises (from act 2): a power cut stops the machines; a surge brings a run of MOST IMMEDIATE requests.
     public const int CrisesFromAct = 2;
+    /// <summary>Visits from Whitehall: from the Battle of Britain, every 9-13 days.</summary>
+    public const int InspectionsFromAct = 3;
+    public const int InspectionEveryDays = 9;
+    public const double InspectionGoodRep = 2;
+    public const double InspectionBadRep = 2;
     public const double CrisisChance = 0.07;            // per day, scaled by difficulty's wear multiplier
     public const int GeneratorCost = 250, OvertimeCost = 200;
     public const double OvertimeRate = 1.25, OvertimeDrain = 1.35, OvertimeMorale = -0.06, OvertimeDays = 2;
