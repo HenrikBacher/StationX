@@ -37,7 +37,6 @@ public partial class Hud
                 }
                 card.AddChild(flow);
             }
-            _sideBox.AddChild(card);
         }
     }
 
@@ -46,20 +45,26 @@ public partial class Hud
         var def = Defs.Stations[step.Type];
         bool have = S.HasStation(step.Type);
         bool open = S.StationUnlocked(step.Type, out string why);
+        // Hut 3's index is skipped until the Battle of Britain, and required for machine-cipher decrypts after it.
+        bool index = step.Type == StationType.Index;
+        bool required = index && S.ActIndex >= Defs.IndexFromAct;
+        bool optional = step.Optional && !required;
         var edge = have ? Gfx.Good : open ? UiTheme.PanelEdge : UiTheme.PanelEdge.Darkened(0.3f);
         var sb = UiTheme.Box(have ? UiTheme.Panel.Lerp(Gfx.Good, 0.12f) : UiTheme.Panel, edge, 3, 6, 3);
-        if (step.Optional) { sb.BorderWidthTop = sb.BorderWidthBottom = sb.BorderWidthLeft = sb.BorderWidthRight = 1; sb.BorderColor = edge.Darkened(0.2f); }
+        if (optional) { sb.BorderWidthTop = sb.BorderWidthBottom = sb.BorderWidthLeft = sb.BorderWidthRight = 1; sb.BorderColor = edge.Darkened(0.2f); }
         var chip = new PanelContainer();
         chip.AddThemeStyleboxOverride("panel", sb);
         var v = new VBoxContainer();
         v.AddThemeConstantOverride("separation", 0);
         var col = open ? UiTheme.Text : UiTheme.TextDim.Darkened(0.25f);
-        v.AddChild(UiTheme.Label(def.Name + (step.Optional ? " (optional)" : ""), 12, col, Fonts.BodyBold, wrap: false));
+        string suffix = index && !required ? " (later)" : optional ? " (optional)" : "";
+        v.AddChild(UiTheme.Label(def.Name + suffix, 12, col, Fonts.BodyBold, wrap: false));
         if (def.Operator is Role r)
             v.AddChild(UiTheme.Label(Defs.Roles[r].Name, 10, UiTheme.TextDim, wrap: false));
         chip.AddChild(v);
         var tip = def.Blurb;
-        if (step.Note != null) tip = $"{step.Note}.\n\n{tip}";
+        string? note = required ? "Required: these decrypts wait for a card index before despatch" : step.Note;
+        if (note != null) tip = $"{char.ToUpperInvariant(note[0])}{note[1..]}.\n\n{tip}";
         if (!open && !string.IsNullOrEmpty(why)) tip += $"\n\nNot yet: {why}";
         chip.TooltipText = tip;
         chip.MouseFilter = Control.MouseFilterEnum.Stop;
