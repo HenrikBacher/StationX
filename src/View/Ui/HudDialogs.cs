@@ -95,14 +95,14 @@ public partial class Hud
         var title = Ink("STATION X", 64, Fonts.Heading);
         title.HorizontalAlignment = HorizontalAlignment.Center;
         v.AddChild(title);
-        var sub = Ink("Bletchley Park, 1939 to 1942", 18, Fonts.Heading, UiTheme.Stamp);
+        var sub = Ink("Bletchley Park, 1939 to 1945", 18, Fonts.Heading, UiTheme.Stamp);
         sub.HorizontalAlignment = HorizontalAlignment.Center;
         v.AddChild(sub);
         v.AddChild(Ink(
             "You run the floor at the Government Code and Cypher School. Messages arrive from the listening stations. " +
             "Your clerks, cryptanalysts, Wrens and linguists turn them into intelligence, one desk and one machine at a time.\n\n" +
-            "Start with pencil and paper against German police ciphers. Finish with four-rotor Bombes against the U-boats' SHARK key, " +
-            "and then, if you like, with Colossus against Hitler's own teleprinter cipher.", 15));
+            "Start with pencil and paper against German police ciphers. Break the U-boats' four-rotor SHARK key, then Hitler's own " +
+            "teleprinter cipher with Colossus, and see the war through D-Day and Arnhem to victory in Europe.", 15));
         var controls = Ink(
             "Mouse: click to select · right-drag to pan · wheel to zoom\n" +
             "Keys: WASD pan · , . turn the view · Space pause · 1 2 3 speed · R rotate while building · M move · F flow view · Esc menu\n" +
@@ -274,7 +274,7 @@ public partial class Hud
         var v = Paper(720);
         v.AddChild(Letterhead());
         v.AddChild(new HSeparator());
-        string heading = !won ? "Closed down" : S.ActIndex > Campaign.EnigmaFinale ? "TUNNY" : "SHARK";
+        string heading = !won ? "Closed down" : S.ActIndex == Campaign.Acts.Length - 1 ? "VICTORY" : S.ActIndex > Campaign.EnigmaFinale ? "TUNNY" : "SHARK";
         v.AddChild(Ink(heading, 34, Fonts.Heading, won ? UiTheme.PaperInk : UiTheme.Stamp));
         v.AddChild(Ink(S.EndReason ?? "", 15));
         v.AddChild(Ink(

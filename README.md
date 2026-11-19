@@ -1,6 +1,6 @@
 # Station X
 
-An isometric 3D management game set at Bletchley Park, 1939–1944. You run the floor at the Government Code and Cypher School. Messages arrive from the listening stations, and your staff carry them from desk to desk and machine to machine until they leave as intelligence. The campaign starts with pencil-and-paper police ciphers and ends with breaking the U-boats' four-rotor SHARK key. After that there is an optional continuation into Tunny and Colossus.
+An isometric 3D management game set at Bletchley Park, 1939–1945. You run the floor at the Government Code and Cypher School. Messages arrive from the listening stations, and your staff carry them from desk to desk and machine to machine until they leave as intelligence. The campaign starts with pencil-and-paper police ciphers, breaks the U-boats' four-rotor SHARK key, then Hitler's teleprinter cipher with Colossus, and runs through D-Day, Arnhem and the Ardennes to victory in Europe.
 
 Built with Godot 4.7.2 (.NET) and C# on .NET 10, using the Forward+ renderer. The park is real 3D under an orthographic isometric camera that turns in 90° steps. The walls nearest the camera are cut away. Every model, texture and sound is generated in code, so the game ships with no art or audio assets apart from fonts.
 
@@ -117,14 +117,17 @@ Godot lives in `~/.local/opt/godot/` and is linked as `~/.local/bin/godot`. Expo
 - **ULTRA and suspicion.**
   - Every decrypt that gets used makes its German service (Luftwaffe, Heer, Kriegsmarine, Abwehr/SD) a little more suspicious. At 100, that service tightens procedures and its keys go dark for three days.
   - Choose a cautious, standard or bold policy, and answer the occasional **dilemma**: act on this, or protect the source? Each one says what we know and how (the source, how sure, what's at stake), how close that German service is to locking us out and which keys it would cost, and where each choice would leave its suspicion.
+  - The dilemmas come from a deck of about 25 scenarios, each tied to the weeks it fits (the Adlerangriff airfields, Dunkirk, the beams, Crete, Bismarck, PQ 17, weather ships, double agents, the police reports of 1941, Rommel's fuel, Kursk and more). A small variety engine (`Tale`) fills in the places, ships, units, sources and stakes, so the same scenario reads differently each time, and the intercepts carry everyday procedure (repeats, call-sign changes, leave, birthday greetings) beside the news.
   - From 1941 you can ask for **gardening**: minelaying that gives naval cribs, at a price in suspicion.
+- **Y-stations (Y).** The listening stations (Denmark Hill, Chicksands, Arkley View, Beaumanor, Scarborough, Knockholt) take down each network. Every network needs two receiver sets: with one its traffic is caught late on repeats and garbles more, with none it arrives hours late, and an extra set copies it cleaner. The Y Board allots one more set each chapter; more cost £120. Traffic comes by dispatch rider in a bundle every two hours (going stale on the road) until you lay a teleprinter line from that station (£250). Direction-finding (£400 per German service, from the Polish gift for the Abwehr, Victory for the Luftwaffe, Claymore for the army and navy) halves the suspicion of cover-story choices. From the Polish gift, a network now and then changes its frequencies and goes quiet until it's found; spare sets make the search much shorter.
 - **Outstations** (Eastcote, Stanmore, Wavendon, Adstock, Gayhurst) are bought as remote Bombe capacity. An outstation teleprinter in the park sends them menus when your own Bombes are busy. They are not separate maps.
 - **Research** is paid for with breakthroughs, which you earn from delivered decrypts.
 - **Reputation** sets the weekly Treasury grant. Wages and station upkeep come out of it every Sunday. If reputation reaches zero, the game is lost. From the Phoney War on, Whitehall gets used to miracles: reputation slips a little every day, and a little more each act, so you have to keep delivering. Hover over the reputation bar to see the past week's gains and losses by cause. And don't hoard: with more than £2,500 in hand at the weekly accounts, the Treasury holds back part of the grant.
 
 ### Modes
 
-- **Campaign.** 5 chapters and 12 acts from Station X to SHARK. After that comes an optional sixth chapter, Tunny, with two acts: The Testery (1943) and Colossus (1944).
+- **Campaign.** 7 chapters and 19 acts, from Station X in 1939 through SHARK (1942), Tunny and Colossus (1943–44) and the Second Front to Victory in Europe (1945).
+- **Great operations.** Four acts build up to an operation that starts on a fixed day whatever the Park does: Barbarossa (June 1941), D-Day (June 1944), Market Garden (September 1944) and the Ardennes (December 1944). The objectives card counts down to it and shows **readiness**: the act's "before" objectives (60%), how unsuspecting the watched German services still are (25%; a lockdown wipes it out), a base of 15%, and one decision a few days before, worth up to ±20%. At 75% the operation succeeds (reputation, breakthroughs, morale); under 45% it fails and costs heavily. A failed D-Day ends the campaign.
 - **Free play.** No objectives and no closure. Start at any chapter, with everything before it already built and researched. The war moves on every ten days.
 - **Difficulty.** Easy, Normal and Hard change starting funds, the grant, deadlines, how fast suspicion grows and how much a missed deadline costs.
 
@@ -149,7 +152,7 @@ The game autosaves every morning. It also has three save slots and a quicksave.
 | Shift-click | place several |
 | M | move the selected station (£25) |
 | F | flow view: where paper goes, and how long it waits at each desk |
-| B H Q T G I K | Build, Staff, Requests, Research, Huts, Intelligence, Statistics |
+| B H Q T G I Y K | Build, Staff, Requests, Research, Huts, Intelligence, Y-stations, Statistics |
 | F5 / F8 | quicksave / quickload |
 | Esc | cancel, deselect, close panel, then the pause menu |
 | F9 (debug builds) | +£5000, +50 breakthroughs |

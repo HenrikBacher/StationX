@@ -258,7 +258,7 @@ public partial class Hud : CanvasLayer
     void RefreshObjectives()
     {
         var act = S.Act;
-        var sig = $"{S.ActIndex}|{S.Day}|" + string.Join(",", act.Goals.Select(g => g.Progress(S)));
+        var sig = $"{S.ActIndex}|{S.Day}|{(int)(S.Readiness() * 100)}|{S.CurrentOp == null}|{(int)((S.CurrentOp != null ? S.DDayAt - S.Now : 0) / 60)}|" + string.Join(",", act.Goals.Select(g => g.Progress(S)));
         if (sig == _objSig) return;
         _objSig = sig;
         Clear(_objBox);
@@ -270,6 +270,25 @@ public partial class Hud : CanvasLayer
             _objBox.AddChild(UiTheme.Label(S.ActIndex + 1 < Campaign.Acts.Length
                 ? $"Free play. The war moves on in {Math.Max(1, left)} day(s): new nets, new methods, new requests."
                 : "Free play. The war is as far as it goes; carry on as long as you like.", 13, UiTheme.TextDim));
+        }
+        if (S.CurrentOp is { } op)
+        {
+            double hours = (S.DDayAt - S.Now) / 60;
+            double r = S.Readiness();
+            var outcome = GameState.OutcomeFor(r);
+            var (word, colour) = outcome switch
+            {
+                OpOutcome.Success => ("on course to succeed", Gfx.Good),
+                OpOutcome.Partial => ("it would go badly", Gfx.Warn),
+                _ => (op.Fatal ? "it would fail, and the campaign with it" : "it would fail", Gfx.Bad),
+            };
+            string when = hours >= 36 ? $"in {Math.Ceiling(hours / 24):0} days" : $"in {Math.Max(1, Math.Ceiling(hours)):0} hours";
+            var l = UiTheme.Label($"{op.Name.ToUpperInvariant()} {when} · readiness {r * 100:0}% · {word}", 13, colour, Fonts.BodyBold);
+            l.TooltipText = $"Readiness is the 'before' objectives ({S.OpIntel() * 100:0}% done), how unsuspecting the " +
+                            $"{string.Join(", ", op.Watch.Select(sv => Defs.ServiceNames[sv]))} still are ({S.OpSecrecy(op) * 100:0}%), and the decision " +
+                            $"a few days before. {Defs.OpSuccessAt * 100:0}% or more and it succeeds; under {Defs.OpPartialAt * 100:0}% it fails.";
+            l.MouseFilter = Control.MouseFilterEnum.Pass;
+            _objBox.AddChild(l);
         }
         foreach (var g in S.Mode == GameMode.FreePlay ? Enumerable.Empty<Goal>() : act.Goals)
         {

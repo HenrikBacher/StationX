@@ -123,6 +123,9 @@ public sealed partial class GameState
             case "overtime":
                 OvertimeUntil = Now + Defs.OvertimeDays * Defs.MinutesPerDay;
                 break;
+            case { } op when op.StartsWith("op") && int.TryParse(op[2..], out int bonus):
+                OpBonus += bonus / 100.0;
+                break;
         }
     }
 

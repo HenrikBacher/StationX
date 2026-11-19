@@ -418,6 +418,18 @@ public static class Intercepts
                 if (In(d, 1941, 5, 20, 1941, 7, 15))
                     Now(P($"{unit.de} VERLEGT NACH OSTEN NEUER EINSATZRAUM POSEN", $"{unit.en} moves east. New operational area: Posen."),
                         P("LUFTFLOTTE ZWO GEFECHTSSTAND NACH WARSCHAU", "Luftflotte 2 battle headquarters to Warsaw."));
+                if (In(d, 1944, 6, 6, 1944, 7, 31))
+                    Now(P("INVASION NORMANDIE ALLE VERFUEGBAREN JAGDGRUPPEN SOFORT NACH FRANKREICH", "Invasion in Normandy. All available fighter Gruppen to France at once."),
+                        P($"{unit.de} FLUGPLATZ DURCH JABOS ZERSTOERT AUSWEICHPLATZ BEZIEHEN", $"{unit.en}: airfield destroyed by fighter-bombers. Move to the alternative field."));
+                if (In(d, 1944, 9, 1, 1944, 9, 30))
+                    Now(P("LUFTLANDUNG RAUM ARNHEIM NIMWEGEN EINDHOVEN ALLE KRAEFTE GEGEN BRUECKEN", "Airborne landings at Arnhem, Nijmegen and Eindhoven. All forces against the bridges."),
+                        P("II SS PANZERKORPS RAUM ARNHEIM JAGDSCHUTZ ERBETEN", "II SS Panzer Corps, Arnhem area, requests fighter cover."));
+                if (In(d, 1944, 11, 20, 1945, 1, 10))
+                    Now(P($"JAGDGESCHWADER VERLEGEN NACH WESTEN BETRIEBSSTOFF FUER {Digits(b % 5 + 2)} TAGE BEREITSTELLEN", $"Fighter Geschwader moving west. Fuel for {b % 5 + 2} days to be laid in."),
+                        P("ERDKAEMPFUNTERSTUETZUNG FUER SECHSTE PANZERARMEE VORBEREITEN", "Prepare ground-attack support for Sixth Panzer Army."));
+                if (d >= new DateOnly(1945, 1, 11))
+                    Now(P("BETRIEBSSTOFFLAGE KATASTROPHAL NUR NOCH SCHWERPUNKTEINSAETZE", "Fuel situation catastrophic. Only operations at the main point of effort."),
+                        P($"{unit.de} VERLEGT NACH {Pick(r, new[] { "PRAG", "SALZBURG", "FLENSBURG" })}", $"{unit.en} moving to the rear."));
                 break;
             }
             case Net.LightBlue:
@@ -529,6 +541,9 @@ public static class Intercepts
                     Now(P("ALLE BOOTE MIT BRENNSTOFF AUF GIBRALTAR ZU MAXIMALE FAHRT", "All boats with enough fuel to close Gibraltar at maximum speed."));
                 if (In(d, 1943, 3, 10, 1943, 3, 25))
                     Now(P("GELEITZUEGE HX ZWO ZWO NEUN UND SC EINS ZWO ZWO ANGREIFEN GRUPPEN RAUBGRAF STUERMER DRAENGER", "Attack convoys HX 229 and SC 122: groups RAUBGRAF, STÜRMER and DRÄNGER."));
+                if (d >= new DateOnly(1944, 1, 1))
+                    Now(P("MIT SCHNORCHEL GETAUCHT MARSCH IN DAS OPERATIONSGEBIET", "Proceeding submerged with schnorchel to the operational area."),
+                        P("ALLE BOOTE GEGEN INVASIONSFLOTTE IM KANAL", "All boats against the invasion fleet in the Channel."));
                 if (In(d, 1943, 5, 1, 1943, 5, 31))
                     Now(P("STAENDIGE LUFTUEBERWACHUNG DURCH TRAEGERFLUGZEUGE VERLUSTE SCHWER", "Constant air cover from carrier aircraft. Losses heavy."),
                         P("BDU AN ALLE GRUPPEN NORDATLANTIK RAEUMEN", "BdU to all groups: withdraw from the North Atlantic."));
@@ -570,6 +585,9 @@ public static class Intercepts
                 if (In(d, 1940, 9, 1, 1940, 11, 30))
                     Now(P("UNTERNEHMEN LENA AGENTEN GELANDET BISHER KEINE MELDUNG", "Operation LENA: agents landed. No report from them yet."),
                         P($"AGENT {agent.de} MELDET LUFTSCHUTZ LONDON SCHWACH", $"Agent {agent.en} reports London's air defences weak."));
+                if (In(d, 1944, 1, 1, 1944, 7, 31))
+                    Now(P("AGENT ARABEL MELDET ERSTE US ARMEEGRUPPE UNTER PATTON IM RAUM KENT", "Agent ARABEL reports the First US Army Group, under Patton, in Kent."),
+                        P("ARABEL BEURTEILUNG NORMANDIE ABLENKUNGSMANOEVER HAUPTSCHLAG FOLGT", "ARABEL's assessment: Normandy is a diversion. The main blow is still to come."));
                 if (In(d, 1942, 10, 15, 1942, 11, 10))
                     Now(P("GROSSER GELEITZUG IN GIBRALTAR ZIEL VERMUTLICH MALTA ODER DAKAR", "Large convoy at Gibraltar, destination probably Malta or Dakar."),
                         P($"AGENT {agent.de} BESTAETIGT LANDUNG IN NORWEGEN GEPLANT", $"Agent {agent.en} confirms a landing in Norway is planned."));
@@ -588,9 +606,20 @@ public static class Intercepts
                     Now(P("LANDUNG FEINDLICHER KRAEFTE AUF SIZILIEN", "Enemy forces have landed in Sicily."));
                 if (In(d, 1943, 9, 3, 1943, 10, 31))
                     Now(P("LANDUNG BEI SALERNO GEGENANGRIFF ANGESETZT", "Landing at Salerno. Counter-attack ordered."));
-                if (d >= new DateOnly(1943, 11, 1))
+                if (In(d, 1943, 11, 1, 1944, 6, 20))
                     Now(P("OB WEST ERWARTET HAUPTLANDUNG IM RAUM PAS DE CALAIS", "C-in-C West expects the main landing in the Pas de Calais."),
                         P("ATLANTIKWALL AUSBAU NORMANDIE VERSTAERKEN", "Strengthen the Atlantic Wall works in Normandy."));
+                if (In(d, 1944, 6, 6, 1944, 7, 31))
+                    Now(P("LANDUNG NORMANDIE NACH AUFFASSUNG OKW ABLENKUNG ZWEITE LANDUNG PAS DE CALAIS ERWARTET", "OKW considers the Normandy landing a diversion. A second landing in the Pas de Calais is expected."),
+                        P("FUENFZEHNTE ARMEE VERBLEIBT IM RAUM PAS DE CALAIS", "Fifteenth Army to remain in the Pas de Calais."));
+                if (In(d, 1944, 8, 25, 1944, 9, 30))
+                    Now(P("II SS PANZERKORPS NEUNTE UND ZEHNTE SS PANZERDIVISION ZUR AUFFRISCHUNG RAUM ARNHEIM", "II SS Panzer Corps, 9th and 10th SS Panzer Divisions, to refit in the Arnhem area."));
+                if (In(d, 1944, 11, 15, 1945, 1, 25))
+                    Now(P("WACHT AM RHEIN FUNKSTILLE BIS ANGRIFFSBEGINN", "WACHT AM RHEIN: wireless silence until the attack begins."),
+                        P($"SECHSTE PANZERARMEE BEREITSTELLUNG ABGESCHLOSSEN {Digits(a * 10)} PANZER", $"Sixth Panzer Army assembled: {a * 10} tanks."));
+                if (d >= new DateOnly(1945, 2, 1))
+                    Now(P("HEERESGRUPPE MELDET KEINE RESERVEN MEHR", "Army Group reports no reserves left."),
+                        P("VERTEIDIGUNG BERLIN BIS ZUM LETZTEN", "Berlin to be defended to the last."));
                 break;
             }
         }

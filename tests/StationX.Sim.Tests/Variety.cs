@@ -38,7 +38,7 @@ public class Variety
     public void EveryNetworkHasADecisionOnEveryDate()
     {
         var g = GameState.NewGame(1);
-        for (var d = new DateOnly(1939, 11, 1); d < new DateOnly(1944, 7, 1); d = d.AddDays(9))
+        for (var d = new DateOnly(1939, 11, 1); d < new DateOnly(1945, 5, 9); d = d.AddDays(9))
             foreach (var n in Nets)
                 Assert.True(g.ScenarioCount(n, d) > 0, $"{n} on {d}");
     }
@@ -49,7 +49,7 @@ public class Variety
         var g = GameState.NewGame(1);
         var dates = new[] { new DateOnly(1940, 2, 1), new DateOnly(1940, 5, 28), new DateOnly(1940, 8, 20), new DateOnly(1940, 11, 20),
                             new DateOnly(1941, 5, 24), new DateOnly(1941, 8, 1), new DateOnly(1942, 5, 1), new DateOnly(1942, 7, 1),
-                            new DateOnly(1943, 5, 1), new DateOnly(1944, 3, 1) };
+                            new DateOnly(1943, 5, 1), new DateOnly(1944, 3, 1), new DateOnly(1944, 9, 12), new DateOnly(1945, 4, 20) };
         int seen = 0;
         foreach (var n in Nets)
         foreach (var id in g.ScenarioIds(n).Distinct())

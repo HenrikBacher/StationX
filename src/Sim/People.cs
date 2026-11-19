@@ -227,7 +227,7 @@ public sealed partial class GameState
     /// </summary>
     void MaybeCallUp()
     {
-        if (ActIndex < 1 || ActIndex > 10) return;
+        if (ActIndex < 1 || ActIndex > Campaign.SharkFrom) return;
         if (Dilemmas.Count > 0 || Now - LastDilemmaAt < Defs.MinutesPerDay) return;
         if (!Rng.Chance(Defs.CallUpChance)) return;
         var men = Staff.Where(s => !s.Female && !s.Leaving && s.Notable == null && s.Role != Role.Messenger && s.Role != Role.Wren).ToList();

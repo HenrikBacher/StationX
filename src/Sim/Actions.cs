@@ -340,7 +340,7 @@ public sealed partial class GameState
 
     public int WeeklyWages => Staff.Sum(s => s.Salary);
     /// <summary>Reputation lost each morning, before difficulty: what have you done for us lately?</summary>
-    public double DailyExpectation => ActIndex < 1 ? 0 : Defs.ExpectationBase + Defs.ExpectationPerAct * ActIndex;
+    public double DailyExpectation => ActIndex < 1 ? 0 : Defs.ExpectationBase + Defs.ExpectationPerAct * Math.Min(ActIndex, Defs.IntensityCap);
     public int WeeklyUpkeep => Stations.Sum(s => s.Def.Upkeep) + OutstationBombes * Defs.OutstationUpkeep;
     public int WeeklyGrant => (int)((Defs.GrantBase + Defs.GrantPerRep * Reputation) * Defs.Difficulties[Difficulty].GrantMult * WarMood);
 

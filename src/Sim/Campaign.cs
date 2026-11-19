@@ -6,8 +6,12 @@ namespace StationX.Sim;
 
 public enum GoalKind { Deliver, Build, Research, KeyBreaks, BombeBreaks, Contracts, StaffCount, Scripted, ZoneOpen }
 
+/// <summary>
+/// One objective of an act. A soft goal ("before D-Day") doesn't hold the act up: it counts towards a great operation's
+/// readiness instead.
+/// </summary>
 public sealed record Goal(GoalKind Kind, int Target, string Text,
-    Net? Net = null, StationType? Station = null, ResearchId? Research = null, string? Tag = null)
+    Net? Net = null, StationType? Station = null, ResearchId? Research = null, string? Tag = null, bool Soft = false)
 {
     public int Progress(GameState g)
     {
@@ -47,6 +51,8 @@ public sealed class Act
     public Goal[] Goals { get; init; } = Array.Empty<Goal>();
     public ContractTemplate[] Pool { get; init; } = Array.Empty<ContractTemplate>();
     public double OfferEveryHours { get; init; } = 8;
+    /// <summary>The great operation this act builds up to (see <see cref="GreatOps"/>), if any.</summary>
+    public string? Op { get; init; }
     public Action<GameState>? OnStart { get; init; }
 }
 
@@ -331,6 +337,31 @@ public static class Campaign
         },
         new()
         {
+            Chapter = 4, ChapterTitle = "Dolphin", Title = "Barbarossa", Op = "barbarossa",
+            Date = new DateOnly(1941, 6, 14), From = Denniston,
+            Briefing =
+                "For weeks the Luftwaffe keys have shown squadrons, flak and signals units leaving France and the Balkans for airfields in Poland, " +
+                "and the police battalions are moving east behind them. Hitler is about to turn on Russia. The Prime Minister has already warned " +
+                "Stalin once, without saying how he knew.\n\n" +
+                "The blow should fall in about a week. Whitehall wants every decrypt that shows where, when and with what, and wants it without the " +
+                "Germans learning that we read them. The objectives marked 'before the invasion' and German suspicion on the day decide how it goes, " +
+                "and how well we saw it coming will be remembered in London and in Moscow.",
+            Goals = new[]
+            {
+                new Goal(GoalKind.Deliver, 14, "Deliver 14 RED decrypts before the invasion", Net: Net.Red, Soft: true),
+                new Goal(GoalKind.Deliver, 6, "Deliver 6 Police decrypts before the invasion", Net: Net.Police, Soft: true),
+                new Goal(GoalKind.Scripted, 1, "See Barbarossa through", Tag: "op:barbarossa"),
+            },
+            Pool = new[]
+            {
+                new ContractTemplate(Net.Red, 5, 8, 2, 4, 3),
+                new ContractTemplate(Net.Police, 3, 6, 2, 4, 1),
+                new ContractTemplate(Net.Dolphin, 5, 8, 3, 5, 1),
+                new ContractTemplate(Net.Chaffinch, 5, 8, 3, 5, 1),
+            },
+        },
+        new()
+        {
             Chapter = 4, ChapterTitle = "Dolphin", Title = "Action This Day",
             Date = new DateOnly(1941, 10, 21), From = Denniston,
             Briefing =
@@ -419,12 +450,14 @@ public static class Campaign
             },
         },
 
-        // ------------------------------------------------------------ Chapter 6 (optional)
+        // ------------------------------------------------------------ Chapter 6
         new()
         {
             Chapter = 6, ChapterTitle = "Tunny", Title = "The Testery",
             Date = new DateOnly(1943, 1, 4), From = Travis,
             Briefing =
+                "On 13 December 1942 Hut 8 broke SHARK. Within hours the Admiralty's Submarine Tracking Room had the U-boats' positions again, " +
+                "and the convoys were routed around the wolf packs. The war is far from over.\n\n" +
                 "There is another German cipher on the air, and it isn't Enigma. The high command talks to its army groups by " +
                 "radio teleprinter, enciphered on a Lorenz machine with twelve wheels. We call the traffic Fish, and this link TUNNY.\n\n" +
                 "Bill Tutte worked out how the machine is built without ever seeing one. Major Tester's section, the Testery, " +
@@ -490,10 +523,113 @@ public static class Campaign
                     "SHAEF needs to know whether the deception about Calais is believed in Berlin.");
             },
         },
+        // ------------------------------------------------------------ Chapter 7
+        new()
+        {
+            Chapter = 7, ChapterTitle = "The Second Front", Title = "D-Day", Op = "overlord",
+            Date = new DateOnly(1944, 5, 29), From = Travis,
+            Briefing =
+                "The invasion of France is ready. A hundred and fifty thousand men will land in Normandy, and everything depends on Hitler " +
+                "believing the real blow will come at Calais. Operation FORTITUDE has invented a whole army group in Kent, and our double agents " +
+                "have fed the Abwehr its order of battle for months.\n\n" +
+                "Until the landings, General Eisenhower needs to know what the Germans believe and where their panzers are: TUNNY from the high " +
+                "command, the Abwehr's reading of its agents, the U-boats gathering against the invasion fleet. None of it may give away that we " +
+                "read them.\n\n" +
+                "The objectives marked 'before D-Day' and German suspicion on the day decide how it goes. If the landings fail, so do we.",
+            Goals = new[]
+            {
+                new Goal(GoalKind.Deliver, 10, "Deliver 10 TUNNY decrypts before D-Day", Net: Net.Tunny, Soft: true),
+                new Goal(GoalKind.Deliver, 6, "Deliver 6 Abwehr decrypts before D-Day", Net: Net.Abwehr, Soft: true),
+                new Goal(GoalKind.Deliver, 8, "Deliver 8 SHARK decrypts before D-Day", Net: Net.Shark, Soft: true),
+                new Goal(GoalKind.Scripted, 1, "See D-Day through", Tag: "op:overlord"),
+            },
+            Pool = new[]
+            {
+                new ContractTemplate(Net.Tunny, 4, 6, 2, 4, 3),
+                new ContractTemplate(Net.Abwehr, 3, 6, 2, 4, 2),
+                new ContractTemplate(Net.Shark, 4, 7, 2, 4, 2),
+                new ContractTemplate(Net.Red, 5, 8, 3, 4, 1),
+            },
+            OnStart = g =>
+            {
+                g.Funds += 3000;
+                g.Emit(EventKind.Good, "Every resource for the invasion: +£3000.");
+            },
+        },
+        new()
+        {
+            Chapter = 7, ChapterTitle = "The Second Front", Title = "Market Garden", Op = "marketgarden",
+            Date = new DateOnly(1944, 9, 9), From = Travis,
+            Briefing =
+                "Paris is free and the Germans are streaming back across Belgium. Field Marshal Montgomery has a plan to end the war by Christmas: " +
+                "three airborne divisions will seize the bridges from Eindhoven to Arnhem, and an armoured corps will drive up the road over them " +
+                "into Germany.\n\n" +
+                "The Germans in Holland look beaten. But Luftwaffe and TUNNY traffic speak of SS panzer divisions sent to rest and refit somewhere " +
+                "in Holland. Find out where, and make sure the planners know before the drop. It goes ahead on 17 September whatever we find.",
+            Goals = new[]
+            {
+                new Goal(GoalKind.Deliver, 12, "Deliver 12 RED decrypts before the drop", Net: Net.Red, Soft: true),
+                new Goal(GoalKind.Deliver, 8, "Deliver 8 TUNNY decrypts before the drop", Net: Net.Tunny, Soft: true),
+                new Goal(GoalKind.Scripted, 1, "See Market Garden through", Tag: "op:marketgarden"),
+            },
+            Pool = new[]
+            {
+                new ContractTemplate(Net.Red, 5, 8, 2, 4, 3),
+                new ContractTemplate(Net.Tunny, 4, 6, 2, 4, 2),
+                new ContractTemplate(Net.Shark, 4, 7, 3, 5, 1),
+            },
+        },
+        new()
+        {
+            Chapter = 7, ChapterTitle = "The Second Front", Title = "The Ardennes", Op = "ardennes",
+            Date = new DateOnly(1944, 12, 8), From = Travis,
+            Briefing =
+                "The Western Front has gone quiet. The Germans opposite the Ardennes send less and less by wireless, and the Allied commanders " +
+                "take the quiet for exhaustion. But the Luftwaffe keys show fighter units moving west in numbers, fuel being stockpiled, and a " +
+                "Sixth Panzer Army that has dropped out of sight.\n\n" +
+                "Something is coming. The more we read before it does, the readier the front will be.",
+            Goals = new[]
+            {
+                new Goal(GoalKind.Deliver, 14, "Deliver 14 RED decrypts before the offensive", Net: Net.Red, Soft: true),
+                new Goal(GoalKind.Deliver, 6, "Deliver 6 TUNNY decrypts before the offensive", Net: Net.Tunny, Soft: true),
+                new Goal(GoalKind.Scripted, 1, "See the Ardennes through", Tag: "op:ardennes"),
+            },
+            Pool = new[]
+            {
+                new ContractTemplate(Net.Red, 5, 8, 2, 4, 3),
+                new ContractTemplate(Net.Tunny, 4, 6, 2, 4, 2),
+                new ContractTemplate(Net.Shark, 4, 7, 3, 5, 1),
+            },
+        },
+        new()
+        {
+            Chapter = 7, ChapterTitle = "The Second Front", Title = "Victory in Europe",
+            Date = new DateOnly(1945, 4, 12), From = Travis,
+            Briefing =
+                "The Allies are across the Rhine and the Russians are on the Oder. Germany is collapsing, but its armies and U-boats fight on, and " +
+                "every message still counts: where the last U-boats are bound, which units mean to surrender, whether there will be a last stand " +
+                "in the Alps.\n\n" +
+                "See it through to the end.",
+            Goals = new[]
+            {
+                new Goal(GoalKind.Deliver, 30, "Deliver 30 decrypts"),
+                new Goal(GoalKind.Contracts, 4, "Complete 4 requests"),
+            },
+            Pool = new[]
+            {
+                new ContractTemplate(Net.Tunny, 4, 7, 3, 5, 2),
+                new ContractTemplate(Net.Shark, 4, 7, 3, 5, 2),
+                new ContractTemplate(Net.Red, 5, 8, 3, 5, 1),
+                new ContractTemplate(Net.Abwehr, 3, 6, 3, 5, 1),
+            },
+        },
     };
 
-    /// <summary>The act whose completion breaks SHARK and wins the main campaign.</summary>
-    public const int EnigmaFinale = 11;
+    public static int IndexOf(string title) => Array.FindIndex(Acts, a => a.Title == title);
+    /// <summary>The act whose completion breaks SHARK (the end of the campaign before it ran to 1945).</summary>
+    public static readonly int EnigmaFinale = IndexOf("U-559");
+    /// <summary>From The Blackout on, SHARK is on the air.</summary>
+    public static readonly int SharkFrom = IndexOf("The Blackout");
     public static readonly int ActionThisDay = Array.FindIndex(Acts, a => a.Title == "Action This Day");
     /// <summary>From U-110 on, some naval traffic is Offizier: enciphered twice.</summary>
     public static readonly int OffizierFrom = Array.FindIndex(Acts, a => a.Title == "U-110");
@@ -505,6 +641,13 @@ public static class Campaign
         "\"We go,\" said Eisenhower.\n\n" +
         "By the end of the war there were ten Colossi at Bletchley Park. Afterwards eight were broken up, the drawings were " +
         "burned, and the world's first large electronic computers were kept secret until the 1970s.";
+
+    public const string FinalEpilogue =
+        "On 7 May 1945, at Reims, Germany surrendered. At Bletchley Park the teleprinters fell quiet, and people who had worked " +
+        "side by side for years went home without a word to their families about what they had done.\n\n" +
+        "By the end there were nearly ten thousand of them, three-quarters of them women, and ten Colossi in Block H. Afterwards most of " +
+        "the machines were broken up and the drawings burned, and the world's first large electronic computers stayed secret until the " +
+        "1970s. Historians still argue over how many months ULTRA took off the war. None argue that it took off none.";
 
     public const string Epilogue =
         "On 13 December 1942, Hut 8 broke SHARK. Within hours the Admiralty's Submarine Tracking Room had U-boat " +
@@ -585,8 +728,9 @@ public sealed partial class GameState
         ActCompletePending = false;
         NextOfferAt = Now;
         foreach (var n in Campaign.NetsOf(Act)) ActiveNets.Add(n);
-        if (index >= 10) ActiveNets.Add(Net.Shark);
+        if (index >= Campaign.SharkFrom) ActiveNets.Add(Net.Shark);
         NewChapterIntake(index);
+        StartGreatOp();
         if (index > 0)
         {
             ReceiverSets += Defs.SetsPerAct;
@@ -605,7 +749,7 @@ public sealed partial class GameState
             if (Day - ActStartDay >= FreePlayActDays && ActIndex + 1 < Campaign.Acts.Length) StartAct(ActIndex + 1);
             return;
         }
-        if (Act.Goals.All(g => g.Done(this)))
+        if (Act.Goals.Where(g => !g.Soft).All(g => g.Done(this)))
         {
             ActCompletePending = true;
             Emit(EventKind.ActComplete, $"{Act.Title}: all objectives complete.");
@@ -620,7 +764,7 @@ public sealed partial class GameState
                    + Stats.ContractsCompleted * 50
                    - Stats.ContractsFailed * 80
                    + Reputation * 20
-                   + (Status == GameStatus.Won ? Math.Max(0, 120 - Day) * 25 : 0)
+                   + (Status == GameStatus.Won ? Math.Max(0, 200 - Day) * 25 : 0)
                    - TonnageLost / 1000;
         double mult = Difficulty switch { Difficulty.Easy => 0.75, Difficulty.Hard => 1.4, _ => 1.0 };
         return Status == GameStatus.Lost ? (int)Math.Max(0, s * mult * 0.5) : (int)Math.Max(0, s * mult);
@@ -646,19 +790,19 @@ public sealed partial class GameState
     public void ContinueAfterAct()
     {
         if (!ActCompletePending) return;
-        if (ActIndex == Campaign.EnigmaFinale || ActIndex + 1 >= Campaign.Acts.Length)
+        if (ActIndex + 1 >= Campaign.Acts.Length)
         {
             ActCompletePending = false;
             Status = GameStatus.Won;
-            CanContinue = ActIndex + 1 < Campaign.Acts.Length;
-            EndReason = ActIndex == Campaign.EnigmaFinale ? Campaign.Epilogue : Campaign.TunnyEpilogue;
+            CanContinue = false;
+            EndReason = Campaign.FinalEpilogue;
             Emit(EventKind.Won, EndReason);
             return;
         }
         StartAct(ActIndex + 1);
     }
 
-    /// <summary>After SHARK falls: carry on into 1943 and the Lorenz chapter.</summary>
+    /// <summary>For saves from when the campaign ended with SHARK: carry on into 1943 and the Lorenz chapter.</summary>
     public bool ContinueIntoTunny()
     {
         if (Status != GameStatus.Won || !CanContinue) return false;

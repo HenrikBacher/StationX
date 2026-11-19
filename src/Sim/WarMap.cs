@@ -236,7 +236,13 @@ public static class WarOps
                 if (In(d, 1941, 5, 15, 1941, 6, 1))
                     p.Add(new(OpKind.Front, "Operation MERKUR", "Crete", 35.4, 23.7,
                         "Freyberg knew where the paratroops would land: the drop at Maleme was a massacre.", "The paratroops took Maleme airfield."));
-                if (d >= new DateOnly(1941, 6, 1))
+                if (In(d, 1944, 6, 1, 1944, 8, 31))
+                    p.Add(new(OpKind.Front, "The Normandy beachhead", "Normandy", 49.3, -0.6,
+                        "The fighter Gruppen's new fields were known: the fighter-bombers caught them landing.", "German fighters reached the beaches."));
+                if (In(d, 1944, 9, 1, 1945, 1, 31))
+                    p.Add(new(OpKind.Front, "Luftwaffe in the west", "Rhineland", 50.9, 6.9,
+                        "The fighter build-up was tracked airfield by airfield.", "The fighters massed unseen."));
+                if (In(d, 1941, 6, 1, 1944, 5, 31))
                     p.Add(new(OpKind.Front, "Luftwaffe moves east", "Eastern Front", 52.0, 30.0,
                         "The warning reached Moscow, discreetly: the airfields were dispersed.", "The Soviet air force was caught on the ground."));
                 break;
@@ -325,8 +331,18 @@ public static class WarOps
                 if (In(d, 1943, 7, 10, 1943, 10, 31))
                     p.Add(new(OpKind.Front, "Italy", "Salerno", 40.6, 14.8,
                         "Kesselring's counter-attack was known in time.", "The counter-attack nearly threw the landing back into the sea."));
-                p.Add(new(OpKind.Front, "OB West's appreciation", "Pas de Calais", 50.9, 1.8,
-                    "Hitler's generals still expect the main landing in the Pas de Calais. Good.", "The appreciation never reached Whitehall."));
+                if (d < new DateOnly(1944, 7, 31))
+                    p.Add(new(OpKind.Front, "OB West's appreciation", "Pas de Calais", 50.9, 1.8,
+                        "Hitler's generals still expect the main landing in the Pas de Calais. Good.", "The appreciation never reached Whitehall."));
+                if (In(d, 1944, 8, 1, 1944, 10, 31))
+                    p.Add(new(OpKind.Front, "Panzers in Holland", "Arnhem", 51.98, 5.9,
+                        "Where the SS panzers were refitting was known to the day.", "Nobody knew where the panzers had gone."));
+                if (In(d, 1944, 11, 1, 1945, 1, 31))
+                    p.Add(new(OpKind.Front, "The Ardennes", "Bastogne", 50.0, 5.7,
+                        "The build-up behind the Eifel was reported in time.", "The offensive came out of the fog unannounced."));
+                if (d >= new DateOnly(1945, 2, 1))
+                    p.Add(new(OpKind.Front, "The last battles", "Berlin", 52.5, 13.4,
+                        "The high command's last orders were read as they were sent.", "The last orders went unread."));
                 break;
         }
         if (p.Count == 0)

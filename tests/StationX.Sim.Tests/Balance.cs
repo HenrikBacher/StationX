@@ -29,7 +29,7 @@ public class Balance(ITestOutputHelper output)
                 var g = GameState.NewGame(seed, d);
                 var ai = new AutoPlayer(g);
                 double minRep = g.Reputation, minFunds = g.Funds;
-                while (g.Status == GameStatus.Playing && g.Day < 120)
+                while (g.Status == GameStatus.Playing && g.Day < 320)
                 {
                     if (g.ActCompletePending) g.ContinueAfterAct();
                     ai.Think();

@@ -232,7 +232,7 @@ public static partial class Defs
     // ---- Traffic growth ----
     /// <summary>German wireless traffic grew year on year; requests grow with each chapter, so the Park must grow too.</summary>
     public const double TrafficPerAct = 0.06;
-    public static double TrafficScale(int act) => 1 + TrafficPerAct * Math.Max(0, act);
+    public static double TrafficScale(int act) => 1 + TrafficPerAct * Math.Clamp(act, 0, IntensityCap);
     // ---- Heads of huts ----
     // ---- Wrens ----
     /// <summary>From the Bombe build-up of 1940 until 'Action this day', only one Wren a week comes forward.</summary>
@@ -289,6 +289,16 @@ public static partial class Defs
     public const int OutstationUpkeep = 40;
     public const int GardeningCost = 300;
     public const double GarbledChance = 0.06;
+
+    // ---- Great operations ----
+    /// <summary>Readiness: the before-D-Day objectives, the watched services' secrecy, a base, and the decision.</summary>
+    public const double OpIntelWeight = 0.6, OpSecrecyWeight = 0.25, OpBase = 0.15;
+    /// <summary>Suspicion below this costs no readiness.</summary>
+    public const double OpSuspicionFree = 40;
+    public const double OpSuccessAt = 0.75, OpPartialAt = 0.45;
+    public const int OpSuccessPoints = 10;
+    /// <summary>Whitehall's expectations and the traffic stop growing with the acts after this one.</summary>
+    public const int IntensityCap = 12;
 
     // ---- The Y service: receiver sets, riders or teleprinter lines, direction-finding, frequency changes ----
     public const int StartSets = 4, SetsWanted = 2, SetsPerAct = 1, SetCost = 120, LineCost = 250, DfCost = 400;

@@ -25,7 +25,8 @@ public sealed class SaveFile
 /// <summary>Whole-game saves as JSON. The sim is plain data, so this is a straight serialisation.</summary>
 public static class SaveGame
 {
-    public const int Version = 1;
+    /// <summary>2: Barbarossa became an act after U-110, so later acts moved up one.</summary>
+    public const int Version = 2;
 
     static readonly JsonSerializerOptions Options = new()
     {
@@ -53,6 +54,7 @@ public static class SaveGame
         var file = JsonSerializer.Deserialize<SaveFile>(json, Options) ?? throw new InvalidOperationException("Empty save file");
         if (file.Info.Version > Version) throw new InvalidOperationException("This save is from a newer version of the game.");
         var g = file.State;
+        if (file.Info.Version < 2 && g.ActIndex >= Campaign.IndexOf("Barbarossa")) g.ActIndex++;
         // Saves from before Hut 1 existed.
         g.Grid.AddMissingZones();
         if (g.ActIndex >= 3 && g.Grid.Zone("hut1") is { Unlocked: false } hut1) hut1.Available = true;

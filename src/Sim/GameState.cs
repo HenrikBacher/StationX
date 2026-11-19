@@ -132,6 +132,7 @@ public sealed partial class GameState
         TickInspection();
         TickOperations();
         TickSupplies();
+        TickGreatOp();
 
         if (Now >= NextScheduleAt)
         {

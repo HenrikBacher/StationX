@@ -1,6 +1,6 @@
 # Station X: notes for Claude
 
-A Bletchley Park management game (1939 → SHARK 1942, optional Tunny chapter): Godot 4.7.2 .NET, C# net10.0, real 3D under an
+A Bletchley Park management game (1939 → VE Day 1945: SHARK, Tunny, the Second Front): Godot 4.7.2 .NET, C# net10.0, real 3D under an
 orthographic isometric camera with cutaway walls. Read `README.md` for the game's systems. This file is the working
 state, so the work can be resumed on any machine.
 
@@ -58,6 +58,14 @@ Then (user requests, 2026-11-19):
   (Godot-free, linked into the tests); a Godot or .NET upgrade falls back to the full download. Keep
   `application/modify_resources=false` on Windows, or the .exe changes every release and no patch ever fits.
 - The user wants **Hard ≤ 5/40** wins (Normal still ≈ 50%).
+- Y-stations (`YStations.cs`, panel `HudYStations.cs`, key Y): receiver sets per network (`SetsWanted` 2), riders vs teleprinter
+  lines (`TransitMinutes`), direction-finding per service (`CoverSuspicionFactor`, cover options are `DilemmaOption.Cover`),
+  frequency changes (`SearchUntil`, spare sets search faster). Pipeline tests call `TestUtil.QuickIntake`.
+- The campaign runs to VE Day (19 acts). Barbarossa was inserted after U-110 (save version 2 shifts old act indices); never
+  hard-code act numbers, use `Campaign.IndexOf(title)`. Great operations (`GreatOps.cs`): Barbarossa, D-Day (fatal), Market
+  Garden, Ardennes. `Act.Op`, soft goals (`Goal.Soft`, count for readiness, don't hold the act), D-Day `PrepDays` after the
+  act opens, a decision `DecisionDaysBefore` (`Dilemma.Tag = "op"`, `Action = "op+15"`). Expectations and traffic stop
+  growing after `Defs.IntensityCap`. Balance runs go to day 320.
 - No walking through each other: busy people standing still block (`_standing`, not in doorways or corridors); walkers
   detour (≤ `DetourTiles`) or wait `SqueezeAfter` minutes, and the view's `SeparatePeople` sidesteps figures.
 - Specialists leave carrying to messengers and clerks (`SpecialistsCarryAfter`). A Park without a canteen is now

@@ -352,6 +352,8 @@ public sealed class Dilemma
     public Service Service { get; set; }
     public int? StaffId { get; set; }
     public double Created { get; set; }
+    /// <summary>What raised it, when the sim needs to find it again ("op" for a great operation's decision).</summary>
+    public string? Tag { get; set; }
     public List<DilemmaOption> Options { get; set; } = new();
 }
 

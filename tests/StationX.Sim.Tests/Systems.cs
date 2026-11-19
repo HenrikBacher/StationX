@@ -503,16 +503,17 @@ public class ModeTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public void TheTunnyChapterCanBeFinished()
+    public void TheWarCanBeSeenThroughToVictory()
     {
         // Easy: Normal is tuned so the autoplayer loses half its campaigns.
         var g = GameState.NewGame(77, Difficulty.Easy);
-        var ai = new AutoPlayer(g) { ContinuePastEnigma = true };
+        var ai = new AutoPlayer(g);
         ai.PlayCampaign(maxDays: 400, log: output.WriteLine);
         Assert.True(g.Status == GameStatus.Won && g.ActIndex == Campaign.Acts.Length - 1,
             $"act {g.ActIndex} '{g.Act.Title}' status {g.Status} day {g.Day}: " +
             string.Join("; ", g.Act.Goals.Select(x => $"{x.Text} {x.Progress(g)}/{x.Target}")) + $" funds {g.Funds}");
-        Assert.Equal(Campaign.TunnyEpilogue, g.EndReason);
+        Assert.Equal(Campaign.FinalEpilogue, g.EndReason);
+        Assert.Equal(GreatOps.All.Length, g.OpOutcomes.Count);
     }
 }
 

@@ -137,6 +137,6 @@ public class CampaignTests(ITestOutputHelper output)
             $"Stuck in act {g.ActIndex} '{g.Act.Title}' on day {g.Day}: " +
             string.Join("; ", g.Act.Goals.Select(x => $"{x.Text} {x.Progress(g)}/{x.Target}")) +
             $" | funds {g.Funds} rep {g.Reputation:0} staff {g.Staff.Count} msgs {g.Messages.Count}");
-        Assert.Equal(Campaign.EnigmaFinale + 1, acts.Count);
+        Assert.Equal(Campaign.Acts.Length, acts.Count);
     }
 }
