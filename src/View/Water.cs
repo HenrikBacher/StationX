@@ -80,7 +80,8 @@ void fragment() {
     float depth = smoothstep(0.88, 0.25, d);
     vec3 col = mix(shallow, deep, depth);
     float fres = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), 3.0);
-    col = mix(col, sky * 0.8, clamp(0.08 + fres * 0.8, 0.0, 0.45));
+    // Only a touch of faked sky: the real one (the environment's sky light) is reflected on top.
+    col = mix(col, sky * 0.8, clamp(0.03 + fres * 0.45, 0.0, 0.25));
     // A dark, muddy margin where the water meets the bank.
     col = mix(col, vec3(0.10, 0.09, 0.06), smoothstep(0.8, 0.95, d) * 0.65 * (1.0 - ice));
 

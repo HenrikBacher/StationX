@@ -461,11 +461,13 @@ public partial class Park3D : Node3D
         name.OutlineSize = 16;
         name.OutlineModulate = new Color("d9cfb4");
         name.NoDepthTest = true;   // readable over the roofs
+        name.RenderPriority = 20;
         var headLabel = Mesh3.Text(_buildings, "", name.Position + new Vector3(0, -0.42f, 0), 30, new Color("1d1a16"), Fonts.Body);
         headLabel.PixelSize = 0.0075f;
         headLabel.OutlineSize = 10;
         headLabel.OutlineModulate = new Color("d9cfb4");
         headLabel.NoDepthTest = true;
+        headLabel.RenderPriority = 20;
         _headLabels[z.Id] = headLabel;
 
         for (int y = z.Y + 2; y < z.Y + z.H - 1; y += 4)
@@ -663,6 +665,45 @@ public partial class Park3D : Node3D
         foreach (float px in new[] { z.DoorX - 0.15f, z.DoorX + 1.15f })
             Mesh3.Box(_buildings, new Vector3(0.18f, 0.5f, 0.18f), new Vector3(px, 0.25f, pz), stone);
         Mesh3.Box(_buildings, new Vector3(1.6f, 0.06f, 0.6f), new Vector3(z.DoorX + 0.5f, 0.03f, pz), stone);
+        MansionFront(z, doorSouth, brick, stone);
+    }
+
+    /// <summary>
+    /// The entrance front, seen when its wall stands (zoomed out, or from the other side): a gabled stone porch on
+    /// columns and two square bays with sash windows. Victorian and overdone, like the rest of the house.
+    /// </summary>
+    void MansionFront(Zone z, bool south, Material brick, Material stone)
+    {
+        float x0 = z.X + 0.5f, x1 = z.X + z.W - 0.5f;
+        float wallZ = south ? z.Y + z.H - 0.5f : z.Y + 0.5f, o = south ? 1 : -1;
+        var front = Sided(south ? 2 : 0, south ? 2 : 0, true);
+        var slate = _slate ?? Textures.Mat(Surface.Felt, new Color("8a8f98"), 2);
+
+        // Porch: four columns, an entablature and a pediment over the door.
+        float cx = z.DoorX + 0.5f, depth = 0.85f, ph = 1.15f;
+        float pz = wallZ + o * (WallThick / 2 + depth);
+        foreach (float dx in new[] { -0.62f, 0.62f })
+            foreach (float dz in new[] { 0f, -o * 0.55f })
+                Mesh3.Cyl(front, 0.06f, 0.07f, ph, new Vector3(cx + dx, ph / 2, pz + dz), Gfx.StoneDressing, 10);
+        Mesh3.Box(front, new Vector3(1.55f, 0.14f, depth + 0.2f), new Vector3(cx, ph + 0.07f, wallZ + o * (WallThick / 2 + depth / 2)), stone);
+        Mesh3.Prism(front, new Vector3(1.6f, 0.42f, depth + 0.24f), new Vector3(cx, ph + 0.35f, wallZ + o * (WallThick / 2 + depth / 2)), slate);
+        Mesh3.Prism(front, new Vector3(1.6f, 0.42f, 0.06f), new Vector3(cx, ph + 0.35f, pz + o * 0.12f), stone);
+
+        // Two square bays either side of the entrance.
+        foreach (float bx in new[] { x0 + (cx - x0) * 0.45f, x1 - (x1 - cx) * 0.45f })
+        {
+            const float bw = 1.5f, bd = 0.55f, bh = 1.25f;
+            float bz = wallZ + o * (WallThick / 2 + bd / 2);
+            Mesh3.Box(front, new Vector3(bw, bh, bd), new Vector3(bx, bh / 2, bz), brick);
+            Mesh3.Box(front, new Vector3(bw + 0.12f, 0.08f, bd + 0.1f), new Vector3(bx, bh + 0.04f, bz + o * 0.03f), stone);
+            Mesh3.Box(front, new Vector3(bw + 0.04f, 0.1f, bd + 0.04f), new Vector3(bx, 0.55f, bz), stone);
+            // A tall sash in the front face and a narrow one in each side.
+            Mesh3.Box(front, new Vector3(0.62f, 0.62f, 0.03f), new Vector3(bx, 0.95f, bz + o * (bd / 2 + 0.005f)), Mesh3.Glass);
+            Mesh3.Box(front, new Vector3(0.66f, 0.04f, 0.04f), new Vector3(bx, 0.95f, bz + o * (bd / 2 + 0.01f)), Gfx.Cream.Darkened(0.1f));
+            foreach (float sx in new[] { -1f, 1f })
+                Mesh3.Box(front, new Vector3(0.03f, 0.62f, 0.3f), new Vector3(bx + sx * (bw / 2 + 0.005f), 0.95f, bz), Mesh3.Glass);
+            Mesh3.Box(front, new Vector3(0.7f, 0.06f, 0.06f), new Vector3(bx, 1.3f - 0.05f, bz + o * (bd / 2 + 0.02f)), stone);
+        }
     }
 
     static ImageTexture? _grimeTex;
@@ -757,6 +798,7 @@ public partial class Park3D : Node3D
     public void SetRoofs(float camSize)
     {
         float a = Mathf.SmoothStep(RoofsFrom, RoofsFull, camSize);
+        if (a > 0.9f) a = 1;   // the last of the fade isn't worth blending for
         if (Mathf.Abs(a - _roofAlpha) < 0.01f) return;
         _roofAlpha = a;
         ApplyRoofs();
