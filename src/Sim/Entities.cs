@@ -28,6 +28,8 @@ public sealed class Station
     public double LastWorked { get; set; } = -1e9;
     /// <summary>Messages this station has finished, for the statistics panel.</summary>
     public int Processed { get; set; }
+    /// <summary>What it has been doing over the last day (Utilisation.cs); not saved.</summary>
+    [System.Text.Json.Serialization.JsonIgnore] public UseLog? Use { get; set; }
 
     public StationDef Def => Defs.Station(Type);
     public (int w, int h) Dims => Defs.Dims(Type, Rot);
@@ -136,6 +138,8 @@ public sealed class Staff
     public StaffTask? Task { get; set; }
     public bool Leaving { get; set; }
     public int Decrypts { get; set; }
+    /// <summary>What they have been doing over the last day (Utilisation.cs); not saved.</summary>
+    [System.Text.Json.Serialization.JsonIgnore] public UseLog? Use { get; set; }
 
     public (int x, int y) TilePos => ((int)Math.Floor(X), (int)Math.Floor(Y));
     public bool Idle => Task == null && !Leaving && !Away;

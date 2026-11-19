@@ -1,0 +1,376 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text.Json.Serialization;
+
+namespace StationX.Sim;
+
+/// <summary>What a desk or machine was doing.</summary>
+public enum DeskUse
+{
+    /// <summary>Working a message (a machine running).</summary>
+    Working,
+    /// <summary>Someone at it, or a machine ready, but no paper.</summary>
+    Starved,
+    /// <summary>Paper waiting (or a message half done) and nobody working it.</summary>
+    Unstaffed,
+    /// <summary>Broken down, being serviced, or stopped by a power cut.</summary>
+    Down,
+    /// <summary>Nobody at it and nothing for it.</summary>
+    Quiet,
+}
+
+/// <summary>What a person was doing.</summary>
+public enum PersonUse { Working, Carrying, Walking, Break, Idle, OffWatch, Away }
+
+/// <summary>
+/// A rolling record of the last 24 game hours in hourly slots (slot = hour of the day): minutes in each state, and
+/// for desks the messages finished. Kept on the station or person, never saved.
+/// </summary>
+public sealed class UseLog
+{
+    public const int Slots = 24;
+    public readonly int States;
+    public readonly float[] Minutes;
+    public readonly int[] Done = new int[Slots];
+    public int LastProcessed;
+
+    public UseLog(int states)
+    {
+        States = states;
+        Minutes = new float[Slots * states];
+    }
+
+    public void Clear(int slot)
+    {
+        Array.Clear(Minutes, slot * States, States);
+        Done[slot] = 0;
+    }
+
+    public double In(int state)
+    {
+        double t = 0;
+        for (int h = 0; h < Slots; h++) t += Minutes[h * States + state];
+        return t;
+    }
+
+    public double In(int slot, int state) => Minutes[slot * States + state];
+
+    public double Total()
+    {
+        double t = 0;
+        foreach (var m in Minutes) t += m;
+        return t;
+    }
+
+    public double SlotTotal(int slot)
+    {
+        double t = 0;
+        for (int k = 0; k < States; k++) t += Minutes[slot * States + k];
+        return t;
+    }
+
+    public int DoneTotal() => Done.Sum();
+}
+
+/// <summary>One kind of desk or machine over the last day.</summary>
+public sealed record StepUse(StationType Type, int Count, double[] Share, double Minutes, int Done, int Waiting,
+                             double AvgWait, double OldestWait, int? Worst);
+
+/// <summary>One role over the last day: shares are of their time on watch.</summary>
+public sealed record RoleUse(Role Role, int Staff, int OnDuty, double[] Share, double Minutes, int? Pick);
+
+/// <summary>One watch's hours over the last day.</summary>
+public sealed record WatchUse(Shift Shift, int Rostered, double DeskBusy, double DeskUnstaffed, double PeopleWorking, double PeopleIdle);
+
+/// <summary>A plain-English observation about where the Park is stuck or idle, most serious first.</summary>
+public sealed record UseFinding(string Kind, string Text, double Score, StationType? Type = null, Role? Role = null);
+
+public sealed class UseReport
+{
+    public double Hours;
+    public List<StepUse> Steps = new();
+    public List<RoleUse> Roles = new();
+    public List<WatchUse> Watches = new();
+    public List<UseFinding> Findings = new();
+    public UseFinding? Top => Findings.Count > 0 ? Findings[0] : null;
+}
+
+/// <summary>
+/// Utilisation: how busy every desk, machine and person has been over the last day. Read-only bookkeeping, done once a
+/// tick after everything else; it never feeds back into the simulation and isn't saved.
+/// </summary>
+public sealed partial class GameState
+{
+    /// <summary>Off for tests that check the bookkeeping changes nothing.</summary>
+    [JsonIgnore] public bool TrackUse { get; set; } = true;
+    /// <summary>When the record began (the start of the game, or loading it).</summary>
+    [JsonIgnore] public double UseSince { get; private set; } = -1;
+    int _useHour = -1;
+    readonly HashSet<int> _useAtWork = new();
+    UseReport? _useReport;
+    int _useReportAt = int.MinValue;
+
+    /// <summary>Desks and machines in the order paper meets them.</summary>
+    public static readonly StationType[] UseOrder =
+    {
+        StationType.Registration, StationType.TrafficAnalysis, StationType.HandCipher, StationType.Zygalski,
+        StationType.Banburismus, StationType.Crib, StationType.Bombe, StationType.Bombe4, StationType.Checking,
+        StationType.OutstationLink, StationType.Typex, StationType.Testery, StationType.HeathRobinson,
+        StationType.Colossus, StationType.TunnyMachine, StationType.Translation, StationType.Index, StationType.Dispatch,
+    };
+
+    public static bool Tracked(Station st) => st.Def.Operator != null;
+
+    /// <summary>Game minutes between samples: states last far longer, and it keeps the cost down with 150 people.</summary>
+    const double UseEvery = 2;
+    double _useAcc;
+
+    void TrackUsage(double dt)
+    {
+        if (!TrackUse) return;
+        _useAcc += dt;
+        if (_useAcc < UseEvery - 1e-9) return;
+        dt = _useAcc;
+        _useAcc = 0;
+        double t0 = Now - dt;
+        int hour = (int)Math.Floor(t0 / 60);
+        if (hour != _useHour)
+        {
+            if (_useHour < 0) UseSince = t0;
+            else
+                for (int h = _useHour + 1; h <= hour && h <= _useHour + UseLog.Slots; h++)
+                {
+                    int s = h % UseLog.Slots;
+                    foreach (var st in Stations) st.Use?.Clear(s);
+                    foreach (var p in Staff) p.Use?.Clear(s);
+                }
+            _useHour = hour;
+        }
+        int slot = hour % UseLog.Slots;
+        float m = (float)dt;
+
+        _useAtWork.Clear();
+        foreach (var st in Stations)
+        {
+            if (st.OperatorPresent && st.Current != null && st.OperatorId is int op) _useAtWork.Add(op);
+            if (!Tracked(st)) continue;
+            if (st.Use == null) { st.Use = new UseLog(5); st.Use.LastProcessed = st.Processed; }
+            st.Use.Minutes[slot * 5 + (int)DeskState(st)] += m;
+            if (st.Processed != st.Use.LastProcessed)
+            {
+                st.Use.Done[slot] += Math.Max(0, st.Processed - st.Use.LastProcessed);
+                st.Use.LastProcessed = st.Processed;
+            }
+        }
+        foreach (var p in Staff)
+        {
+            if (PersonState(p) is not PersonUse u) continue;
+            p.Use ??= new UseLog(7);
+            p.Use.Minutes[slot * 7 + (int)u] += m;
+        }
+    }
+
+    /// <summary>What a desk or machine is doing right now.</summary>
+    public DeskUse DeskState(Station st)
+    {
+        if (st.IsDown(Now) || Unpowered(st)) return DeskUse.Down;
+        if (st.Working) return DeskUse.Working;
+        if (st.Current != null || (st.Input.Count > 0 && !st.Obsolete)) return DeskUse.Unstaffed;
+        return st.OperatorPresent || st.IsMachine ? DeskUse.Starved : DeskUse.Quiet;
+    }
+
+    /// <summary>What a person is doing right now; null for a recruit still on the way.</summary>
+    public PersonUse? PersonState(Staff p)
+    {
+        if (p.Arriving(Now)) return null;
+        if (p.IsSick(Now)) return PersonUse.Away;
+        if (p.Away) return PersonUse.OffWatch;
+        return p.Task switch
+        {
+            { Kind: TaskKind.Operate } => _useAtWork.Contains(p.Id) || AtWork(p) ? PersonUse.Working
+                                        : p.Path.Count > 0 ? PersonUse.Walking : PersonUse.Idle,
+            { Kind: TaskKind.Carry } => PersonUse.Carrying,
+            { Kind: TaskKind.Rest, Loafing: true } => PersonUse.Idle,
+            { Kind: TaskKind.Rest } => PersonUse.Break,
+            { Kind: TaskKind.Leave } => PersonUse.Walking,
+            _ => p.HeadOf != null ? PersonUse.Working : PersonUse.Idle,
+        };
+    }
+
+    // Outside the tick (the view asking about one person) the set of people at work isn't filled in.
+    bool AtWork(Staff p) => _useAtWork.Count == 0 && p.Task is { } t && StationById(t.Dest) is { OperatorPresent: true, Current: not null } st && st.OperatorId == p.Id;
+
+    /// <summary>The hours the record covers, up to a day.</summary>
+    public double UseHours => UseSince < 0 ? 0 : Math.Min(UseLog.Slots, (Now - UseSince) / 60);
+
+    /// <summary>The slot of the hour now under way (the newest in the record).</summary>
+    public int UseSlotNow => (int)Math.Floor(Now / 60) % UseLog.Slots;
+
+    public static string Plural(StationType t) => t switch
+    {
+        StationType.Dispatch => "Despatch boxes",
+        StationType.Index => "Card indexes",
+        StationType.TrafficAnalysis => "Traffic-analysis desks",
+        StationType.Colossus => "Colossi",
+        _ => Defs.Station(t).Name + "s",
+    };
+
+    /// <summary>The utilisation report for the panel, the overlay and tips; worked out at most once a game minute.</summary>
+    public UseReport Utilisation()
+    {
+        int at = (int)Now;
+        if (_useReport != null && _useReportAt == at) return _useReport;
+        _useReportAt = at;
+        return _useReport = BuildUseReport();
+    }
+
+    UseReport BuildUseReport()
+    {
+        var r = new UseReport { Hours = UseHours };
+
+        // Paper waiting for each step: in trays, out trays and runners' hands, not garbled copies sent back.
+        var waiting = new Dictionary<StationType, (int n, double sum, double oldest)>();
+        foreach (var msg in Messages.Values)
+        {
+            if (msg.Next is not StationType nx || msg.Loc is Loc.Processing or Loc.Done or Loc.Remote || msg.HoldUntil > Now) continue;
+            var w = waiting.GetValueOrDefault(nx);
+            double age = Now - msg.Since;
+            waiting[nx] = (w.n + 1, w.sum + age, Math.Max(w.oldest, age));
+        }
+
+        foreach (var t in UseOrder)
+        {
+            var list = Stations.Where(s => s.Type == t && s.Use != null && !s.Obsolete).ToList();
+            if (list.Count == 0) continue;
+            var share = new double[5];
+            double total = 0;
+            int done = 0;
+            foreach (var s in list)
+            {
+                for (int k = 0; k < 5; k++) share[k] += s.Use!.In(k);
+                total += s.Use!.Total();
+                done += s.Use.DoneTotal();
+            }
+            if (total > 0) for (int k = 0; k < 5; k++) share[k] /= total;
+            var w = waiting.GetValueOrDefault(t);
+            // The one to look at: paper with nobody on it, else the fullest tray, else the busiest.
+            var worst = list.OrderByDescending(s => DeskState(s) == DeskUse.Unstaffed ? 1 : 0)
+                            .ThenByDescending(s => s.Input.Count).ThenByDescending(s => s.Use!.In((int)DeskUse.Working)).First();
+            r.Steps.Add(new StepUse(t, list.Count, share, total, done, w.n, w.n > 0 ? w.sum / w.n : 0, w.oldest, worst.Id));
+        }
+
+        foreach (var role in Enum.GetValues<Role>())
+        {
+            var people = Staff.Where(p => p.Role == role && !p.Arriving(Now)).ToList();
+            if (people.Count == 0) continue;
+            var share = new double[7];
+            double onDuty = 0;
+            foreach (var p in people)
+            {
+                if (p.Use == null) continue;
+                for (int k = 0; k <= (int)PersonUse.Idle; k++) { share[k] += p.Use.In(k); onDuty += p.Use.In(k); }
+            }
+            if (onDuty > 0) for (int k = 0; k < share.Length; k++) share[k] /= onDuty;
+            // Clicking the row picks someone standing about if anyone is, else someone at work.
+            var pick = people.Where(p => !p.Away).OrderBy(p => PersonState(p) switch { PersonUse.Idle => 0, PersonUse.Working => 1, _ => 2 }).FirstOrDefault();
+            r.Roles.Add(new RoleUse(role, people.Count, people.Count(p => !p.Away), share, onDuty, pick?.Id));
+        }
+
+        if (WatchesAvailable)
+            foreach (var sh in new[] { Shift.Day, Shift.Evening, Shift.Night })
+            {
+                var def = Defs.Shifts[sh];
+                double dw = 0, du = 0, dt = 0, pw = 0, pi = 0, pt = 0;
+                for (int h = def.StartHour; h < def.EndHour; h++)
+                {
+                    int slot = h % UseLog.Slots;
+                    foreach (var s in Stations)
+                    {
+                        if (s.Use == null) continue;
+                        dw += s.Use.In(slot, (int)DeskUse.Working);
+                        du += s.Use.In(slot, (int)DeskUse.Unstaffed);
+                        dt += s.Use.SlotTotal(slot) - s.Use.In(slot, (int)DeskUse.Down);
+                    }
+                    foreach (var p in Staff)
+                    {
+                        if (p.Use == null) continue;
+                        double work = p.Use.In(slot, (int)PersonUse.Working) + p.Use.In(slot, (int)PersonUse.Carrying);
+                        double idle = p.Use.In(slot, (int)PersonUse.Idle);
+                        double duty = work + idle + p.Use.In(slot, (int)PersonUse.Walking) + p.Use.In(slot, (int)PersonUse.Break);
+                        pw += work; pi += idle; pt += duty;
+                    }
+                }
+                r.Watches.Add(new WatchUse(sh, Staff.Count(p => p.Shift == sh && !p.Arriving(Now)),
+                    dt > 0 ? dw / dt : 0, dt > 0 ? du / dt : 0, pt > 0 ? pw / pt : 0, pt > 0 ? pi / pt : 0));
+            }
+
+        r.Findings = UseFindings(r);
+        return r;
+    }
+
+    List<UseFinding> UseFindings(UseReport r)
+    {
+        var list = new List<UseFinding>();
+        if (r.Hours < 3) return list;
+        static string P(double v) => $"{Math.Round(v * 100):0}%";
+        static string H(double minutes) => minutes >= 90 ? $"{minutes / 60:0} h" : $"{minutes:0} min";
+        foreach (var s in r.Steps)
+        {
+            if (s.Minutes < 120) continue;
+            double busy = s.Share[(int)DeskUse.Working], unstaffed = s.Share[(int)DeskUse.Unstaffed], down = s.Share[(int)DeskUse.Down];
+            var def = Defs.Station(s.Type);
+            string name = Plural(s.Type);
+            bool machine = s.Type is StationType.Bombe or StationType.Bombe4 or StationType.Colossus or StationType.HeathRobinson;
+            if (busy >= 0.75 && s.Waiting >= s.Count + 2)
+                list.Add(new UseFinding("bottleneck",
+                    $"{name} are the bottleneck: {P(busy)} busy over the last day, {s.Waiting} waiting (the oldest {H(s.OldestWait)}). " +
+                    (machine ? $"Build another {def.Name.ToLowerInvariant()}." : $"Build another {def.Name.ToLowerInvariant()} and staff it."),
+                    10 + busy * s.Waiting / s.Count, s.Type));
+            else if (unstaffed >= 0.2 && s.Waiting >= 1 && def.Operator is Role role)
+            {
+                string when = WorstWatch(s.Type) is Shift sh ? $", worst on the {Defs.Shifts[sh].Name.ToLowerInvariant()}" : "";
+                list.Add(new UseFinding("unstaffed",
+                    $"{name} had paper but nobody to work them {P(unstaffed)} of the time{when}. Hire {Defs.Roles[role].Plural.ToLowerInvariant()}" +
+                    (WatchesAvailable ? " or move some to that watch." : "."),
+                    8 + unstaffed * 10 + s.Waiting / (double)s.Count, s.Type, role));
+            }
+            if (down >= 0.15)
+                list.Add(new UseFinding("down", $"{name} were out of action {P(down)} of the last day. Service them before they wear out.", 6 + down * 10, s.Type));
+        }
+        foreach (var ro in r.Roles)
+        {
+            if (ro.Minutes < 240 || ro.Staff < 2) continue;
+            double idle = ro.Share[(int)PersonUse.Idle];
+            if (idle >= 0.5)
+                list.Add(new UseFinding("idle",
+                    $"{Defs.Roles[ro.Role].Plural} stood idle {P(idle)} of their time on watch: there's more of them than work for them.",
+                    2 + idle * 4, Role: ro.Role));
+        }
+        return list.OrderByDescending(f => f.Score).ToList();
+    }
+
+    /// <summary>The watch in which a kind of desk most often had paper and nobody at it.</summary>
+    Shift? WorstWatch(StationType t)
+    {
+        if (!WatchesAvailable) return null;
+        Shift? worst = null;
+        double most = 0;
+        foreach (var sh in new[] { Shift.Day, Shift.Evening, Shift.Night })
+        {
+            var def = Defs.Shifts[sh];
+            double u = 0, tot = 0;
+            foreach (var s in Stations)
+            {
+                if (s.Type != t || s.Use == null) continue;
+                for (int h = def.StartHour; h < def.EndHour; h++)
+                {
+                    u += s.Use.In(h % UseLog.Slots, (int)DeskUse.Unstaffed);
+                    tot += s.Use.SlotTotal(h % UseLog.Slots);
+                }
+            }
+            if (tot > 0 && u / tot > most) { most = u / tot; worst = sh; }
+        }
+        return most >= 0.25 ? worst : null;
+    }
+}
