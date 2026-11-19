@@ -107,3 +107,77 @@ public sealed partial class GameState
         return false;
     }
 }
+
+/// <summary>
+/// Banburismus. Two naval messages punched on Banbury sheets: slide one over the other and count where the holes
+/// line up (the same letter in the same place). Two messages sent on nearby settings are "in depth" at one offset,
+/// and there the repeats come far more often than chance. Find that offset.
+/// </summary>
+public sealed class BanburyPuzzle
+{
+    public string Upper { get; init; } = "";
+    public string Lower { get; init; } = "";
+    public int Answer { get; init; }
+    public const int MaxOffset = 12;
+
+    /// <summary>Columns of the upper sheet where the lower one, slid by this offset, repeats the letter.</summary>
+    public IEnumerable<int> Repeats(int offset)
+    {
+        for (int i = 0; i < Lower.Length; i++)
+            if (i + offset < Upper.Length && Upper[i + offset] == Lower[i]) yield return i + offset;
+    }
+
+    public static BanburyPuzzle Make(int seed)
+    {
+        var r = new Random(seed);
+        const int len = 34;
+        for (int attempt = 0; attempt < 200; attempt++)
+        {
+            int answer = r.Next(MaxOffset + 1);
+            var up = new char[len + MaxOffset];
+            var low = new char[len];
+            for (int i = 0; i < up.Length; i++) up[i] = (char)('A' + r.Next(26));
+            for (int i = 0; i < len; i++) low[i] = (char)('A' + r.Next(26));
+            // Plant the depth: about one letter in five repeats at the right offset
+            var spots = Enumerable.Range(0, len).OrderBy(_ => r.Next()).Take(7 + r.Next(2)).ToHashSet();
+            foreach (int i in spots) low[i] = up[i + answer];
+            var p = new BanburyPuzzle { Upper = new string(up), Lower = new string(low), Answer = answer };
+            // Elsewhere, chance alone: keep every wrong offset at three repeats or fewer
+            if (Enumerable.Range(0, MaxOffset + 1).All(o => o == answer || p.Repeats(o).Count() <= 3)
+                && p.Repeats(answer).Count() >= 7)
+                return p;
+        }
+        return new BanburyPuzzle { Upper = new string('A', len + MaxOffset), Lower = new string('A', len), Answer = 0 };
+    }
+}
+
+public sealed partial class GameState
+{
+    /// <summary>The Banbury sheets for the key attempt on a Banburismus table now, or null if there's nothing to slide.</summary>
+    public BanburyPuzzle? BanburyFor(int stationId)
+    {
+        var st = StationById(stationId);
+        if (st is not { Type: StationType.Banburismus, Current: int id } || !Messages.TryGetValue(id, out var m) || m.Slid) return null;
+        return BanburyPuzzle.Make(Mix(Seed, m.Id, 0xBA9B));
+    }
+
+    /// <summary>Picks the offset by hand. Right: the wheel orders are cut at once. Wrong: twenty minutes lost.</summary>
+    public bool SlideBanbury(int stationId, int offset, int? msgId = null)
+    {
+        var p = BanburyFor(stationId);
+        var st = StationById(stationId);
+        if (p == null || st?.Current is not int id || (msgId != null && msgId != id)) return false;
+        var m = Messages[id];
+        if (offset == p.Answer)
+        {
+            m.Slid = true;
+            st.WorkDone = st.WorkTotal;
+            Stats.BanburiesSlid++;
+            Emit(EventKind.Good, $"The sheets are in depth at offset {offset}: the repeats stand out. {Defs.NetOf(m.Net).Name}'s wheel orders are cut down for the Bombes.");
+            return true;
+        }
+        st.WorkTotal += Defs.WrongDragMinutes;
+        Emit(EventKind.Bad, $"Offset {offset} is only chance: too few repeats to mean anything. Twenty minutes lost.");
+        return false;
+    }
+}

@@ -82,4 +82,60 @@ public partial class Hud
         v.AddChild(Row(left, right, Spacer(), PaperButton("Leave it to the desk", CloseModal), place));
         Redraw();
     }
+
+    /// <summary>Banburismus on two pink Banbury sheets: slide the lower one until the repeats (holes that line up) crowd together.</summary>
+    void ShowBanbury(int stationId)
+    {
+        var p = S.BanburyFor(stationId);
+        if (p == null || S.StationById(stationId)?.Current is not int msgId) return;
+        int off = 0;
+        const int C = 20;
+        var v = Paper(Math.Max(680, (p.Upper.Length + 2) * C + 60));
+        v.AddChild(Ink("HUT 8  ·  BANBURISMUS", 15, Fonts.Heading));
+        v.AddChild(Ink("Two messages punched on Banbury sheets. Slide the lower sheet along the upper: where both have the same letter " +
+                       "the holes line up (marked). By chance that happens two or three times; where the messages are in depth it " +
+                       "happens far more often. Find that offset.", 13, Fonts.Body));
+        var upper = new HBoxContainer();
+        var lower = new HBoxContainer();
+        foreach (var row in new[] { upper, lower }) { row.AddThemeConstantOverride("separation", 0); v.AddChild(row); }
+        var status = Ink("", 13, Fonts.Body);
+        v.AddChild(status);
+        var pink = new Color("e8c4c0");
+        var hole = new Color("3a2a28");
+
+        Label Cell(char c, Color bg, bool punched)
+        {
+            var l = new Label { Text = c.ToString(), HorizontalAlignment = HorizontalAlignment.Center, CustomMinimumSize = new Vector2(C, 24) };
+            l.AddThemeFontOverride("font", Fonts.Typewriter);
+            l.AddThemeFontSizeOverride("font_size", 15);
+            l.AddThemeColorOverride("font_color", punched ? new Color("f4ead8") : UiTheme.PaperInk);
+            l.AddThemeStyleboxOverride("normal", new StyleBoxFlat { BgColor = punched ? hole : bg });
+            return l;
+        }
+
+        void Redraw()
+        {
+            foreach (var row in new[] { upper, lower })
+                foreach (var c in row.GetChildren()) { row.RemoveChild(c); c.QueueFree(); }
+            var hits = p.Repeats(off).ToHashSet();
+            for (int i = 0; i < p.Upper.Length; i++) upper.AddChild(Cell(p.Upper[i], new Color("efe4cf"), hits.Contains(i)));
+            lower.AddChild(new Control { CustomMinimumSize = new Vector2(off * C, 24) });
+            for (int i = 0; i < p.Lower.Length; i++) lower.AddChild(Cell(p.Lower[i], pink, hits.Contains(i + off)));
+            int n = hits.Count;
+            status.Text = $"Offset {off}: {n} repeat{(n == 1 ? "" : "s")}." + (n >= 6 ? " That's well beyond chance." : n <= 3 ? " About what chance gives." : "");
+        }
+
+        var left = PaperButton("◀", () => { off = Math.Max(0, off - 1); Redraw(); });
+        var right = PaperButton("▶", () => { off = Math.Min(BanburyPuzzle.MaxOffset, off + 1); Redraw(); });
+        var pick = PaperButton("They're in depth here", () =>
+        {
+            bool live = S.StationById(stationId)?.Current == msgId && S.BanburyFor(stationId) != null;
+            bool ok = live && S.SlideBanbury(stationId, off, msgId);
+            CloseModal();
+            Toast(!live ? "Too late: the table finished that one while you worked." : ok ? "In depth: the wheel orders are cut for the Bombes." : "Only chance: twenty minutes lost.",
+                  ok ? EventKind.Good : !live ? EventKind.Info : EventKind.Bad);
+        });
+        v.AddChild(Row(left, right, Spacer(), PaperButton("Leave it to the table", CloseModal), pick));
+        Redraw();
+    }
 }

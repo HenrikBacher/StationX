@@ -135,6 +135,7 @@ public partial class Hud
         if (st.MilestonesMet + st.MilestonesMissed > 0) more.Add($"standing-order days met {st.MilestonesMet} of {st.MilestonesMet + st.MilestonesMissed}");
         if (st.OpsWithheld > 0) more.Add($"{st.OpsWithheld} operations held back to protect the source");
         if (st.CribsDragged > 0) more.Add($"{st.CribsDragged} cribs placed by hand");
+        if (st.BanburiesSlid > 0) more.Add($"{st.BanburiesSlid} Banbury sheets slid by hand");
         if (more.Count > 0) _sideBox.AddChild(UiTheme.Label(char.ToUpperInvariant(more[0][0]) + string.Join(" · ", more)[1..], 12, UiTheme.TextDim));
     }
 
@@ -294,6 +295,7 @@ public partial class Hud
             case "dilemma": S.RaiseDilemma(S.DebugDilemma()); ShowDilemma(S.Dilemmas[0]); break;
             case "end": ShowEnd(true); break;
             case "warmap": ShowWarMap(); break;
+            case "banbury" when S.Stations.FirstOrDefault(s => S.BanburyFor(s.Id) != null) is { } bs: ShowBanbury(bs.Id); break;
             case "crib" when S.Stations.FirstOrDefault(s => S.PuzzleFor(s.Id) != null) is { } cs: ShowCribPuzzle(cs.Id); break;
             case "intercept" when S.Archive.Count > 0:
                 var a = S.Archive[^1];

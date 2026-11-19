@@ -528,6 +528,12 @@ public partial class Hud
             };
             _inspBox.AddChild(UiTheme.Label(what, 13, UiTheme.Accent));
             _inspBox.AddChild(new ProgressBar { MinValue = 0, MaxValue = 1, Value = st.Progress, ShowPercentage = false, CustomMinimumSize = new Vector2(0, 8) });
+            if (S.BanburyFor(st.Id) != null)
+            {
+                int sid = st.Id;
+                _inspBox.AddChild(Row(UiTheme.Label("Slide the Banbury sheets yourself and the wheel orders are cut at once.", 12, UiTheme.TextDim),
+                    UiTheme.Button("Slide the sheets…", () => ShowBanbury(sid))));
+            }
             if (S.PuzzleFor(st.Id) != null)
             {
                 int sid = st.Id;

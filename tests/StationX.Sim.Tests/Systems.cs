@@ -1736,3 +1736,19 @@ public class InspectionTests
         Assert.Equal(At(5), At(5));
     }
 }
+
+public class BanburyPuzzleTests
+{
+    [Fact]
+    public void TheDepthStandsOut()
+    {
+        for (int seed = 0; seed < 300; seed++)
+        {
+            var p = BanburyPuzzle.Make(seed);
+            int best = Enumerable.Range(0, BanburyPuzzle.MaxOffset + 1).OrderByDescending(o => p.Repeats(o).Count()).First();
+            Assert.Equal(p.Answer, best);
+            Assert.True(p.Repeats(p.Answer).Count() >= 7);
+            Assert.All(Enumerable.Range(0, BanburyPuzzle.MaxOffset + 1).Where(o => o != p.Answer), o => Assert.True(p.Repeats(o).Count() <= 3));
+        }
+    }
+}

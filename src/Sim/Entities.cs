@@ -191,6 +191,8 @@ public sealed class Message
     public bool Reserved { get; set; }
     /// <summary>The player placed this key attempt's crib by hand.</summary>
     public bool Dragged { get; set; }
+    /// <summary>The player slid this key attempt's Banbury sheets by hand.</summary>
+    public bool Slid { get; set; }
     public bool Carrier { get; set; }
     public bool Banbury { get; set; }
     public double CribQuality { get; set; } = 0.8;
@@ -256,6 +258,7 @@ public sealed class Stats
     public int MilestonesMissed { get; set; }
     public int OpsWithheld { get; set; }
     public int CribsDragged { get; set; }
+    public int BanburiesSlid { get; set; }
     public int InspectionsPassed { get; set; }
     public int InspectionsFailed { get; set; }
     public int StandingAccepted { get; set; }
