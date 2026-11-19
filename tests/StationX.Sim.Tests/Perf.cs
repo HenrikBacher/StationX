@@ -38,6 +38,7 @@ public class Perf(ITestOutputHelper output)
             var phaseTicks = new long[Phases.Length];
             long aiTicks = 0;
             var total = Stopwatch.StartNew();
+            var cpu0 = Process.GetCurrentProcess().TotalProcessorTime;
             var block = Stopwatch.StartNew();
             int blockStart = 0;
             var sw = new Stopwatch();
@@ -75,7 +76,10 @@ public class Perf(ITestOutputHelper output)
                 }
             }
             double ms = total.Elapsed.TotalMilliseconds;
-            output.WriteLine($"seed {seed} {diff}: {g.Status} day {g.Day}, {ms / Math.Max(1, g.Day):0.0} ms/day ({ms / 1000:0.0} s), staff {g.Staff.Count}");
+            // CPU time is the steadier measure on a busy machine: wall time counts the waits for a core.
+            double cpu = (Process.GetCurrentProcess().TotalProcessorTime - cpu0).TotalMilliseconds;
+            output.WriteLine($"seed {seed} {diff}: {g.Status} day {g.Day}, {ms / Math.Max(1, g.Day):0.0} ms/day wall ({ms / 1000:0.0} s), " +
+                             $"{cpu / Math.Max(1, g.Day):0.0} ms/day CPU, staff {g.Staff.Count}");
             double f2ms = 1000.0 / Stopwatch.Frequency;
             output.WriteLine($"    {"AutoPlayer.Think",-16} {aiTicks * f2ms,8:0} ms");
             foreach (var i in Enumerable.Range(0, Phases.Length).OrderByDescending(i => phaseTicks[i]))
