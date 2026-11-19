@@ -56,18 +56,40 @@ public partial class PersonModel : Node3D
         return j;
     }
 
-    /// <summary>Muted period cloth that still tells the roles apart at a glance.</summary>
+    /// <summary>A stable random number in 0..1 for this person and this trait.</summary>
+    static float Trait(Staff s, int salt) => Gfx.Rand01(s.Id * 31 + 7, s.Look, salt);
+    static T PickFor<T>(Staff s, int salt, T[] options) => options[(int)(Trait(s, salt) * options.Length * 0.9999f)];
+
+    static readonly TorusMesh GlassRing = new() { InnerRadius = 0.013f, OuterRadius = 0.018f, Rings = 12, RingSegments = 4 };
+    static readonly Color[] Ties = { new("6e2a2a"), new("2f4361"), new("5a3a26"), new("2c4a33"), new("4a2c4a"), new("7a5a2a"), new("1f1f24") };
+    static readonly Color[] Tweeds = { new("8a6a43"), new("7a6545"), new("6f5a3c"), new("8f7550"), new("6a5f45"), new("7d5e3e") };
+    /// <summary>College scarf colours: (main, stripe).</summary>
+    static readonly (Color, Color)[] Scarves =
+    {
+        (new("2b3a6b"), new("c9b06a")), (new("7a1f2a"), new("d8cfb4")), (new("1f4a33"), new("d8cfb4")),
+        (new("3a2a4a"), new("c9a46a")), (new("8a5a1f"), new("1f1f24")), (new("2a5a7a"), new("e8e2d0")),
+    };
+
+    /// <summary>
+    /// Period cloth. Each role has a signature that reads from the game camera, and each person their own shade:
+    /// clerks in shirtsleeves under a waistcoat or a grey cardigan, cryptanalysts in tweed with a college scarf,
+    /// linguists in green with spectacles, Wrens in navy uniform, messengers in dark red.
+    /// </summary>
     static (Color jacket, Color lower, Color shirt, Color? tie) Clothes(Staff s)
     {
-        var jacket = Gfx.RoleColor(s.Role);
+        float shade = (Trait(s, 1) - 0.5f) * 0.16f;
+        Color Vary(Color c) => shade >= 0 ? c.Lightened(shade) : c.Darkened(-shade);
+        var tie = PickFor(s, 2, Ties);
+        var shirt = PickFor(s, 3, new[] { new Color("e9e4d6"), new Color("e4ddca"), new Color("dfe3e6"), new Color("e8dccf") });
         return s.Role switch
         {
-            Role.Wren => (jacket, jacket.Darkened(0.05f), new Color("e9e4d6"), new Color("15161a")),
-            Role.Clerk => (jacket, s.Female ? new Color("4a4746") : jacket.Darkened(0.12f), new Color("e4ddca"), s.Female ? null : new Color("6e2a2a")),
-            Role.Cryptanalyst => (jacket, s.Female ? new Color("5b4a3a") : new Color("5d5a55"), new Color("ded6c2"), s.Female ? null : new Color("2f4361")),
-            Role.Linguist => (jacket, s.Female ? new Color("4c4a3e") : new Color("57544d"), new Color("d8cfb4"), s.Female ? null : new Color("5a3a26")),
-            Role.Messenger => (jacket, new Color("2a2a30"), new Color("cfc8b8"), null),
-            _ => (jacket, jacket.Darkened(0.2f), Gfx.Cream, null),
+            Role.Wren => (Gfx.RoleColor(Role.Wren), Gfx.RoleColor(Role.Wren).Darkened(0.05f), new Color("e9e4d6"), new Color("15161a")),
+            Role.Clerk => (Vary(s.Female ? PickFor(s, 4, new[] { new Color("6b6a70"), new Color("7a6f78"), new Color("5f6670") }) : Gfx.RoleColor(Role.Clerk)),
+                           Vary(s.Female ? new Color("4a4746") : new Color("4f4e52")), shirt, s.Female ? null : tie),
+            Role.Cryptanalyst => (Vary(PickFor(s, 4, Tweeds)), Vary(s.Female ? new Color("5b4a3a") : new Color("5d5a55")), shirt, s.Female ? null : tie),
+            Role.Linguist => (Vary(Gfx.RoleColor(Role.Linguist)), Vary(s.Female ? new Color("4c4a3e") : new Color("57544d")), shirt, null),
+            Role.Messenger => (Vary(Gfx.RoleColor(Role.Messenger)), new Color("2a2a30"), new Color("cfc8b8"), null),
+            _ => (Gfx.RoleColor(s.Role), Gfx.RoleColor(s.Role).Darkened(0.2f), Gfx.Cream, null),
         };
     }
 
@@ -76,6 +98,9 @@ public partial class PersonModel : Node3D
         var skin = Gfx.Skin(s.Look);
         var hair = Gfx.Hair(s.Look);
         var (jacket, lower, shirt, tie) = Clothes(s);
+        if (Trait(s, 20) < 0.16f && s.Role != Role.Messenger) hair = hair.Lerp(new Color("a8a49c"), 0.75f);   // going grey
+        float build = 0.9f + Trait(s, 21) * 0.22f;     // slim to stout
+        bool shirtSleeves = s.Role == Role.Clerk && !s.Female;
         var shoes = new Color("1d1a17");
         var stockings = skin.Darkened(0.18f).Lerp(new Color("6b5a4a"), 0.25f);
 
@@ -116,15 +141,45 @@ public partial class PersonModel : Node3D
 
         // Torso: a tapered jacket, flattened front to back, with shoulders.
         var chest = Mesh3.Cyl(_torso, s.Female ? 0.115f : 0.13f, s.Female ? 0.095f : 0.11f, 0.3f, new Vector3(0, 0.16f, 0), jacket, 14);
-        chest.Scale = new Vector3(1, 1, 0.66f);
-        var shoulders = Capsule(_torso, 0.05f, s.Female ? 0.15f : 0.18f, new Vector3(0, ShoulderY - 0.02f, 0), jacket, 0.9f);
+        chest.Scale = new Vector3(build, 1, 0.66f * (0.9f + 0.1f * build));
+        var shoulders = Capsule(_torso, 0.05f, (s.Female ? 0.15f : 0.18f) * build, new Vector3(0, ShoulderY - 0.02f, 0), shirtSleeves ? shirt : jacket, 0.9f);
         shoulders.Rotation = new Vector3(0, 0, Mathf.Pi / 2);
         // Shirt front in the V of the jacket, collar, tie.
         var v = Mesh3.Prism(_torso, new Vector3(0.08f, 0.12f, 0.01f), new Vector3(0, ShoulderY - 0.07f, 0.083f), Mesh3.Mat(shirt));
         v.Rotation = new Vector3(0, 0, Mathf.Pi);
         if (tie is Color t)
             Mesh3.Box(_torso, new Vector3(0.022f, 0.1f, 0.01f), new Vector3(0, ShoulderY - 0.09f, 0.089f), t);
-        if (s.Role != Role.Messenger && s.Role != Role.Wren)
+        if (shirtSleeves)   // a watch chain across the waistcoat
+            Mesh3.Box(_torso, new Vector3(0.09f, 0.006f, 0.006f), new Vector3(0, 0.1f, 0.093f), Gfx.Brass);
+        if (s.Role == Role.Cryptanalyst)
+        {
+            // The long striped college scarf: round the neck, both ends hanging down the front
+            var (main, stripe) = PickFor(s, 5, Scarves);
+            Mesh3.Cyl(_torso, 0.068f, 0.075f, 0.05f, new Vector3(0, ShoulderY + 0.02f, 0), main, 14);
+            float len = 0.26f + Trait(s, 6) * 0.08f;
+            const int bands = 6;
+            foreach (int side in new[] { -1, 1 })
+            {
+                float x = side * 0.04f;
+                for (int k = 0; k < bands; k++)
+                    Mesh3.Box(_torso, new Vector3(0.045f, len / bands, 0.014f),
+                              new Vector3(x, ShoulderY - 0.01f - (k + 0.5f) * len / bands, 0.094f + side * 0.003f), k % 2 == 0 ? main : stripe);
+                Mesh3.Box(_torso, new Vector3(0.045f, 0.02f, 0.008f), new Vector3(x, ShoulderY - 0.02f - len, 0.094f), stripe);   // fringe
+            }
+        }
+        if (s.Role == Role.Linguist && !s.Female)
+        {
+            var bow = Mesh3.Mat(PickFor(s, 7, Ties));
+            foreach (int side in new[] { -1, 1 })
+            {
+                var wing = Mesh3.Prism(_torso, new Vector3(0.03f, 0.022f, 0.01f), new Vector3(side * 0.016f, ShoulderY - 0.035f, 0.088f), bow);
+                wing.Rotation = new Vector3(0, 0, side * Mathf.Pi / 2);
+            }
+        }
+        if (s.Role == Role.Linguist && s.Female)   // a string of pearls
+            for (int k = -3; k <= 3; k++)
+                Mesh3.Sphere(_torso, 0.008f, new Vector3(k * 0.012f, ShoulderY - 0.035f - 0.003f * (3 - Mathf.Abs(k)), 0.082f), new Color("efe9dc"));
+        if (s.Role != Role.Messenger && s.Role != Role.Wren && !shirtSleeves)
         {
             // Jacket buttons
             for (int b = 0; b < 2; b++)
@@ -145,10 +200,13 @@ public partial class PersonModel : Node3D
         (_armR, _elbowR) = Arm(1);
         (Node3D, Node3D) Arm(int side)
         {
-            var sh = Joint(_torso, new Vector3(side * (s.Female ? 0.125f : 0.145f), ShoulderY - 0.02f, 0));
-            Capsule(sh, 0.034f, Upper - 0.03f, new Vector3(0, -Upper / 2, 0), jacket.Darkened(0.04f));
+            var sh = Joint(_torso, new Vector3(side * (s.Female ? 0.125f : 0.145f) * build, ShoulderY - 0.02f, 0));
+            var sleeve = shirtSleeves ? shirt : jacket;
+            Capsule(sh, 0.034f, Upper - 0.03f, new Vector3(0, -Upper / 2, 0), sleeve.Darkened(0.04f));
             var el = Joint(sh, new Vector3(0, -Upper, 0));
-            Capsule(el, 0.03f, Fore - 0.04f, new Vector3(0, -Fore / 2 + 0.01f, 0), jacket.Darkened(0.06f));
+            Capsule(el, 0.03f, Fore - 0.04f, new Vector3(0, -Fore / 2 + 0.01f, 0), sleeve.Darkened(0.06f));
+            if (shirtSleeves)   // black sleeve garters above the elbow
+                Mesh3.Cyl(sh, 0.037f, 0.037f, 0.018f, new Vector3(0, -Upper * 0.7f, 0), new Color("1d1c1f"), 10);
             Mesh3.Sphere(el, 0.028f, new Vector3(0, -Fore - 0.005f, 0), skin);
             return (sh, el);
         }
@@ -160,10 +218,33 @@ public partial class PersonModel : Node3D
         skull.Scale = new Vector3(0.92f, 1.12f, 1f);
         Mesh3.Box(_head, new Vector3(0.016f, 0.026f, 0.02f), new Vector3(0, -0.01f, 0.07f), skin.Darkened(0.06f));   // nose
         Hair(s, hair);
+        if (s.Role == Role.Linguist || Trait(s, 30) < 0.22f)
+        {
+            // Round spectacles
+            var rim = Mesh3.Mat(PickFor(s, 31, new[] { new Color("1d1a17"), new Color("5a3a22"), Gfx.Brass.Darkened(0.2f) }));
+            foreach (int side in new[] { -1, 1 })
+            {
+                var ring = new MeshInstance3D { Mesh = GlassRing, Position = new Vector3(side * 0.027f, 0.012f, 0.066f), MaterialOverride = rim };
+                ring.Rotation = new Vector3(Mathf.Pi / 2, 0, 0);
+                _head.AddChild(ring);
+            }
+            Mesh3.Box(_head, new Vector3(0.02f, 0.004f, 0.004f), new Vector3(0, 0.014f, 0.07f), rim);
+        }
+        if (!s.Female && s.Role != Role.Messenger)
+        {
+            float f = Trait(s, 32);
+            if (f < 0.2f)        // moustache
+                Mesh3.Box(_head, new Vector3(0.042f, 0.011f, 0.014f), new Vector3(0, -0.03f, 0.068f), hair.Darkened(0.1f));
+            else if (f < 0.27f)  // a full beard
+            {
+                var beard = Mesh3.Sphere(_head, 0.05f, new Vector3(0, -0.05f, 0.03f), hair.Darkened(0.1f));
+                beard.Scale = new Vector3(1.15f, 0.9f, 0.9f);
+            }
+        }
 
         _carry = Mesh3.Box(_torso, new Vector3(0.2f, 0.05f, 0.15f), new Vector3(0, 0.12f, 0.17f), Gfx.Paper);
         _carry.Visible = false;
-        _baseScale = s.Role == Role.Messenger ? 0.9f : s.Female ? 0.95f : 1f;
+        _baseScale = (s.Role == Role.Messenger ? 0.9f : s.Female ? 0.95f : 1f) * (0.94f + Trait(s, 22) * 0.12f);
         Scale = Vector3.One * _baseScale;
         _phase = (s.Id * 1.37f) % Mathf.Tau;
     }
@@ -191,22 +272,71 @@ public partial class PersonModel : Node3D
         }
         if (s.Female)
         {
-            // 1940s: hair rolled at the temples and at the nape.
+            int style = (int)(Trait(s, 40) * 4 * 0.9999f);
             var cap = Mesh3.Sphere(_head, 0.076f, new Vector3(0, 0.02f, -0.012f), hair);
             cap.Scale = new Vector3(0.98f, 1.05f, 1f);
-            foreach (int side in new[] { -1, 1 })
+            switch (style)
             {
-                var roll = Capsule(_head, 0.025f, 0.03f, new Vector3(side * 0.035f, 0.075f, 0.01f), hair);
-                roll.Rotation = new Vector3(Mathf.Pi / 2, 0, 0);
+                case 0:
+                    // Victory rolls at the temples, rolled at the nape
+                    foreach (int side in new[] { -1, 1 })
+                    {
+                        var roll = Capsule(_head, 0.025f, 0.03f, new Vector3(side * 0.035f, 0.075f, 0.01f), hair);
+                        roll.Rotation = new Vector3(Mathf.Pi / 2, 0, 0);
+                    }
+                    Capsule(_head, 0.03f, 0.08f, new Vector3(0, -0.045f, -0.05f), hair).Rotation = new Vector3(0, 0, Mathf.Pi / 2);
+                    break;
+                case 1:
+                    // A bob to the jaw, waved at the sides
+                    var bob = Mesh3.Sphere(_head, 0.082f, new Vector3(0, -0.01f, -0.018f), hair);
+                    bob.Scale = new Vector3(1.05f, 0.95f, 0.98f);
+                    foreach (int side in new[] { -1, 1 })
+                        Mesh3.Sphere(_head, 0.035f, new Vector3(side * 0.06f, -0.045f, -0.005f), hair);
+                    break;
+                case 2:
+                    // Hair pinned up in a bun on the crown
+                    Mesh3.Sphere(_head, 0.04f, new Vector3(0, 0.07f, -0.05f), hair);
+                    break;
+                default:
+                    // Shoulder-length pageboy, curled under
+                    var page = Capsule(_head, 0.038f, 0.11f, new Vector3(0, -0.06f, -0.045f), hair);
+                    page.Rotation = new Vector3(0, 0, Mathf.Pi / 2);
+                    foreach (int side in new[] { -1, 1 })
+                        Capsule(_head, 0.03f, 0.05f, new Vector3(side * 0.06f, -0.04f, -0.01f), hair);
+                    break;
             }
-            var nape = Capsule(_head, 0.03f, 0.08f, new Vector3(0, -0.045f, -0.05f), hair);
-            nape.Rotation = new Vector3(0, 0, Mathf.Pi / 2);
             return;
         }
-        // Short back and sides, parted; some older men going grey or thin on top.
-        bool thinning = (s.Look % 5) == 0 && s.Role == Role.Cryptanalyst;
-        var top = Mesh3.Sphere(_head, 0.075f, new Vector3(0, thinning ? 0.005f : 0.022f, -0.016f), thinning ? hair.Lerp(new Color("8a8680"), 0.5f) : hair);
-        top.Scale = new Vector3(0.96f, thinning ? 0.85f : 0.95f, 1f);
+        // Men: short back and sides in several cuts; some older men thin on top.
+        int cut = (int)(Trait(s, 41) * 4 * 0.9999f);
+        bool thinning = (cut == 3 && Trait(s, 42) < 0.5f) || ((s.Look % 5) == 0 && s.Role == Role.Cryptanalyst);
+        if (cut == 3 && !thinning) cut = 0;
+        if (thinning)
+        {
+            // Bald crown with a fringe round the back and sides
+            var fringe = Mesh3.Sphere(_head, 0.074f, new Vector3(0, -0.005f, -0.02f), hair);
+            fringe.Scale = new Vector3(1f, 0.7f, 0.98f);
+            return;
+        }
+        var top = Mesh3.Sphere(_head, 0.075f, new Vector3(0, 0.022f, -0.016f), hair);
+        top.Scale = new Vector3(0.96f, 0.95f, 1f);
+        if (cut == 1)
+        {
+            // Brilliantined and swept back: flat and glossy
+            top.Scale = new Vector3(0.95f, 0.88f, 1.04f);
+            top.MaterialOverride = Mesh3.Mat(hair, 0, glossy: true);
+        }
+        else if (cut == 2)
+        {
+            // Unruly curls on top
+            for (int k = 0; k < 5; k++)
+                Mesh3.Sphere(_head, 0.026f, new Vector3(-0.04f + k * 0.02f, 0.07f, -0.01f + (k % 2) * 0.02f), hair);
+        }
+        else
+        {
+            // A neat side parting
+            Mesh3.Box(_head, new Vector3(0.004f, 0.006f, 0.06f), new Vector3(-0.03f, 0.08f, 0.0f), hair.Darkened(0.35f));
+        }
     }
 
     // ------------------------------------------------------------- animation

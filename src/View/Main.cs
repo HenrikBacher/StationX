@@ -190,6 +190,22 @@ public partial class Main : Node3D
                 }
             }
             if (args.ContainsKey("raid")) State.RaidUntil = State.Now + 120;
+            // --lineup=x,y : stand everyone on duty in rows by role, for checking how people look (screenshots only).
+            if (args.TryGetValue("lineup", out var lu))
+            {
+                var xy0 = lu.Split(',');
+                float lx0 = float.Parse(xy0[0]), ly0 = float.Parse(xy0[1]);
+                int row = -1; Role? last = null; int col = 0;
+                foreach (var st in State.Staff.Where(x => !x.Away).OrderBy(x => x.Role).ThenBy(x => x.Id))
+                {
+                    if (st.Role != last || col >= 10) { row++; col = 0; last = st.Role; }
+                    st.Task = null;
+                    st.Path.Clear();
+                    st.X = lx0 + col * 0.7;
+                    st.Y = ly0 + row * 1.1;
+                    col++;
+                }
+            }
             // --place=Type@x,y;Type@x,y : put stations down for a visual check (free, building unlocked).
             if (args.TryGetValue("place", out var pl))
                 foreach (var item in pl.Split(';', StringSplitOptions.RemoveEmptyEntries))
