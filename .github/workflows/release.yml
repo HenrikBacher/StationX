@@ -20,9 +20,9 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: 10.0.x
 
@@ -32,15 +32,15 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: 10.0.x
 
       - name: Cache Godot
         id: godot-cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             ~/godot
@@ -71,7 +71,7 @@ jobs:
       # Compiled shaders and Vulkan pipelines from earlier runs. Compiling them in software (no GPU here) took
       # ~40 s before the self-test's first check. Each run saves a fresh copy; stale entries are simply unused.
       - name: Cache compiled shaders
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             ~/.local/share/godot/app_userdata/Station X/shader_cache
@@ -88,7 +88,7 @@ jobs:
       - name: Export Linux and Windows
         run: ./export.sh
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: StationX-${{ github.sha }}
           path: |
@@ -101,11 +101,11 @@ jobs:
     needs: [test, build]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0   # history and tags, for the release notes
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: StationX-${{ github.sha }}
           path: build
