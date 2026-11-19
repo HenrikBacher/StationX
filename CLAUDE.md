@@ -1,0 +1,69 @@
+# Station X: notes for Claude
+
+A Bletchley Park management game (1939 → SHARK 1942, optional Tunny chapter): Godot 4.7.2 .NET, C# net10.0, real 3D under an
+orthographic isometric camera with cutaway walls. Read `README.md` for the game's systems. This file is the working
+state, so the work can be resumed on any machine.
+
+## Build, test, look
+
+- Sim (pure C#, no Godot): `src/Sim` (partial `GameState`). View: `src/View`. Tests: `tests/StationX.Sim.Tests` (xUnit).
+- `dotnet build StationX.csproj` before running Godot after C# changes.
+- Tests: `dotnet test tests/StationX.Sim.Tests`. Gate commits on `grep -q "Passed!  - Failed:     0,"`.
+- UI self-test: `godot --path . -- --selftest` (~4 s on a GPU). It drives real input, renders the world cheaply, and uses
+  its own `user://selftest-saves`.
+- Balance: `BALANCE=1 BALANCE_SEEDS=40 dotnet test tests/StationX.Sim.Tests --filter Balance --logger "console;verbosity=detailed"`
+  and read the `Easy/Normal/Hard: N/40 won` lines (~4 min).
+- Screenshots: `godot --path . -- --shot=PATH --seed=7 --days=44 --hour=11 --weather=fine --zoom=2.6 --center=24,6`.
+  Other flags: `--panel=NAME`, `--modal=NAME`, `--act=N`, `--place=Type@x,y;...`, `--lineup=x,y`, `--age=H`,
+  `--inspect=Type`. Look at every visual change before committing.
+- Software rendering like CI's: prefix with `VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.json`.
+- Exports: `./export.sh` (needs the 4.7.2 mono export templates) → `build/` Linux tar.gz + Windows zip.
+- CI (`.github/workflows/release.yml`): jobs `test` ‖ `build` (self-test under xvfb, exports) → `release` on `v*` tags.
+
+## Rules
+
+- Never touch the player's real `user://saves` or `settings.cfg` (tests and shots must not write there).
+- No Claude co-author / "Generated with Claude" lines in commits or PRs.
+- Commit and push small steps to `main`. Tag (semver, annotated, message with "New"/"Fixes" sections summing up
+  everything since the last tag) only after a significant batch; minor bump for features, patch for fixes only.
+- Balance: Normal ≈ 50% autoplayer wins (40 seeds); Easy higher, Hard lower. The autoplayer stands in for an average
+  player: only teach it what the in-game tips tell a player; rebalance the game, not the bot. Prefer levers other than
+  traffic volume (grant, deadlines, reputation loss, extra process steps).
+- Seeded dice for new systems: `new Random(GameState.Mix(Seed, x, salt))`, never `HashCode.Combine` (randomised per process).
+- Each situational tip needs a unique id (the self-test checks).
+- No combined both-platforms zip in CI.
+
+## Current work (2026-11-19)
+
+Last release **v0.25.0**. Untagged on `main` since: teleprinter jams, faster CI, Node 24 actions, overhaul part 1.
+
+### Graphics overhaul: period realism, CC0 assets allowed
+
+The user chose realism (not a tabletop diorama or poster art) and allowed CC0 assets. Use Poly Haven 1K JPG maps
+(albedo, `nor_gl` normal, roughness) in `assets/textures/<id>/`, and list each one in `CREDITS.md`. Keep sizes modest:
+the target includes laptops with integrated GPUs, and each 1K set adds ~2 MB to the downloads.
+
+Importing new textures: run `godot --headless --path . --import`, then in each `.jpg.import` set `compress/mode=2`,
+`mipmaps/generate=true` and `detect_3d/compress_to=0`; for normal maps also `compress/normal_map=1`. Delete the matching
+`.godot/imported/*` files and import again. Code-built materials can't trigger Godot's 3D detection, hence the manual
+settings. Materials are mapped in `Textures.Pbr` (folder, tiles per repeat, tone) in `src/View/Textures.cs`.
+
+1. Photographed materials: brick, weatherboard, floorboards, parquet, plaster, concrete, quarry tile. **Done.**
+2. HDRI sky lighting and reflections (overcast English sky). Next.
+3. Ground: grass, gravel paths, worn earth. The `sparse_grass` and `gravel_floor_02` sets are already in the repo. The
+   ground is currently a per-pixel baked image in `Park3D.Grounds` plus a Grit detail texture.
+4. Real roofs: slate on the Mansion, felt on the huts, fading when zoomed in to look inside. `roof_slates_02` is in.
+5. Atmosphere and weathering: haze, soot and dirt at wall bases, moss.
+6. Model detail: Mansion bays and gables, hut doors, steps, stove pipes. Also: unbuilt plots are flat brown rectangles
+   (make them surveyed sites), and the static water tank on the lawn is a plain black box.
+
+### Core-gameplay ideas to alternate with the overhaul
+
+- Hut 3 priorities: decrypts carry operational urgency; urgent ones lose value faster, so order matters.
+- Shift handovers: a desk left mid-message at a watch change loses time unless someone takes it over.
+- Supplies: paper, punch cards and spare Bombe drums run low and must be ordered ahead.
+- Security incidents: papers left out or a talkative billet raise suspicion; sweeps cost staff time.
+- Whitehall visits that go badly cut the grant, not just reputation.
+
+Balance data (2026-11-19): on Normal, games are lost in acts 7–9 (Claymore to Action This Day) when reputation hits 0;
+the early acts rarely decide a game. Latest 40-seed run: Easy 39, Normal 18, Hard 10.
