@@ -29,6 +29,7 @@ public partial class Hud
     {
         if (_modalLayer == null) return;
         _modalLayer.Visible = false;
+        _titleShowing = _updateOpen = _progressOpen = false;
         Clear(_modalCenter);
     }
 
@@ -36,6 +37,7 @@ public partial class Hud
     VBoxContainer Paper(int width)
     {
         Clear(_modalCenter);
+        _titleShowing = _updateOpen = _progressOpen = false;
         var paper = new PanelContainer { CustomMinimumSize = new Vector2(width, 0) };
         paper.AddThemeStyleboxOverride("panel", UiTheme.Paper());
         _modalCenter.AddChild(paper);
@@ -84,6 +86,8 @@ public partial class Hud
 
     public void ShowTitle()
     {
+        // An offer that arrived while another sheet was open comes first.
+        if (Updater.Latest != null && !_offerShown && !Updater.Busy && !_waitingForCheck) { ShowUpdate(true); return; }
         _titleOpen = true;
         var v = Paper(760);
         v.AddChild(Letterhead());
@@ -112,28 +116,59 @@ public partial class Hud
         row.AddChild(PaperButton("Settings", ShowSettings));
         row.AddChild(PaperButton("Quit", () => GetTree().Quit()));
         v.AddChild(row);
-        if (Updater.Latest is { } latest)
-        {
-            var up = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center };
-            up.AddThemeConstantOverride("separation", 12);
-            up.AddChild(Ink(Updater.Status ?? $"Version {latest} is out.", 13, Fonts.BodyBold, UiTheme.Stamp));
-            if (!Updater.Busy) up.AddChild(PaperButton("Update…", ShowUpdate));
-            v.AddChild(up);
-        }
-        if (!_updaterHooked)
-        {
-            _updaterHooked = true;
-            Updater.Changed += () => { if (_titleOpen && IsInsideTree()) ShowTitle(); };
-        }
+        _titleShowing = true;
+        HookUpdater();
     }
 
-    bool _updaterHooked;
+    bool _updaterHooked, _titleShowing, _updateOpen, _progressOpen, _updateBackToTitle, _offerShown, _waitingForCheck;
+    Label? _updateStatus;
+    ProgressBar? _updateBar;
+
+    /// <summary>At launch: a new version is offered first, on its own sheet, and the title follows.</summary>
+    public async void ShowStart()
+    {
+        HookUpdater();
+        _waitingForCheck = true;
+        Clear(_modalCenter);
+        _modalLayer.Visible = true;
+        await System.Threading.Tasks.Task.WhenAny(Updater.Checking, System.Threading.Tasks.Task.Delay(4000));
+        _waitingForCheck = false;
+        if (!IsInsideTree()) return;
+        if (Updater.Latest != null && !Updater.Busy) ShowUpdate(true);
+        else ShowTitle();
+    }
+
+    void HookUpdater()
+    {
+        if (_updaterHooked) return;
+        _updaterHooked = true;
+        Updater.Changed += () =>
+        {
+            if (!IsInsideTree() || _waitingForCheck) return;
+            if (_progressOpen)
+            {
+                if (!Updater.Busy) ShowUpdateProgress(_updateBackToTitle);   // failed: say why, and offer a way back
+                else
+                {
+                    if (_updateStatus != null) _updateStatus.Text = Updater.Status ?? "";
+                    if (_updateBar != null) _updateBar.Value = Math.Max(0, Updater.Progress);
+                }
+            }
+            else if (_updateOpen) ShowUpdate(_updateBackToTitle);   // the patch check finished: the size may have changed
+            // A check that finishes late still offers the update straight away, over the title or the game.
+            else if (Updater.Latest != null && !_offerShown && (_titleShowing || !ModalOpen)) ShowUpdate(_titleShowing);
+        };
+    }
 
     /// <summary>What the new version brings, and the player's go-ahead to install it.</summary>
-    void ShowUpdate()
+    void ShowUpdate() => ShowUpdate(_titleOpen);
+
+    void ShowUpdate(bool backToTitle)
     {
         _titleOpen = false;
         var v = Paper(720);
+        _updateOpen = _offerShown = true;
+        _updateBackToTitle = backToTitle;
         v.AddChild(Ink($"Version {Updater.Latest} is ready", 28, Fonts.Heading));
         v.AddChild(Ink($"You have {(Updater.Current == "" ? "a development build" : $"version {Updater.Current}")}. Your saves and settings are kept. The game downloads " +
                        $"{(Updater.PatchFits ? "just the changed game files" : "the new version")} (about {Updater.DownloadMB} MB), installs it over this one and restarts.", 14));
@@ -155,9 +190,36 @@ public partial class Hud
         v.AddChild(scroll);
         var row = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.End };
         row.AddThemeConstantOverride("separation", 12);
-        row.AddChild(PaperButton("Not now", ShowTitle));
-        row.AddChild(PaperButton("Update and restart", () => { Updater.Install(); ShowTitle(); }));
+        row.AddChild(PaperButton("Not now", () => { if (backToTitle) ShowTitle(); else CloseModal(); }));
+        row.AddChild(PaperButton("Update and restart", () => { Updater.Install(); ShowUpdateProgress(backToTitle); }));
         v.AddChild(row);
+    }
+
+    /// <summary>The download on its own sheet, until the game restarts (or the update fails and says why).</summary>
+    void ShowUpdateProgress(bool backToTitle)
+    {
+        _titleOpen = false;
+        var v = Paper(560);
+        _progressOpen = true;
+        _updateBackToTitle = backToTitle;
+        bool failed = !Updater.Busy && Updater.Status != null;
+        v.AddChild(Ink(failed ? "The update didn't work" : $"Updating to version {Updater.Latest}", 26, Fonts.Heading));
+        if (!failed) v.AddChild(Ink("Your saves and settings are kept. The game restarts by itself when it's done.", 14));
+        _updateBar = new ProgressBar { MinValue = 0, MaxValue = 1, Step = 0.001, Value = Math.Max(0, Updater.Progress),
+                                       ShowPercentage = false, CustomMinimumSize = new Vector2(0, 14), Visible = !failed };
+        _updateBar.AddThemeStyleboxOverride("background", UiTheme.Box(UiTheme.PaperInk with { A = 0.12f }, UiTheme.PaperInk, 1, 0, 0));
+        _updateBar.AddThemeStyleboxOverride("fill", UiTheme.Box(UiTheme.Stamp, UiTheme.Stamp, 0, 0, 0));
+        v.AddChild(_updateBar);
+        _updateStatus = Ink(Updater.Status ?? "Starting…", 14, failed ? Fonts.Typewriter : Fonts.BodyBold, failed ? UiTheme.PaperInk : UiTheme.Stamp);
+        v.AddChild(_updateStatus);
+        if (failed)
+        {
+            var row = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.End };
+            row.AddThemeConstantOverride("separation", 12);
+            if (Updater.PageUrl is { } page) row.AddChild(PaperButton("Releases page", () => OS.ShellOpen(page)));
+            row.AddChild(PaperButton("Back", () => { if (backToTitle) ShowTitle(); else CloseModal(); }));
+            v.AddChild(row);
+        }
     }
 
     public void ShowBriefing()

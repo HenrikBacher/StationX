@@ -292,7 +292,7 @@ public partial class Main : Node3D
     {
         AdoptState(GameState.NewGame(seed, difficulty, mode, startAct));
         State.Events.RemoveAll(e => e.Kind == EventKind.ActStarted);
-        if (showTitle) Hud.ShowTitle();
+        if (showTitle) Hud.ShowStart();
         else if (_shotPath == null && !_selfTest) Hud.ShowBriefing();
     }
 

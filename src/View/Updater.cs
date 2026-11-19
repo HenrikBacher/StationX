@@ -35,6 +35,8 @@ public static class Updater
     /// <summary>What the updater is doing, for the title screen ("Downloading 40%", or an error).</summary>
     public static string? Status { get; private set; }
     public static bool Busy { get; private set; }
+    /// <summary>How much of the download has arrived, 0 to 1 (negative while the size is unknown).</summary>
+    public static double Progress { get; private set; } = -1;
     public static event Action? Changed;
 
     static HttpClient MakeClient()
@@ -56,8 +58,13 @@ public static class Updater
     /// <summary>What's new and fixed in every release since this one, newest first, for the player to read before updating.</summary>
     public static System.Collections.Generic.List<(string version, string notes)> Notes { get; } = new();
 
+    /// <summary>The running check, so the title can wait for it before opening.</summary>
+    public static Task Checking { get; private set; } = Task.CompletedTask;
+
     /// <summary>Asks GitHub for the releases newer than this one. Quiet on any failure: no network is no problem.</summary>
-    public static async void Check()
+    public static void Check() { if (Checking.IsCompleted) Checking = CheckAsync(); }
+
+    static async Task CheckAsync()
     {
         if (!Settings.Persist || !Settings.CheckUpdates || OS.HasFeature("editor") || AssetName == null || Latest != null) return;
         if (!System.Version.TryParse(Current, out var mine)) return;
@@ -108,6 +115,12 @@ public static class Updater
         _assetSize = 108_000_000; _patchSize = 33_000_000; PatchFits = true;
     }
 
+    /// <summary>For screenshots: pretend a download is under way (or has failed, when not busy).</summary>
+    public static void DebugProgress(double progress, string status, bool busy)
+    {
+        Progress = progress; Status = status; Busy = busy;
+    }
+
     /// <summary>The "New" and "Fixes" sections at the top of the release notes (before the list of every commit).</summary>
     public static string NewAndFixed(string body)
     {
@@ -142,16 +155,23 @@ public static class Updater
                 await using var dst = File.Create(archive);
                 var buf = new byte[1 << 16];
                 long got = 0;
-                int n, lastPct = -1;
+                int n, lastPct = -2;
                 while ((n = await src.ReadAsync(buf)) > 0)
                 {
                     await dst.WriteAsync(buf.AsMemory(0, n));
                     got += n;
                     int pct = total > 0 ? (int)(got * 100 / total) : -1;
-                    if (pct / 5 != lastPct / 5) { lastPct = pct; Status = pct >= 0 ? $"Downloading… {pct}%" : "Downloading…"; Notify(); }
+                    if (pct != lastPct)
+                    {
+                        lastPct = pct;
+                        Progress = total > 0 ? (double)got / total : -1;
+                        Status = total > 0 ? $"Downloading… {got / 1_000_000} of {total / 1_000_000} MB" : $"Downloading… {got / 1_000_000} MB";
+                        Notify();
+                    }
                 }
             }
 
+            Progress = 1;
             Status = "Unpacking…"; Notify();
             string files = Path.Combine(staging, "files");
             await Task.Run(() =>

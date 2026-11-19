@@ -318,6 +318,7 @@ public partial class Hud
     {
         switch (name)
         {
+            case "title": ShowStart(); break;
             case "pause": ShowPauseMenu(); break;
             case "settings": ShowSettings(); break;
             case "update":
@@ -326,6 +327,16 @@ public partial class Hud
                                              "- New chapters' recruits arrive at once\n\n### All changes since v0.27.0\n- x");
                 Updater.DebugOffer("0.27.1", "Fixes\n- Teleprinter filters only list networks on the air");
                 ShowUpdate();
+                break;
+            case "updating":
+                Updater.DebugOffer("0.29.0", "New\n- x");
+                Updater.DebugProgress(0.42, "Downloading… 13 of 31 MB", true);
+                ShowUpdateProgress(true);
+                break;
+            case "updatefailed":
+                Updater.DebugOffer("0.29.0", "New\n- x");
+                Updater.DebugProgress(-1, "Couldn't install here (Access to the path is denied). Download it from the releases page instead.", false);
+                ShowUpdateProgress(true);
                 break;
             case "save": ShowSaves(true); break;
             case "load": ShowSaves(false); break;
