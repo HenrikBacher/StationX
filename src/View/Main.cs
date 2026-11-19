@@ -536,9 +536,10 @@ public partial class Main : Node3D
             wind: w switch { Weather.Storm => 1f, Weather.Rain => 0.6f, Weather.Overcast or Weather.Snow => 0.45f, Weather.Fog => 0.1f, _ => 0.3f },
             rain: w switch { Weather.Storm => 1f, Weather.Rain => 0.8f, _ => 0f },
             ice: Mathf.Clamp((_snowCover - 0.4f) * 2f, 0, 1),
-            sky: env.AmbientLightColor.Lerp(_sun.LightColor, 0.35f) * Mathf.Lerp(1f, 0.3f, night),
+            sky: env.AmbientLightColor.Lerp(_sun.LightColor, 0.35f) * Mathf.Lerp(1f, 0.5f, night),
             sun: _sun.LightColor,
-            sunlight: (1 - night) * (1 - gloom));
+            // At night the glints come from the moon: fainter, and silver-blue (the light colour is the moon's by then).
+            sunlight: Mathf.Max(1 - night, night * 0.65f) * (1 - gloom));
         _park.SetHeads(State);
         // Blackout during a raid: shaded lamps, just enough to work by.
         foreach (var l in _park.Lamps) l.LightEnergy = night * (State.RaidOn ? 0.55f : 1.6f);
