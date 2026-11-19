@@ -128,6 +128,17 @@ public partial class Park3D : Node3D
         }
     }
 
+    ShaderMaterial? _groundMat;
+    float _wet;
+
+    /// <summary>0 = dry, 1 = soaked: the ground darkens and glistens, and puddles stand in the hollows.</summary>
+    public void SetWet(float wet)
+    {
+        if (Mathf.Abs(wet - _wet) < 0.01f && wet is > 0 and < 1) return;
+        _wet = wet;
+        _groundMat?.SetShaderParameter("wet", wet);
+    }
+
     /// <summary>0 = green, 1 = a full covering of snow.</summary>
     public void SetSnow(float cover)
     {
@@ -182,7 +193,9 @@ public partial class Park3D : Node3D
     {
         var g = State!.Grid;
         var (paint, mask) = PaintGround(g);
-        _ground.MaterialOverride = (Material?)Ground.Make(paint, mask) ?? new StandardMaterial3D
+        _groundMat = Ground.Make(paint, mask);
+        _groundMat?.SetShaderParameter("wet", _wet);
+        _ground.MaterialOverride = (Material?)_groundMat ?? new StandardMaterial3D
         {
             AlbedoTexture = paint,
             Roughness = 0.97f,
@@ -357,7 +370,8 @@ public partial class Park3D : Node3D
                     // Lorry ruts along the drive, and puddles.
                     if (ty is >= 12 and <= 14 && (Math.Abs(fy - 12.9f) < 0.12f || Math.Abs(fy - 14.1f) < 0.12f)) c = c.Darkened(0.22f);
                     float puddle = Blob(fx, fy, 2, 29);
-                    if (puddle > 0.8f) c = c.Lerp(new Color("3b4446"), Mathf.Clamp((puddle - 0.8f) * 8, 0, 0.85f));
+                    // A hollow: finer, darker grit, where the ground shader stands water after rain.
+                    if (puddle > 0.8f) c = c.Lerp(Gfx.Mud, Mathf.Clamp((puddle - 0.8f) * 8, 0, 1) * 0.35f);
                     gravel = 1; earth = 0;
                     wet = Mathf.Clamp((puddle - 0.8f) * 8, 0, 1);
                     // Green in the damp shade, most of all at the path's edge, where the gravel is thin and seldom trodden.

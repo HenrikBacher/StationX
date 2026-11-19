@@ -12,7 +12,7 @@ public static class Ground
     const string Code = @"
 shader_type spatial;
 uniform sampler2D paint : source_color, filter_linear_mipmap_anisotropic;
-// r gravel, g earth, b wet, a grass; whatever is left over stays plain paint
+// r gravel, g earth, b hollows (puddles after rain), a grass; whatever is left over stays plain paint
 uniform sampler2D mask : filter_linear_mipmap;
 uniform sampler2D grass_a : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
 uniform sampler2D grass_n : hint_normal, filter_linear_mipmap_anisotropic, repeat_enable;
@@ -28,6 +28,7 @@ uniform vec3 gravel_mean = vec3(0.5);
 uniform vec3 earth_mean = vec3(0.5);
 uniform vec3 repeat_tiles = vec3(1.6, 1.1, 1.8);   // tiles one photo spans: grass, gravel, earth
 uniform float strength = 0.85;
+uniform float wet = 0.0;   // 0 dry .. 1 soaked
 
 varying vec2 world;
 void vertex() { world = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xz; }
@@ -50,11 +51,13 @@ void fragment() {
     vec3 n = texture(grass_n, ug).rgb * w.a + texture(gravel_n, uv).rgb * w.r + texture(earth_n, ue).rgb * w.g
         + vec3(0.5, 0.5, 1.0) * plain;
     float r = texture(grass_r, ug).r * w.a + texture(gravel_r, uv).r * w.r + texture(earth_r, ue).r * w.g + 0.97 * plain;
-    // Puddles: darker, glassy, flat.
-    col *= 1.0 - 0.35 * w.b;
+    // Wet ground is darker and has a sheen; puddles fill the hollows: dark, glassy, flat.
+    float pud = smoothstep(0.15, 0.6, w.b) * wet;
+    col *= 1.0 - 0.22 * wet;
+    col = mix(col, vec3(0.035, 0.04, 0.045), pud * 0.75);
     ALBEDO = col;
-    NORMAL_MAP = mix(n, vec3(0.5, 0.5, 1.0), w.b);
-    ROUGHNESS = mix(clamp(r, 0.55, 1.0), 0.08, w.b);
+    NORMAL_MAP = mix(n, vec3(0.5, 0.5, 1.0), pud);
+    ROUGHNESS = mix(clamp(r, 0.55, 1.0) - 0.2 * wet, 0.06, pud);
     SPECULAR = 0.4;
 }";
 
