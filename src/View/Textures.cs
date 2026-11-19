@@ -101,6 +101,62 @@ public static class Textures
         };
     }
 
+    static readonly Dictionary<string, Vector3> Means = new();
+
+    /// <summary>A photo's average colour in linear light (what shaders sample), from a sparse grid of its pixels.</summary>
+    public static Vector3 LinearMean(string key, Texture2D t)
+    {
+        if (Means.TryGetValue(key, out var m)) return m;
+        var img = t.GetImage();
+        if (img.IsCompressed()) img.Decompress();
+        var sum = Vector3.Zero;
+        int n = 0;
+        for (int y = 0; y < img.GetHeight(); y += 7)
+            for (int x = 0; x < img.GetWidth(); x += 7)
+            {
+                var c = img.GetPixel(x, y).SrgbToLinear();
+                sum += new Vector3(c.R, c.G, c.B);
+                n++;
+            }
+        return Means[key] = sum / Math.Max(1, n);
+    }
+
+    /// <summary>The furniture's wood colours: desks, tables, chairs and shelves get real grain in those shades.</summary>
+    static readonly HashSet<Color> WoodColors = new() { Gfx.TableWood, Gfx.TableWoodLight, Gfx.Oak, Gfx.OakLight, Gfx.OakDark };
+    static readonly Dictionary<Color, StandardMaterial3D> WoodMats = new();
+
+    /// <summary>
+    /// Photographed worn tabletop wood (Poly Haven, CC0) in the given shade, or null if the colour isn't one of the
+    /// furniture woods. The photo is divided by its own average colour, so the shade stays and only the grain is added.
+    /// </summary>
+    public static StandardMaterial3D? Wood(Color c)
+    {
+        if (!UsePhotoMaterials || !WoodColors.Contains(c)) return null;
+        if (WoodMats.TryGetValue(c, out var m)) return m;
+        if (Load("wood_table_worn", "albedo") is not { } albedo) return null;
+        var mean = LinearMean("wood_table_worn", albedo);
+        var lin = c.SrgbToLinear();
+        var tone = new Color(lin.R / Math.Max(0.01f, mean.X), lin.G / Math.Max(0.01f, mean.Y), lin.B / Math.Max(0.01f, mean.Z)).LinearToSrgb();
+        m = new StandardMaterial3D
+        {
+            AlbedoTexture = albedo,
+            AlbedoColor = tone,
+            NormalEnabled = true,
+            NormalTexture = Load("wood_table_worn", "normal"),
+            NormalScale = 0.6f,
+            RoughnessTexture = Load("wood_table_worn", "rough"),
+            RoughnessTextureChannel = BaseMaterial3D.TextureChannel.Red,
+            Roughness = 0.9f,
+            Uv1Triplanar = true,
+            Uv1WorldTriplanar = true,
+            Uv1TriplanarSharpness = 4f,
+            Uv1Scale = Vector3.One / 1.2f,
+            TextureFilter = BaseMaterial3D.TextureFilterEnum.LinearWithMipmapsAnisotropic,
+        };
+        WoodMats[c] = m;
+        return m;
+    }
+
     /// <summary>A fading copy of a wall material, for the gable ends under a fading roof.</summary>
     public static StandardMaterial3D FadingCopy(StandardMaterial3D m) => (StandardMaterial3D)m.Duplicate();
 

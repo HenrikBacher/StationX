@@ -19,6 +19,7 @@ public static class Mesh3
         emission = MathF.Round(emission * 20) / 20;   // animated glows would otherwise fill the cache
         var key = (c, emission, glossy);
         if (Mats.TryGetValue(key, out var m)) return m;
+        if (emission == 0 && !glossy && Textures.Wood(c) is { } wood) return Mats[key] = wood;
         m = new StandardMaterial3D
         {
             AlbedoColor = c,

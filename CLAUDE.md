@@ -37,7 +37,7 @@ state, so the work can be resumed on any machine.
 
 Last release **v0.27.0**: cold handovers, the stranded-staff fix, intelligence freshness by service, security sweeps,
 merged static building meshes (`Park3D.MergeStatic`; screenshots print draw calls). v0.26.0 had overhaul parts 1–5
-and most of 6, Stores, and bad visits cutting the grant. Untagged since: nothing.
+and most of 6, Stores, and bad visits cutting the grant. Untagged since: furniture wood.
 
 ### Graphics overhaul: period realism, CC0 assets allowed
 
@@ -64,8 +64,9 @@ settings. Materials are mapped in `Textures.Pbr` (folder, tiles per repeat, tone
    fog/snow/rain), grime decals up the foot of outside walls (`Park3D.Grime`), a bare drip line around buildings in
    `PaintGround`. **Done** (moss not done).
 6. Model detail. Done: surveyed plots (`SurveyLines`: grass, pegs, string, ranging pole), the sectional steel water
-   tank (`StaticWaterTank`), doorways with wall over a lintel and open ledged doors (`Doorway`). Still to do: Mansion
-   bays and gables, hut steps, stove pipes, the lake (a flat grey disc from far off).
+   tank (`StaticWaterTank`), doorways with wall over a lintel and open ledged doors (`Doorway`). Also done: the Mansion's porch
+   and bays, photographed wood on furniture (`Textures.Wood`: the five furniture wood colours in `Mesh3.Mat` get the
+   `wood_table_worn` photo, divided by its mean). Hut floors sit at ground level, so no hut steps. Still open: moss.
 
 ### Core-gameplay ideas to alternate with the overhaul
 

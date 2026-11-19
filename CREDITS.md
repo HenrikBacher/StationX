@@ -19,6 +19,7 @@ Photographed materials from [Poly Haven](https://polyhaven.com), released under
 | [Asphalt 02](https://polyhaven.com/a/asphalt_02) | Huts' mineral roofing felt |
 | [Sparse Grass](https://polyhaven.com/a/sparse_grass) | Grounds |
 | [Gravel Floor 02](https://polyhaven.com/a/gravel_floor_02) | Paths |
+| [Wood Table Worn](https://polyhaven.com/a/wood_table_worn) | Desks, tables, chairs and the Mansion's wainscot |
 | [Brown Mud 02](https://polyhaven.com/a/brown_mud_02) | Trodden earth, building plots |
 
 ## Sky
