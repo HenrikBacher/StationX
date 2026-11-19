@@ -292,10 +292,10 @@ public static partial class Defs
 
     // ---- Great operations ----
     /// <summary>Readiness: the before-D-Day objectives, the watched services' secrecy, a base, and the decision.</summary>
-    public const double OpIntelWeight = 0.6, OpSecrecyWeight = 0.25, OpBase = 0.15;
+    public const double OpIntelWeight = 0.65, OpSecrecyWeight = 0.25, OpBase = 0;
     /// <summary>Suspicion below this costs no readiness.</summary>
     public const double OpSuspicionFree = 40;
-    public const double OpSuccessAt = 0.75, OpPartialAt = 0.45;
+    public const double OpSuccessAt = 0.8, OpPartialAt = 0.5;
     public const int OpSuccessPoints = 10;
     /// <summary>Whitehall's expectations and the traffic stop growing with the acts after this one.</summary>
     public const int IntensityCap = 12;
@@ -392,7 +392,7 @@ public static partial class Defs
     {
         [Difficulty.Easy] = new(Difficulty.Easy, "Easy", "More money, longer deadlines, slower German suspicion.", 2200, 1.2, 1, 0.6, 0.7, 0.5),
         [Difficulty.Normal] = new(Difficulty.Normal, "Normal", "As intended.", 1500, 0.9, 0, 1.0, 1.0),
-        [Difficulty.Hard] = new(Difficulty.Hard, "Hard", "Less money, tighter deadlines, and the Germans notice everything.", 1100, 0.85, -0.25, 1.4, 1.1, 1.2),
+        [Difficulty.Hard] = new(Difficulty.Hard, "Hard", "Less money, tighter deadlines, and the Germans notice everything.", 1100, 0.85, -0.25, 1.4, 1.15, 1.2),
     };
 
     public static readonly Dictionary<Policy, PolicyDef> Policies = new()

@@ -349,8 +349,8 @@ public static class Campaign
                 "and how well we saw it coming will be remembered in London and in Moscow.",
             Goals = new[]
             {
-                new Goal(GoalKind.Deliver, 14, "Deliver 14 RED decrypts before the invasion", Net: Net.Red, Soft: true),
-                new Goal(GoalKind.Deliver, 6, "Deliver 6 Police decrypts before the invasion", Net: Net.Police, Soft: true),
+                new Goal(GoalKind.Deliver, 30, "Deliver 30 RED decrypts before the invasion", Net: Net.Red, Soft: true),
+                new Goal(GoalKind.Deliver, 16, "Deliver 16 Police decrypts before the invasion", Net: Net.Police, Soft: true),
                 new Goal(GoalKind.Scripted, 1, "See Barbarossa through", Tag: "op:barbarossa"),
             },
             Pool = new[]
@@ -539,9 +539,9 @@ public static class Campaign
                 "The objectives marked 'before D-Day' and German suspicion on the day decide how it goes. If the landings fail, so do we.",
             Goals = new[]
             {
-                new Goal(GoalKind.Deliver, 10, "Deliver 10 TUNNY decrypts before D-Day", Net: Net.Tunny, Soft: true),
-                new Goal(GoalKind.Deliver, 6, "Deliver 6 Abwehr decrypts before D-Day", Net: Net.Abwehr, Soft: true),
-                new Goal(GoalKind.Deliver, 8, "Deliver 8 SHARK decrypts before D-Day", Net: Net.Shark, Soft: true),
+                new Goal(GoalKind.Deliver, 45, "Deliver 45 TUNNY decrypts before D-Day", Net: Net.Tunny, Soft: true),
+                new Goal(GoalKind.Deliver, 20, "Deliver 20 Abwehr decrypts before D-Day", Net: Net.Abwehr, Soft: true),
+                new Goal(GoalKind.Deliver, 36, "Deliver 36 SHARK decrypts before D-Day", Net: Net.Shark, Soft: true),
                 new Goal(GoalKind.Scripted, 1, "See D-Day through", Tag: "op:overlord"),
             },
             Pool = new[]
@@ -569,8 +569,8 @@ public static class Campaign
                 "in Holland. Find out where, and make sure the planners know before the drop. It goes ahead on 17 September whatever we find.",
             Goals = new[]
             {
-                new Goal(GoalKind.Deliver, 12, "Deliver 12 RED decrypts before the drop", Net: Net.Red, Soft: true),
-                new Goal(GoalKind.Deliver, 8, "Deliver 8 TUNNY decrypts before the drop", Net: Net.Tunny, Soft: true),
+                new Goal(GoalKind.Deliver, 50, "Deliver 50 RED decrypts before the drop", Net: Net.Red, Soft: true),
+                new Goal(GoalKind.Deliver, 40, "Deliver 40 TUNNY decrypts before the drop", Net: Net.Tunny, Soft: true),
                 new Goal(GoalKind.Scripted, 1, "See Market Garden through", Tag: "op:marketgarden"),
             },
             Pool = new[]
@@ -591,8 +591,8 @@ public static class Campaign
                 "Something is coming. The more we read before it does, the readier the front will be.",
             Goals = new[]
             {
-                new Goal(GoalKind.Deliver, 14, "Deliver 14 RED decrypts before the offensive", Net: Net.Red, Soft: true),
-                new Goal(GoalKind.Deliver, 6, "Deliver 6 TUNNY decrypts before the offensive", Net: Net.Tunny, Soft: true),
+                new Goal(GoalKind.Deliver, 55, "Deliver 55 RED decrypts before the offensive", Net: Net.Red, Soft: true),
+                new Goal(GoalKind.Deliver, 40, "Deliver 40 TUNNY decrypts before the offensive", Net: Net.Tunny, Soft: true),
                 new Goal(GoalKind.Scripted, 1, "See the Ardennes through", Tag: "op:ardennes"),
             },
             Pool = new[]

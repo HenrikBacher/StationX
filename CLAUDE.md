@@ -36,7 +36,8 @@ state, so the work can be resumed on any machine.
 
 ## Current work (2026-11-19)
 
-Last release **v0.30.0** (the campaign to VE Day with great operations, Y-stations, the variety engine, update sheets);
+Last release **v0.31.0** (dispatch riders and the gate, music and ambience, failable operations); v0.30.0 had the
+campaign to VE Day with great operations, Y-stations, the variety engine and update sheets;
 v0.29.0 had idle tea breaks and patch updates; v0.28.0 had breaks, watches, collisions, the updater. Before that **v0.27.0**: cold handovers, the stranded-staff fix, intelligence freshness by service, security sweeps,
 merged static building meshes (`Park3D.MergeStatic`; screenshots print draw calls). v0.26.0 had overhaul parts 1–5
 and most of 6, Stores, and bad visits cutting the grant. Untagged since: furniture wood, glazed windows (`Park3D.Window`: frame, glazing bars, sill, thin tape) and a detailed army lorry (`Park3D.Lorry`).
@@ -130,5 +131,6 @@ overnight and far billets raise Abwehr/SD suspicion; a sweep (Intelligence panel
 everyone's energy, every 4 days. All five listed ideas are now done; new ones are welcome.
 
 
-Balance data (2026-11-19, campaign to VE Day, day cap 320): Easy 40, Normal 23, Hard 0 of 40. Watches open in act 5. On Normal, games are lost in acts 7–9 (Claymore to Action This Day) when reputation hits 0;
+Balance data (2026-11-19, riders, operation targets near the bot's output, Hard rep loss 1.15): Easy 40, Normal 21,
+Hard 1 of 40. Watches open in act 5. On Normal great operations mostly succeed, some partial (Barbarossa ~1 in 5). On Normal, games are lost in acts 7–9 (Claymore to Action This Day) when reputation hits 0;
 the early acts rarely decide a game.
