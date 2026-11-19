@@ -36,7 +36,7 @@ state, so the work can be resumed on any machine.
 ## Current work (2026-11-19)
 
 Last release **v0.26.0** (overhaul parts 1–5 and most of 6, Stores, bad visits cut the grant). Untagged since: cold
-handovers, the stranded-staff fix.
+handovers, the stranded-staff fix, merged static building meshes (`Park3D.MergeStatic`; screenshots print draw calls).
 
 ### Graphics overhaul: period realism, CC0 assets allowed
 

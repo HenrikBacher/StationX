@@ -214,6 +214,7 @@ public partial class Park3D : Node3D
         }
 
         Grounds(g);
+        MergeStatic();
         ApplyRoofs();
         SetView(_quarter);
     }
@@ -792,6 +793,69 @@ public partial class Park3D : Node3D
                 }
         }
         _roofs.Add(roof);
+    }
+
+    /// <summary>
+    /// The buildings are hundreds of small boxes; drawn one by one they cost integrated GPUs dearly. Every opaque,
+    /// static piece is merged with the others sharing its material, within each group that's shown or hidden together
+    /// (the Park itself, and each cut-away side), so a whole roofline or row of windows is one draw. Roofs stay apart,
+    /// since they fade; anything transparent or with its own shader stays apart too.
+    /// </summary>
+    void MergeStatic()
+    {
+        var keep = new HashSet<Node>(_roofs);
+        var containers = new List<Node3D> { _buildings };
+        containers.AddRange(_sided.Select(x => x.node));
+        var isContainer = new HashSet<Node>(containers);
+        foreach (var box in containers)
+        {
+            var groups = new Dictionary<(Material, GeometryInstance3D.ShadowCastingSetting), SurfaceTool>();
+            var merged = new List<MeshInstance3D>();
+            void Collect(Node n, Transform3D parent)
+            {
+                foreach (var c in n.GetChildren())
+                {
+                    if (isContainer.Contains(c)) continue;
+                    if (c is not Node3D c3) continue;
+                    var xf = parent * c3.Transform;
+                    if (c is MeshInstance3D mi && mi.Mesh != null && !keep.Contains(mi) && mi.GetChildCount() == 0 && mi.Visible)
+                    {
+                        bool ok = true;
+                        var mats = new Material[mi.Mesh.GetSurfaceCount()];
+                        for (int s = 0; s < mats.Length && ok; s++)
+                        {
+                            var m = mi.MaterialOverride ?? mi.GetSurfaceOverrideMaterial(s) ?? mi.Mesh.SurfaceGetMaterial(s);
+                            ok = m is BaseMaterial3D { Transparency: BaseMaterial3D.TransparencyEnum.Disabled };
+                            mats[s] = m!;
+                        }
+                        if (ok)
+                        {
+                            for (int s = 0; s < mats.Length; s++)
+                            {
+                                var key = (mats[s], mi.CastShadow);
+                                if (!groups.TryGetValue(key, out var st))
+                                {
+                                    groups[key] = st = new SurfaceTool();
+                                    st.Begin(Mesh.PrimitiveType.Triangles);
+                                }
+                                st.AppendFrom(mi.Mesh, s, xf);
+                            }
+                            merged.Add(mi);
+                            continue;
+                        }
+                    }
+                    Collect(c, xf);
+                }
+            }
+            Collect(box, Transform3D.Identity);
+            foreach (var mi in merged) { mi.GetParent().RemoveChild(mi); mi.QueueFree(); }
+            foreach (var ((mat, shadow), st) in groups)
+            {
+                var mesh = st.Commit();
+                mesh.SurfaceSetMaterial(0, mat);
+                box.AddChild(new MeshInstance3D { Mesh = mesh, CastShadow = shadow });
+            }
+        }
     }
 
     /// <summary>Fades the roofs by the camera's view size: off up close, on when looking at the whole Park.</summary>
