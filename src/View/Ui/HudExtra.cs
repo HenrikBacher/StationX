@@ -136,6 +136,7 @@ public partial class Hud
         if (st.OpsWithheld > 0) more.Add($"{st.OpsWithheld} operations held back to protect the source");
         if (st.CribsDragged > 0) more.Add($"{st.CribsDragged} cribs placed by hand");
         if (st.BanburiesSlid > 0) more.Add($"{st.BanburiesSlid} Banbury sheets slid by hand");
+        if (st.LateDecrypts > 0) more.Add($"{st.LateDecrypts} decrypts delivered a day or more late");
         if (more.Count > 0) _sideBox.AddChild(UiTheme.Label(char.ToUpperInvariant(more[0][0]) + string.Join(" · ", more)[1..], 12, UiTheme.TextDim));
     }
 
@@ -212,6 +213,8 @@ public partial class Hud
                 "The Germans have changed a habit and our cribs for one network are poor for a few days (see the key panel). Its Bombe runs take longer: give it more Bombe time or take fewer of its requests.");
             yield return ("sixta", S.ActIndex >= Defs.SixtaFromAct && S.Stations.Any(s => s.Type == StationType.Crib) && !S.Stations.Any(s => s.Type == StationType.TrafficAnalysis),
                 "Hut 6's traffic analysts read what's outside a message: callsigns, frequencies, who sends to whom. A traffic-analysis desk (Build, B) by the crib desks logs two of each network's messages a day, and that key's cribs and Bombe runs go quicker.");
+            yield return ("stale", S.Messages.Values.Any(m => S.Now - m.Created > Defs.StaleIntelAfter),
+                "Intelligence goes off. A decrypt delivered more than a day after it was intercepted earns half the breakthroughs; after two days, none. It still counts for its request. Clear backlogs before they go stale.");
             yield return ("offizier", S.Messages.Values.Any(m => m.Offizier && m.Next == StationType.HandCipher),
                 "An Offizier message: under the day's naval key it's enciphered again on an officers-only setting. After the Typex it goes to a hand-cipher desk to be unpicked. If naval traffic is heavy, build a second hand-cipher desk.");
             yield return ("inspection", S.InspectionDue,

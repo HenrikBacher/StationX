@@ -262,6 +262,8 @@ public sealed class Stats
     public int CribsDragged { get; set; }
     public int BanburiesSlid { get; set; }
     public int OffizierRead { get; set; }
+    /// <summary>Decrypts delivered more than a day after they were intercepted.</summary>
+    public int LateDecrypts { get; set; }
     public int InspectionsPassed { get; set; }
     public int InspectionsFailed { get; set; }
     public int StandingAccepted { get; set; }

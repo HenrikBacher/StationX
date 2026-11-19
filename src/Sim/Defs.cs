@@ -135,6 +135,8 @@ public static partial class Defs
     public const int InspectionsFromAct = 3;
     /// <summary>Share of naval decrypts that turn out to be Offizier messages, and their time at the hand-cipher desk.</summary>
     public const double OffizierShare = 0.2, OffizierMult = 0.8;
+    /// <summary>Intelligence goes off: decrypts delivered this many minutes after interception earn half the points, then none.</summary>
+    public const double StaleIntelAfter = 24 * 60, DeadIntelAfter = 48 * 60;
     public const int InspectionEveryDays = 9;
     public const double InspectionGoodRep = 2;
     public const double InspectionBadRep = 2;

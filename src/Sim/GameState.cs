@@ -785,10 +785,19 @@ public sealed partial class GameState
         Stats.DeliveredTotal++;
         DeliveredToday++;
         Stats.Inc(Stats.Delivered, m.Net);
-        Points += net.Points;
+        Points += PointsFor(m);
+        if (Now - m.Created > Defs.StaleIntelAfter) Stats.LateDecrypts++;
         OnDecryptUsed(m);
         var c = ContractById(m.ContractId);
         if (c != null && c.State == ContractState.Active) c.Delivered++;
+    }
+
+    /// <summary>Breakthrough points a decrypt earns now: news goes off, so late ones earn half, very late ones nothing.</summary>
+    public int PointsFor(Message m)
+    {
+        int p = Defs.NetOf(m.Net).Points;
+        double age = Now - m.Created;
+        return age > Defs.DeadIntelAfter ? 0 : age > Defs.StaleIntelAfter ? p / 2 : p;
     }
 
     // ------------------------------------------------------------- keys

@@ -1800,3 +1800,19 @@ public class HandbookTests
             Assert.Contains(Handbook.Paths, p => p.Nets.Contains(n));
     }
 }
+
+public class StaleIntelTests
+{
+    [Fact]
+    public void LateDecryptsEarnLess()
+    {
+        var g = GameState.NewGame(5);
+        var m = new Message { Id = 1, Net = Net.Police, Created = g.Now };
+        int full = Defs.NetOf(Net.Police).Points;
+        Assert.Equal(full, g.PointsFor(m));
+        m.Created = g.Now - Defs.StaleIntelAfter - 1;
+        Assert.Equal(full / 2, g.PointsFor(m));
+        m.Created = g.Now - Defs.DeadIntelAfter - 1;
+        Assert.Equal(0, g.PointsFor(m));
+    }
+}
