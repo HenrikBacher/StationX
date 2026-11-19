@@ -68,6 +68,7 @@ public partial class Hud
             "intercepts" => InterceptsSig(),
             "war" => WarMapSig(),
             "stats" => $"{S.History.Count}|{_statsRange}",
+            "handbook" => HandbookSig(),
             _ => "",
         };
         sig = _panel + sig;
@@ -85,6 +86,7 @@ public partial class Hud
             case "intercepts": InterceptsPanel(); break;
             case "war": WarMapPanel(); break;
             case "stats": StatsPanel(); break;
+            case "handbook": HandbookPanel(); break;
         }
     }
 

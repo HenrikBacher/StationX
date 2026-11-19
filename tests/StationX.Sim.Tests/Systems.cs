@@ -1786,3 +1786,17 @@ public class OffizierTests(ITestOutputHelper output)
         Assert.True(g.Stats.OffizierRead > 0);
     }
 }
+
+public class HandbookTests
+{
+    [Fact]
+    public void EveryStepIsARealStationAndEveryNetIsCovered()
+    {
+        foreach (var p in Handbook.Paths)
+            foreach (var route in p.Routes)
+                foreach (var step in route)
+                    Assert.True(Defs.Stations.ContainsKey(step.Type), $"{p.Title}: {step.Type}");
+        foreach (Net n in Enum.GetValues<Net>())
+            Assert.Contains(Handbook.Paths, p => p.Nets.Contains(n));
+    }
+}
