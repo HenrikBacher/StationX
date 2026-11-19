@@ -17,6 +17,9 @@ rm -rf build/linux build/windows build/both build/*.zip build/*.tar.gz build/*.t
 mkdir -p build/linux build/windows && touch build/.gdignore
 "$godot" --headless --path . --export-release "Linux" build/linux/StationX.x86_64
 "$godot" --headless --path . --export-release "Windows" build/windows/StationX.exe
+# The music stays loose beside the game (assets/music has a .gdignore, so it isn't packed): it is part of the base,
+# not the patch, and an update doesn't download it again.
+for d in build/linux build/windows; do mkdir -p "$d/music" && cp assets/music/*.ogg "$d/music/"; done
 # Game files (the patch) vs. everything else (the base the patch needs). Paths are ./relative, sorted bytewise.
 patch_files() { find . -type f \( -name StationX.pck -o -path './data_*/StationX.*' \) | LC_ALL=C sort; }
 base_files() { find . -type f ! -name StationX.pck ! -path './data_*/StationX.*' | LC_ALL=C sort; }

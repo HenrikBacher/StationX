@@ -23,6 +23,9 @@ public partial class Main : Node3D
     public Hud Hud = null!;
     Park3D _park = null!;
     Riders _riders = null!;
+    Music _music = null!;
+    double _nextTrain = 40, _nextPlane = 90, _nextTyping = 3;
+    int _lastHour = -1;
     Node3D _stationRoot = null!, _peopleRoot = null!;
     DirectionalLight3D _sun = null!;
     WeatherFx _weather = null!;
@@ -141,6 +144,8 @@ public partial class Main : Node3D
         AddChild(_park);
         _riders = new Riders { Name = "Riders" };
         AddChild(_riders);
+        _music = new Music { Name = "Music" };
+        AddChild(_music);
         _stationRoot = new Node3D { Name = "Stations" };
         _peopleRoot = new Node3D { Name = "People" };
         AddChild(_stationRoot);
@@ -534,13 +539,78 @@ public partial class Main : Node3D
         bool live = !Hud.ModalOpen || _shotPath != null;
         int machines = State.Stations.Count(st => st.IsMachine && st.Working);
         int clatter = State.Stations.Where(st => st.Type == StationType.Inbox).Sum(st => st.Output.Count);
+        bool printers = State.Stations.Any(st => st.Type == StationType.Inbox);
         float near = Mathf.Clamp(14f / Rig.Cam.Size, 0.35f, 1.2f);
         Sound.SetLoop("room", live ? 0.55f : 0.25f);
-        Sound.SetLoop("teleprinter", live && !Paused ? Mathf.Clamp(clatter / 8f + (State.Contracts.Any(c => c.State == ContractState.Active) ? 0.2f : 0), 0, 0.8f) * near : 0);
+        Sound.SetLoop("teleprinter", live && !Paused && printers ? Mathf.Clamp(clatter / 8f + (State.Lines.Count > 0 && State.Contracts.Any(c => c.State == ContractState.Active) ? 0.2f : 0), 0, 0.8f) * near : 0);
         var wx = State.Weather;
         Sound.SetLoop("rain", wx switch { Weather.Rain => 0.45f, Weather.Storm => 0.6f, _ => 0f });
         Sound.SetLoop("wind", wx switch { Weather.Storm => 0.7f, Weather.Snow => 0.25f, Weather.Overcast => 0.08f, _ => 0f });
         Sound.SetLoop("hum", live && !Paused ? Mathf.Clamp(machines * 0.2f, 0, 0.9f) * near : 0);
+        OutdoorSounds(dt, live && !Paused, near);
+        _music.Update(_shotPath != null || _selfTest ? Music.Mood.Silent
+                      : Hud.TitleShowing ? Music.Mood.Title
+                      : State.Status == GameStatus.Won ? Music.Mood.Won
+                      : State.Status == GameStatus.Lost || State.RaidOn ? Music.Mood.Silent
+                      : Music.Mood.Game, dt);
+    }
+
+    /// <summary>
+    /// The countryside around the Park: birds by season and hour, a church clock striking the hours, trains on the
+    /// Bletchley line, aircraft overhead from 1940, and bursts of typing from busy desks.
+    /// </summary>
+    void OutdoorSounds(float dt, bool live, float near)
+    {
+        var date = State.Date;
+        double m = State.MinuteOfDay;
+        int hour = (int)(m / 60);
+        var wx = State.Weather;
+        float season = date.Month switch { >= 4 and <= 8 => 1f, 3 or 9 or 10 => 0.55f, _ => 0.15f };
+        float daylight = hour >= 5 && hour < 20 ? (hour < 7 ? 1.4f : 1f) : 0f;      // the dawn chorus is loudest
+        float weather = wx switch { Weather.Fine => 1f, Weather.Overcast => 0.6f, Weather.Fog => 0.4f, _ => 0f };
+        Sound.SetLoop("birds", live ? 0.32f * season * daylight * weather : 0);
+        if (!live) { _lastHour = hour; return; }
+
+        // The church clock: the hour struck in full at normal speed, one stroke when time is hurried.
+        if (_lastHour >= 0 && hour != _lastHour && hour >= 7 && hour <= 22)
+        {
+            int strokes = Speed == 1 ? (hour % 12 == 0 ? 12 : hour % 12) : 1;
+            for (int i = 0; i < strokes; i++) Sound.PlayAfter(i * 1.7f, "toll", 0.45f, 0);
+        }
+        _lastHour = hour;
+
+        _nextTrain -= dt;
+        if (_nextTrain <= 0)
+        {
+            if (hour >= 5 && hour < 23) Sound.Play("train", 0.5f, 0.06f);
+            _nextTrain = 150 + GD.Randf() * 240;
+        }
+        _nextPlane -= dt;
+        if (_nextPlane <= 0)
+        {
+            // From the summer of 1940 the sky is busier: training flights, bombers forming up, the odd raider.
+            bool war = date >= new DateOnly(1940, 7, 1);
+            if (war && wx is not (Weather.Storm or Weather.Fog)) Sound.Play("aircraft", 0.45f, 0.1f);
+            _nextPlane = (war ? 120 : 400) + GD.Randf() * 240;
+        }
+        // Typing: a burst from somewhere on the floor, more often the more desks are busy, louder close in.
+        _nextTyping -= dt;
+        if (_nextTyping <= 0)
+        {
+            int desks = State.Stations.Count(st => st.Working && st.Type is StationType.Registration or StationType.Translation
+                                                     or StationType.Index or StationType.Dispatch or StationType.TrafficAnalysis);
+            if (desks > 0)
+            {
+                int keys = 4 + (int)(GD.Randf() * 10);
+                float at = 0;
+                for (int i = 0; i < keys; i++)
+                {
+                    at += 0.07f + GD.Randf() * 0.1f + (GD.Randf() < 0.12f ? 0.35f : 0);
+                    Sound.PlayAfter(at, "type", 0.18f * near, 0.12f);
+                }
+            }
+            _nextTyping = desks == 0 ? 4 : Mathf.Max(1.2f, 9f / desks) + GD.Randf() * 3;
+        }
     }
 
     void Autosave()

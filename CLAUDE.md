@@ -70,6 +70,15 @@ Then (user requests, 2026-11-19):
   growing after `Defs.IntensityCap`. Balance runs go to day 320.
 - No walking through each other: busy people standing still block (`_standing`, not in doorways or corridors); walkers
   detour (≤ `DetourTiles`) or wait `SqueezeAfter` minutes, and the view's `SeparatePeople` sidesteps figures.
+- No teleprinter at the start: without a line, Y-station traffic comes by dispatch rider straight to a registration
+  desk (`RiderDesk`, `RiderDrops` for the view); a line needs a teleprinter (`LineWorking`), else it falls back to
+  riders. `Riders.cs` draws the motorcycle (gate → building door, `--rider` screenshot flag); the gate's barrier and
+  sentry (`Park3D.GateParts`, `SetBoom`) live outside the merged static meshes. Tests that need a teleprinter call
+  `TestUtil.Teleprinter`.
+- Music (`Music.cs`): public-domain US military band recordings (Elgar, Holst; CREDITS.md) as loose .ogg in
+  `assets/music` (`.gdignore`, so not packed; `export.sh` copies them to `music/` beside the game, part of the base,
+  not the patch). Re-encode new tracks with GStreamer (`vorbisenc quality=0.2`); no ffmpeg here. Ambience is all
+  synthesised in `Sound.cs` (birds, church clock, trains, aircraft, typing; `Main.OutdoorSounds`).
 - Specialists leave carrying to messengers and clerks (`SpecialistsCarryAfter`). A Park without a canteen is now
   crippling: tests that run a pipeline need a canteen table.
 - Variety engine (`Tale.cs`): templates with `{var}` and `{a|b|c}` (nesting), own seeded dice, `Pair` fills German and English

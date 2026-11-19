@@ -57,6 +57,18 @@ public partial class Sound : Node
             float env = Mathf.Clamp(t / 0.5f, 0, 1) * Mathf.Clamp((3.2f - t) / 1.6f, 0, 1);
             return (thump * 0.8f + Noise(r) * Mathf.Exp(-ph * 14) * 0.35f + Mathf.Sin(t * Mathf.Tau * rpm * 3) * 0.12f) * env * 0.5f;
         });
+        // A church clock across the fields: a bell's inharmonic partials (hum, prime, tierce, quint, nominal), far off.
+        _clips["toll"] = Make(4.5f, (t, r) =>
+        {
+            float f = 293;
+            float v = Mathf.Sin(t * Mathf.Tau * f * 0.5f) * 0.5f * Env(t, 2.2f) + Mathf.Sin(t * Mathf.Tau * f) * 0.6f * Env(t, 1.4f)
+                      + Mathf.Sin(t * Mathf.Tau * f * 1.19f) * 0.35f * Env(t, 1.0f) + Mathf.Sin(t * Mathf.Tau * f * 1.5f) * 0.2f * Env(t, 0.8f)
+                      + Mathf.Sin(t * Mathf.Tau * f * 2.0f) * 0.25f * Env(t, 0.6f);
+            return v * 0.22f;
+        });
+        _clips["train"] = Train();
+        _clips["aircraft"] = Aircraft();
+        _clips["birds"] = Loop(11f, Birds);
         _clips["room"] = Loop(6f, RoomTone);
         _clips["teleprinter"] = Loop(3f, Teleprinter);
         _clips["hum"] = Loop(2f, BombeHum);
@@ -69,7 +81,7 @@ public partial class Sound : Node
             AddChild(p);
             _pool.Add(p);
         }
-        foreach (var name in new[] { "room", "teleprinter", "hum", "rain", "wind" })
+        foreach (var name in new[] { "room", "teleprinter", "hum", "rain", "wind", "birds" })
         {
             var p = new AudioStreamPlayer { Bus = "Ambience", Stream = _clips[name], VolumeDb = -60 };
             AddChild(p);
@@ -85,6 +97,14 @@ public partial class Sound : Node
 
     public override void _Process(double delta)
     {
+        _clock += delta;
+        for (int i = _queue.Count - 1; i >= 0; i--)
+            if (_queue[i].at <= _clock)
+            {
+                var q = _queue[i];
+                _queue.RemoveAt(i);
+                Play(q.name, q.volume, q.jitter);
+            }
         foreach (var (name, (p, target)) in _loops)
         {
             float cur = Mathf.DbToLinear(p.VolumeDb);
@@ -92,6 +112,13 @@ public partial class Sound : Node
             p.VolumeDb = cur <= 0.001f ? -60 : Mathf.LinearToDb(cur);
         }
     }
+
+    readonly List<(double at, string name, float volume, float jitter)> _queue = new();
+    double _clock;
+
+    /// <summary>Plays a clip after a delay (seconds of real time): bell strokes, bursts of typing.</summary>
+    public static void PlayAfter(float delay, string name, float volume = 1f, float pitchJitter = 0.05f) =>
+        Instance?._queue.Add((Instance._clock + delay, name, volume, pitchJitter));
 
     public static void Play(string name, float volume = 1f, float pitchJitter = 0.05f)
     {
@@ -112,16 +139,18 @@ public partial class Sound : Node
         s._loops[name] = (l.player, Mathf.Clamp(level, 0, 1));
     }
 
-    public static void SetVolumes(float master, float sfx, float ambience)
+    public static void SetVolumes(float master, float sfx, float ambience, float music)
     {
         EnsureBus("Sfx");
         EnsureBus("Ambience");
+        EnsureBus("Music");
+        AudioServer.SetBusVolumeDb(AudioServer.GetBusIndex("Music"), Mathf.LinearToDb(Mathf.Max(0.0001f, music)));
         AudioServer.SetBusVolumeDb(0, Mathf.LinearToDb(Mathf.Max(0.0001f, master)));
         AudioServer.SetBusVolumeDb(AudioServer.GetBusIndex("Sfx"), Mathf.LinearToDb(Mathf.Max(0.0001f, sfx)));
         AudioServer.SetBusVolumeDb(AudioServer.GetBusIndex("Ambience"), Mathf.LinearToDb(Mathf.Max(0.0001f, ambience)));
     }
 
-    static void EnsureBus(string name)
+    public static void EnsureBus(string name)
     {
         if (AudioServer.GetBusIndex(name) >= 0) return;
         AudioServer.AddBus();
@@ -183,6 +212,82 @@ public partial class Sound : Node
             LoopBegin = 0,
             LoopEnd = loop ? s.Length : 0,
         };
+    }
+
+    // Birdsong through the windows: blackbird-ish warbles and the odd sparrow chirp, scattered across the loop.
+    static float Birds(float t, Random r)
+    {
+        float v = 0;
+        // Each half-second slot may hold a call: a quick falling or rising sweep, sometimes trilled.
+        float slot = t * 2, frac = slot - Mathf.Floor(slot);
+        int k = (int)slot;
+        if (Gfx.Rand01(k, 1, 301) > 0.55f)
+        {
+            float f0 = 2200 + 2600 * Gfx.Rand01(k, 2, 301);
+            float sweep = (Gfx.Rand01(k, 3, 301) - 0.5f) * 1800;
+            float len = 0.08f + 0.18f * Gfx.Rand01(k, 4, 301);
+            float lt = frac / 2;
+            if (lt < len)
+            {
+                float trill = Gfx.Rand01(k, 5, 301) > 0.6f ? 0.5f + 0.5f * Mathf.Sin(lt * Mathf.Tau * 28) : 1;
+                float ph = Mathf.Tau * (f0 * lt + sweep * lt * lt / (2 * len));
+                v += Mathf.Sin(ph) * Mathf.Sin(Mathf.Pi * lt / len) * trill * (0.3f + 0.4f * Gfx.Rand01(k, 6, 301));
+            }
+        }
+        return v * 0.35f;
+    }
+
+    // A goods train on the Bletchley line, a mile off: the chuff of the exhaust speeding up and fading, and a whistle.
+    static AudioStreamWav Train()
+    {
+        float len = 16f;
+        int n = (int)(len * Rate);
+        var s = new float[n];
+        var r = new Random(1941);
+        float lp = 0, lp2 = 0;
+        for (int i = 0; i < n; i++)
+        {
+            float t = i / (float)Rate;
+            float rate = 2.6f + 0.25f * t;                      // beats a second
+            float beat = t * rate, frac = beat - Mathf.Floor(beat);
+            float chuff = Mathf.Exp(-frac * 7) * (0.7f + 0.3f * Gfx.Rand01((int)beat, 1, 55));
+            float env = Mathf.Clamp(t / 4f, 0, 1) * Mathf.Clamp((len - t) / 6f, 0, 1);
+            lp += (Noise(r) - lp) * 0.08f;                        // muffled by distance
+            float rumble = Mathf.Sin(t * Mathf.Tau * 38) * 0.15f;
+            float w = 0;
+            if (t > 4.5f && t < 6.4f)
+            {
+                float wt = t - 4.5f;
+                float wenv = Mathf.Clamp(wt / 0.15f, 0, 1) * Mathf.Clamp((1.9f - wt) / 0.4f, 0, 1);
+                w = (Mathf.Sin(t * Mathf.Tau * 523) * 0.5f + Mathf.Sin(t * Mathf.Tau * 659) * 0.4f + Mathf.Sin(t * Mathf.Tau * 784) * 0.25f) * wenv * 0.35f
+                    + Noise(r) * wenv * 0.05f;
+            }
+            float v = (lp * chuff * 1.6f + rumble) * env + w * Mathf.Clamp(env * 1.5f, 0, 1);
+            lp2 += (v - lp2) * 0.35f;
+            s[i] = lp2 * 0.6f;
+        }
+        return Wav(s, loop: false);
+    }
+
+    // Aircraft passing high over: a beating drone of radial engines, swelling and dying away.
+    static AudioStreamWav Aircraft()
+    {
+        float len = 20f;
+        int n = (int)(len * Rate);
+        var s = new float[n];
+        var r = new Random(1940);
+        float lp = 0;
+        for (int i = 0; i < n; i++)
+        {
+            float t = i / (float)Rate;
+            float doppler = 1 + 0.03f * Mathf.Cos(Mathf.Pi * t / len);
+            float drone = Mathf.Sin(t * Mathf.Tau * 86 * doppler) * 0.5f + Mathf.Sin(t * Mathf.Tau * 89.5f * doppler) * 0.45f
+                          + Mathf.Sin(t * Mathf.Tau * 172 * doppler) * 0.25f + Mathf.Sin(t * Mathf.Tau * 258 * doppler) * 0.1f;
+            lp += (Noise(r) - lp) * 0.05f;
+            float env = Mathf.Pow(Mathf.Sin(Mathf.Pi * t / len), 2);
+            s[i] = (drone * 0.6f + lp * 0.8f) * env * 0.4f;
+        }
+        return Wav(s, loop: false);
     }
 
     // Brown-ish room tone with the odd creak and distant typewriter.

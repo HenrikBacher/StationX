@@ -458,6 +458,7 @@ public partial class Hud
         Slider("Master volume", Settings.MasterVolume, 0, 1, 0.05f, x => Settings.MasterVolume = x, P);
         Slider("Sound effects", Settings.SfxVolume, 0, 1, 0.05f, x => Settings.SfxVolume = x, P);
         Slider("Ambience", Settings.AmbienceVolume, 0, 1, 0.05f, x => Settings.AmbienceVolume = x, P);
+        Slider("Music", Settings.MusicVolume, 0, 1, 0.05f, x => Settings.MusicVolume = x, P);
         Slider("Interface size", Settings.UiScale, 0.75f, 1.75f, 0.05f, x => Settings.UiScale = x, P);
         Toggle("Scroll at screen edges", Settings.EdgeScroll, x => Settings.EdgeScroll = x);
         Toggle("Hints and tips", Settings.Hints, x => { Settings.Hints = x; _hintsDone.Clear(); });

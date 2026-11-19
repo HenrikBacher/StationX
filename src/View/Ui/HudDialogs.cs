@@ -120,6 +120,7 @@ public partial class Hud
         HookUpdater();
     }
 
+    public bool TitleShowing => _titleShowing;
     bool _updaterHooked, _titleShowing, _updateOpen, _progressOpen, _updateBackToTitle, _offerShown, _waitingForCheck;
     Label? _updateStatus;
     ProgressBar? _updateBar;

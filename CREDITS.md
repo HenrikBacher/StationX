@@ -1,5 +1,20 @@
 # Credits
 
+## Music
+
+Public-domain recordings by United States military bands (works of the US federal government), of music by
+composers who died in 1934. From Wikimedia Commons; re-encoded smaller for the game, in `assets/music/` (shipped
+loose in `music/` beside the game).
+
+| Track | Performers | Source | Used for |
+|---|---|---|---|
+| Elgar, Serenade for Strings, Op. 20 | United States Army Strings | [Commons](https://commons.wikimedia.org/wiki/File:Serenade_for_Strings_-mvt-1-_Elgar.ogg) | Title, in play |
+| Holst, First Suite in E-flat: I. Chaconne | United States Marine Band, cond. Frederick Fennell | [Commons](https://commons.wikimedia.org/wiki/File:Holst_First_Suite_Chaconne.ogg) | In play |
+| Holst, First Suite in E-flat: III. March | United States Marine Band | [Commons](https://commons.wikimedia.org/wiki/File:Holst_First_Suite_March.ogg) | In play |
+| Elgar, Pomp and Circumstance March No. 1 | United States Marine Band | [Commons](https://commons.wikimedia.org/wiki/File:ELGAR_Pomp_and_Circumstance_in_D,_Opus_39,_No._1_-_United_States_Marine_Band.mp3) | Victory |
+
+All other sounds are synthesised by the game.
+
 ## Textures
 
 Photographed materials from [Poly Haven](https://polyhaven.com), released under
