@@ -4,7 +4,7 @@ using Godot;
 
 namespace StationX.View;
 
-public enum Surface { Brick, Weatherboard, Concrete, Felt, Stone, Lino, Hessian, Matchboard, Plaster, Parquet, Floorboards, QuarryTile, Grit }
+public enum Surface { Brick, Weatherboard, Concrete, Felt, Stone, Lino, Hessian, Matchboard, Plaster, Parquet, Floorboards, QuarryTile, Grit, Foliage, Bark }
 
 /// <summary>
 /// Procedural, slightly grimy textures for the buildings. Each is mapped in world space (triplanar),
@@ -136,6 +136,22 @@ public static class Textures
                 else if (xx == 15) c = c.Lightened(0.06f);       // bead catching light
                 c = c.Darkened(Smooth(x * 3 % N, y, 8, 82) * 0.04f);
                 return Grime(c, x, y, 0.12f);
+            }
+            case Surface.Foliage:
+            {
+                // Neutral leaf mottle (tinted green by the material): clusters of lit and shaded leaves.
+                float v = 0.78f + Smooth(x, y, 8, 141) * 0.25f + Smooth(x, y, 4, 142) * 0.12f;
+                if (Noise(x / 3, y / 3, 143) > 0.82f) v += 0.12f;      // leaves catching light
+                if (Noise(x / 2, y / 2, 144) > 0.86f) v -= 0.22f;      // gaps between leaves
+                v = Mathf.Clamp(v, 0, 1.0f);
+                return new Color(v, v, v);
+            }
+            case Surface.Bark:
+            {
+                // Vertical fissured bark, neutral
+                float v = 0.75f + Smooth((x * 5) % N, y / 4, 4, 151) * 0.2f;
+                if ((x + (int)(Smooth(0, y, 16, 152) * 6)) % 9 == 0) v -= 0.25f;
+                return new Color(v, v, v);
             }
             case Surface.Grit:
             {

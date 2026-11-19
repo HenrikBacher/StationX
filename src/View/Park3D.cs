@@ -764,17 +764,46 @@ public partial class Park3D : Node3D
         float s = 0.55f + Gfx.Rand01(x, y, 5) * 0.35f;
         var root = new Node3D { Position = new Vector3(x + 0.5f + ox, 0, y + 0.5f + oz) };
         _buildings.AddChild(root);
-        var bark = new Color("3e3024");
-        if (Gfx.Rand01(x, y, 9) < 0.3f)
+        var barkMat = Textures.Mat(Surface.Bark, new Color("4a3a2c"), 3f);
+        float R(int salt) => Gfx.Rand01(x, y, salt);
+        if (R(9) < 0.3f)
         {
-            Mesh3.Cyl(root, 0.06f, 0.1f, 0.5f, new Vector3(0, 0.25f, 0), bark, 6);
-            for (int k = 0; k < 3; k++)
-                Mesh3.Cyl(root, 0.02f, s * (0.95f - k * 0.25f), 0.9f, new Vector3(0, 0.75f + k * 0.55f, 0), Gfx.TreeDark.Darkened(0.1f + k * 0.03f), 8);
+            // Conifer: a straight trunk under five uneven, drooping tiers
+            var trunk = Mesh3.Cyl(root, 0.05f, 0.1f, 0.6f, new Vector3(0, 0.3f, 0), Colors.White, 8);
+            trunk.MaterialOverride = barkMat;
+            for (int k = 0; k < 5; k++)
+            {
+                float r = s * (1.0f - k * 0.17f) * (0.9f + R(20 + k) * 0.2f);
+                var tier = Mesh3.Cyl(root, r * 0.15f, r, 0.55f, new Vector3((R(30 + k) - 0.5f) * 0.06f, 0.6f + k * 0.38f, (R(40 + k) - 0.5f) * 0.06f), Colors.White, 10);
+                tier.MaterialOverride = Textures.Mat(Surface.Foliage, Gfx.TreeDark.Darkened(0.12f - k * 0.03f), 2f);
+                tier.RotationDegrees = new Vector3((R(50 + k) - 0.5f) * 8, R(60 + k) * 360, (R(70 + k) - 0.5f) * 8);
+            }
             return;
         }
-        Mesh3.Cyl(root, 0.08f, 0.11f, 0.7f, new Vector3(0, 0.35f, 0), bark, 8);
-        Mesh3.Sphere(root, s, new Vector3(0, 0.75f + s * 0.8f, 0), Gfx.TreeDark);
-        Mesh3.Sphere(root, s * 0.75f, new Vector3(-0.2f * s, 0.95f + s * 1.1f, 0.15f * s), Gfx.TreeMid);
-        Mesh3.Sphere(root, s * 0.45f, new Vector3(-0.25f * s, 1.15f + s * 1.4f, 0.25f * s), Gfx.TreeLight);
+        // Broadleaf: a trunk that forks, and a canopy of overlapping leafy clumps
+        var t = Mesh3.Cyl(root, 0.07f, 0.12f, 0.8f, new Vector3(0, 0.4f, 0), Colors.White, 8);
+        t.MaterialOverride = barkMat;
+        for (int b = 0; b < 3; b++)
+        {
+            float ang = (b * 120 + R(80 + b) * 40) * Mathf.Pi / 180;
+            var limb = Mesh3.Cyl(root, 0.025f, 0.05f, 0.6f * s + 0.2f, new Vector3(Mathf.Sin(ang) * 0.12f, 0.95f, Mathf.Cos(ang) * 0.12f), Colors.White, 6);
+            limb.MaterialOverride = barkMat;
+            limb.Rotation = new Vector3(Mathf.Cos(ang) * 0.6f, 0, -Mathf.Sin(ang) * 0.6f);
+        }
+        var greens = new[] { Gfx.TreeDark, Gfx.TreeMid, Gfx.TreeLight };
+        int clumps = 9 + (int)(R(90) * 5);
+        float crown = 0.95f + s * 1.0f;
+        for (int k = 0; k < clumps; k++)
+        {
+            // Spread over an ellipsoid crown; the lower, outer clumps darker (in shade), the top ones lighter
+            float a = R(100 + k) * Mathf.Tau, up = R(120 + k);
+            float rr = s * (0.35f + 0.55f * R(140 + k)) * (1 - up * 0.45f);
+            var at = new Vector3(Mathf.Cos(a) * rr, crown + (up - 0.35f) * s * 1.1f, Mathf.Sin(a) * rr);
+            float size = s * (0.38f + R(160 + k) * 0.25f);
+            var col = greens[up > 0.66f ? 2 : up > 0.3f ? 1 : 0].Lerp(new Color("6b6a3a"), R(180 + k) * 0.15f);
+            var clump = Mesh3.Sphere(root, size, at, col);
+            clump.MaterialOverride = Textures.Mat(Surface.Foliage, col, 2.5f);
+            clump.Scale = new Vector3(1.1f, 0.85f + R(200 + k) * 0.2f, 1.05f);
+        }
     }
 }
