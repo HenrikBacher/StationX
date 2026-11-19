@@ -144,6 +144,70 @@ public static class Mesh3
         return mi;
     }
 
+    /// <summary>
+    /// A pitched roof over the rectangle x0..x1 × z0..z1 (eaves at height y, overhang included by the caller), its ridge
+    /// along the longer side, `rise` above the eaves. Hipped: the ends slope too, at the same pitch. Otherwise the ends
+    /// are upright gables, a second surface for the wall material. UVs run along the eaves and up the slope, in tiles.
+    /// </summary>
+    public static MeshInstance3D Roof(Node3D parent, float x0, float x1, float z0, float z1, float y, float rise, bool hipped,
+        Material roof, Material? gable = null)
+    {
+        bool alongX = x1 - x0 >= z1 - z0;
+        float L = alongX ? x1 - x0 : z1 - z0, S = alongX ? z1 - z0 : x1 - x0, half = S / 2;
+        float inset = hipped ? Mathf.Min(half, L / 2) : 0;
+        // (a along the ridge, b across it, h up) to world
+        Vector3 P(float a, float b, float h) => alongX ? new Vector3(x0 + a, y + h, z0 + b) : new Vector3(x0 + b, y + h, z0 + a);
+        float slope = Mathf.Sqrt(half * half + rise * rise);
+        float endSlope = Mathf.Sqrt(inset * inset + rise * rise);
+
+        var st = new SurfaceTool();
+        st.Begin(Mesh.PrimitiveType.Triangles);
+        void V(Vector3 p, Vector2 uv) { st.SetUV(uv); st.AddVertex(p); }
+        void Tri(Vector3 a, Vector2 ua, Vector3 b, Vector2 ub, Vector3 c, Vector2 uc)
+        {
+            // Wound so the face points up (Godot's front faces are clockwise seen from the front).
+            if ((b - a).Cross(c - a).Y > 0) { V(a, ua); V(c, uc); V(b, ub); }
+            else { V(a, ua); V(b, ub); V(c, uc); }
+        }
+        // The two long slopes: eave (u along it), ridge at v = slope length.
+        foreach (float side in new[] { 0f, S })
+        {
+            Vector3 e0 = P(0, side, 0), e1 = P(L, side, 0), r0 = P(inset, half, rise), r1 = P(L - inset, half, rise);
+            Vector2 ue0 = new(0, 0), ue1 = new(L, 0), ur0 = new(inset, slope), ur1 = new(L - inset, slope);
+            Tri(e0, ue0, e1, ue1, r1, ur1);
+            Tri(e0, ue0, r1, ur1, r0, ur0);
+        }
+        if (hipped)
+            foreach (float end in new[] { 0f, L })
+            {
+                float ridgeA = end == 0 ? inset : L - inset;
+                Tri(P(end, 0, 0), new Vector2(0, 0), P(end, S, 0), new Vector2(S, 0), P(ridgeA, half, rise), new Vector2(half, endSlope));
+            }
+        st.GenerateNormals();
+        st.GenerateTangents();
+        var mesh = st.Commit();
+        mesh.SurfaceSetMaterial(0, roof);
+        if (!hipped && gable != null)
+        {
+            var gt = new SurfaceTool();
+            gt.Begin(Mesh.PrimitiveType.Triangles);
+            foreach (float end in new[] { 0f, L })
+            {
+                Vector3 a = P(end, 0, 0), b = P(end, S, 0), c = P(end, half, rise);
+                var outward = P(end == 0 ? -1 : L + 1, half, 0) - P(end, half, 0);
+                bool ccw = (b - a).Cross(c - a).Dot(outward) > 0;
+                foreach (var p in ccw ? new[] { a, c, b } : new[] { a, b, c }) { gt.SetUV(new Vector2(alongX ? p.Z : p.X, p.Y)); gt.AddVertex(p); }
+            }
+            gt.GenerateNormals();
+            gt.GenerateTangents();
+            gt.Commit(mesh);
+            mesh.SurfaceSetMaterial(1, gable);
+        }
+        var mi = new MeshInstance3D { Mesh = mesh };
+        parent.AddChild(mi);
+        return mi;
+    }
+
     public static MeshInstance3D Dome(Node3D parent, float r, Vector3 center, Color c)
     {
         var mi = new MeshInstance3D

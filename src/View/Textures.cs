@@ -80,6 +80,30 @@ public static class Textures
         return m;
     }
 
+    /// <summary>
+    /// A photographed material on a mesh's own UVs (one unit = one tile), as its own instance that can fade: the roofs.
+    /// Null if the photos are missing.
+    /// </summary>
+    public static StandardMaterial3D? Fading(string dir, Color tone, float tilesPerRepeat)
+    {
+        if (!UsePhotoMaterials || Load(dir, "albedo") is not { } albedo) return null;
+        return new StandardMaterial3D
+        {
+            AlbedoTexture = albedo,
+            AlbedoColor = tone,
+            NormalEnabled = true,
+            NormalTexture = Load(dir, "normal"),
+            RoughnessTexture = Load(dir, "rough"),
+            RoughnessTextureChannel = BaseMaterial3D.TextureChannel.Red,
+            Roughness = 1f,
+            Uv1Scale = Vector3.One / tilesPerRepeat,
+            TextureFilter = BaseMaterial3D.TextureFilterEnum.LinearWithMipmapsAnisotropic,
+        };
+    }
+
+    /// <summary>A fading copy of a wall material, for the gable ends under a fading roof.</summary>
+    public static StandardMaterial3D FadingCopy(StandardMaterial3D m) => (StandardMaterial3D)m.Duplicate();
+
     public static ImageTexture Get(Surface s)
     {
         if (Cache.TryGetValue(s, out var t)) return t;

@@ -28,6 +28,18 @@ public partial class Park3D : Node3D
     string _sig = "";
     int _quarter;
 
+    // Roofs: on when zoomed out (the Park from outside, all walls standing), fading away as the camera comes in to
+    // look inside. Their materials are their own, so fading them leaves the walls and floors alone.
+    readonly List<MeshInstance3D> _roofs = new();
+    readonly List<StandardMaterial3D> _roofMats = new();
+    StandardMaterial3D? _felt, _slate, _flatRoof, _gable;
+    /// <summary>Each roof material's tone, and how far its photo must be brightened to look snow-covered.</summary>
+    readonly Dictionary<StandardMaterial3D, (Color tone, float snow)> _roofTones = new();
+    float _roofAlpha, _roofSnow;
+    bool _roofed;
+    /// <summary>Camera sizes (tiles of view height) over which the roofs fade in.</summary>
+    public const float RoofsFrom = 22, RoofsFull = 28;
+
     /// <summary>Parts belonging to one or two sides of a building (0 N, 1 E, 2 S, 3 W).</summary>
     readonly List<(Node3D node, int a, int b, bool tall)> _sided = new();
 
@@ -114,6 +126,8 @@ public partial class Park3D : Node3D
         var c = _snowMat.AlbedoColor;
         c.A = Mathf.Clamp(cover, 0, 1) * 0.78f;
         _snowMat.AlbedoColor = c;
+        float roofSnow = Mathf.Clamp(cover, 0, 1);
+        if (Mathf.Abs(roofSnow - _roofSnow) > 0.01f) { _roofSnow = roofSnow; ApplyRoofs(); }
     }
 
     public override void _Process(double delta)
@@ -134,7 +148,7 @@ public partial class Park3D : Node3D
         foreach (var (node, a, b, tall) in _sided)
         {
             bool near = Near(a) || Near(b);
-            node.Visible = tall ? !near : near;
+            node.Visible = _roofed ? tall : tall ? !near : near;
         }
     }
 
@@ -178,6 +192,7 @@ public partial class Park3D : Node3D
         _headLabels.Clear();
         Lamps.Clear();
         _sided.Clear();
+        _roofs.Clear();
 
         var lake = new MeshInstance3D
         {
@@ -199,6 +214,7 @@ public partial class Park3D : Node3D
         }
 
         Grounds(g);
+        ApplyRoofs();
         SetView(_quarter);
     }
 
@@ -404,6 +420,7 @@ public partial class Park3D : Node3D
             }
 
         Partitions(z);
+        Roof(z);
         if (mansion) MansionDetails(z);
         else if (z.Brick) BlockDetails(z);
         else HutDetails(z);
@@ -414,10 +431,12 @@ public partial class Park3D : Node3D
         name.PixelSize = 0.0075f;
         name.OutlineSize = 16;
         name.OutlineModulate = new Color("d9cfb4");
+        name.NoDepthTest = true;   // readable over the roofs
         var headLabel = Mesh3.Text(_buildings, "", name.Position + new Vector3(0, -0.42f, 0), 30, new Color("1d1a16"), Fonts.Body);
         headLabel.PixelSize = 0.0075f;
         headLabel.OutlineSize = 10;
         headLabel.OutlineModulate = new Color("d9cfb4");
+        headLabel.NoDepthTest = true;
         _headLabels[z.Id] = headLabel;
 
         for (int y = z.Y + 2; y < z.Y + z.H - 1; y += 4)
@@ -614,6 +633,78 @@ public partial class Park3D : Node3D
         foreach (float px in new[] { z.DoorX - 0.15f, z.DoorX + 1.15f })
             Mesh3.Box(_buildings, new Vector3(0.18f, 0.5f, 0.18f), new Vector3(px, 0.25f, pz), stone);
         Mesh3.Box(_buildings, new Vector3(1.6f, 0.06f, 0.6f), new Vector3(z.DoorX + 0.5f, 0.03f, pz), stone);
+    }
+
+    /// <summary>Hipped slate on the Mansion, low felt gables on the huts, flat concrete on the brick blocks.</summary>
+    void Roof(Zone z)
+    {
+        float x0 = z.X + 0.5f, x1 = z.X + z.W - 0.5f, y0 = z.Y + 0.5f, y1 = z.Y + z.H - 0.5f;
+        if (_felt == null)
+        {
+            _felt = Textures.Fading("asphalt_02", new Color("67635d"), 1.3f);
+            _slate = Textures.Fading("roof_slates_02", new Color("7c8290"), 2.4f);
+            _flatRoof = Textures.FadingCopy(Textures.Mat(Surface.Concrete, new Color("8a8a84"), 0.5f));
+            _gable = Textures.FadingCopy(Textures.Mat(Surface.Weatherboard, Colors.White));
+            foreach (var (m, snow) in new[] { (_felt, 2.1f), (_slate, 1.35f), (_flatRoof, 1.05f), (_gable, 0f) })
+                if (m != null) { _roofMats.Add(m); _roofTones[m] = (m.AlbedoColor, snow); }
+        }
+        if (_felt == null || _slate == null) return;
+        MeshInstance3D roof;
+        if (z.Id == "mansion")
+        {
+            const float o = 0.28f;
+            roof = Mesh3.Roof(_buildings, x0 - o, x1 + o, y0 - o, y1 + o, BackWall + 0.02f, 1.35f, true, _slate);
+        }
+        else if (z.Brick)
+            roof = Mesh3.Box(_buildings, new Vector3(x1 - x0 + 0.45f, 0.14f, y1 - y0 + 0.45f), new Vector3((x0 + x1) / 2, BackWall + 0.08f, (y0 + y1) / 2), _flatRoof!);
+        else
+        {
+            // Overhanging the long walls more than the gable ends, and a ridge batten along the top.
+            roof = Mesh3.Roof(_buildings, x0 - 0.14f, x1 + 0.14f, y0 - 0.3f, y1 + 0.3f, BackWall + 0.04f, 0.62f, false, _felt, _gable);
+            _roofs.Add(Mesh3.Box(_buildings, new Vector3(x1 - x0 + 0.3f, 0.05f, 0.09f), new Vector3((x0 + x1) / 2, BackWall + 0.67f, (y0 + y1) / 2), _felt));
+            // Felt laid in strips down the slope, each joint held by a batten.
+            for (float bx = x0 + 0.5f; bx < x1 - 0.2f; bx += 0.9f)
+                foreach (float s in new[] { -1f, 1f })
+                {
+                    float half = (y1 - y0) / 2 + 0.3f, run = Mathf.Sqrt(half * half + 0.62f * 0.62f);
+                    var b = Mesh3.Box(_buildings, new Vector3(0.035f, 0.03f, run), new Vector3(bx, BackWall + 0.04f + 0.31f + 0.015f, (y0 + y1) / 2 + s * half / 2), _felt);
+                    b.Rotation = new Vector3(s * Mathf.Atan2(0.62f, half), 0, 0);
+                    _roofs.Add(b);
+                }
+        }
+        _roofs.Add(roof);
+    }
+
+    /// <summary>Fades the roofs by the camera's view size: off up close, on when looking at the whole Park.</summary>
+    public void SetRoofs(float camSize)
+    {
+        float a = Mathf.SmoothStep(RoofsFrom, RoofsFull, camSize);
+        if (Mathf.Abs(a - _roofAlpha) < 0.01f) return;
+        _roofAlpha = a;
+        ApplyRoofs();
+    }
+
+    void ApplyRoofs()
+    {
+        foreach (var m in _roofMats)
+        {
+            // Snow lies on the roof slopes; the upright gable ends stay bare.
+            var (tone, snow) = _roofTones[m];
+            var c = snow == 0 ? tone : tone.Lerp(new Color("d4d8dd") * snow, _roofSnow * 0.75f);
+            c.A = _roofAlpha;
+            m.AlbedoColor = c;
+            // Blended while fading (a dither looks like static), solid once it's all there.
+            m.Transparency = _roofAlpha > 0.99f ? BaseMaterial3D.TransparencyEnum.Disabled : BaseMaterial3D.TransparencyEnum.Alpha;
+        }
+        foreach (var r in _roofs)
+        {
+            r.Visible = _roofAlpha > 0.01f;
+            r.CastShadow = _roofAlpha > 0.95f ? GeometryInstance3D.ShadowCastingSetting.On : GeometryInstance3D.ShadowCastingSetting.Off;
+        }
+        bool roofed = _roofAlpha > 0.5f;
+        if (roofed == _roofed) return;
+        _roofed = roofed;
+        SetView(_quarter);
     }
 
     void Chimney(Node3D parent, Vector3 at, Material brick)

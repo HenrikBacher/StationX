@@ -378,6 +378,7 @@ public partial class Main : Node3D
         UpdateGhost();
         UpdateSelectionRing();
         UpdateDayNight();
+        _park.SetRoofs(Rig.Cam.Size);
     }
 
     // ------------------------------------------------------------- syncing

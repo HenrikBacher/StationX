@@ -15,7 +15,8 @@ Photographed materials from [Poly Haven](https://polyhaven.com), released under
 | [White Plaster 02](https://polyhaven.com/a/white_plaster_02) | Mansion interior walls |
 | [Concrete Floor 02](https://polyhaven.com/a/concrete_floor_02) | Slabs and bases |
 | [Terracotta Floor Tiles](https://polyhaven.com/a/terracotta_floor_tiles) | Brick-hut floors |
-| [Roof Slates 02](https://polyhaven.com/a/roof_slates_02) | Roofs |
+| [Roof Slates 02](https://polyhaven.com/a/roof_slates_02) | The Mansion's slate roof |
+| [Asphalt 02](https://polyhaven.com/a/asphalt_02) | Huts' mineral roofing felt |
 | [Sparse Grass](https://polyhaven.com/a/sparse_grass) | Grounds |
 | [Gravel Floor 02](https://polyhaven.com/a/gravel_floor_02) | Paths |
 | [Brown Mud 02](https://polyhaven.com/a/brown_mud_02) | Trodden earth, building plots |
