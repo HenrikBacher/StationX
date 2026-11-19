@@ -245,6 +245,14 @@ public partial class Hud
             "A ministry has had nothing from us for days. Leave one waiting ten days and it complains to the Foreign Office every week. Take one of its requests.");
         yield return ("layout", S.Staff.Count >= 18 && S.Stats.DeliveredTotal > 40 && S.Stats.HandOvers < S.Stats.DeliveredTotal / 4,
             "Put each step's desk beside the next one (registration, Typex, translation, despatch): neighbouring desks pass paper across without a runner. And keep aisles clear: people squeezing past each other walk slower.");
+        yield return ("ycover", S.ActIndex >= 1 && S.CoveredNets().Any(n => S.CoverShare(n) < 1),
+            $"A network has fewer than {Defs.SetsWanted} receiver sets at its Y-station: its traffic comes in hours late and garbled. In Y-stations (Y), move a set over from a network with no requests, or buy another. The Y Board allots one more each chapter.");
+        yield return ("riders", S.ActIndex >= 2 && S.Lines.Count == 0 && S.Funds >= Defs.LineCost * 2,
+            "Dispatch riders bring each Y-station's traffic in a bundle every two hours, and decrypts go stale on the road. A teleprinter line (Y-stations, Y) brings it in minutes: lay one from the station with the busiest networks first.");
+        yield return ("freqchange", S.Stats.FreqChanges > 0,
+            "A network has changed its frequencies and gone quiet until its Y-station finds it again. Spare receiver sets search the band: keep one or two unallocated in Y-stations (Y) and the next search is much quicker.");
+        yield return ("df", S.MaxSuspicion > 30 && Enum.GetValues<Service>().Any(sv => S.CanBuyDf(sv) == null),
+            "German suspicion is rising. Direction-finding stations (Y-stations, Y) take bearings on the enemy's transmitters, so a cover story can point to the fix: cover choices for that service then draw half the suspicion.");
         yield return ("allhands", S.CanCallAllHands() == null && S.Contracts.Any(c => c.State == ContractState.Active && c.Due - S.Now < 6 * 60 && c.Quantity - c.Delivered >= 2),
             "A request is about to be missed. In an emergency, Staff (H) → Call all hands brings everyone off watch back in for four hours. It costs overtime and morale, and works once a week.");
     }

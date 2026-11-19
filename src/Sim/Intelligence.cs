@@ -68,6 +68,12 @@ public sealed partial class GameState
 
     public void RaiseDilemma(Dilemma d)
     {
+        if (CoverSuspicionFactor(d.Service) < 1 && d.Options.Any(o => o.Cover && o.Suspicion > 0))
+        {
+            foreach (var o in d.Options.Where(o => o.Cover && o.Suspicion > 0))
+                o.Suspicion = Math.Max(1, Math.Round(o.Suspicion * CoverSuspicionFactor(d.Service)));
+            d.Context += " Our direction-finding stations have fixes on these transmitters, so a cover story will hold better than usual.";
+        }
         d.Id = NextId++;
         d.Created = Now;
         Dilemmas.Add(d);

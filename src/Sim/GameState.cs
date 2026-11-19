@@ -121,6 +121,7 @@ public sealed partial class GameState
         Now += dt;
         if (Day != dayBefore) OnNewDay();
 
+        TickYService();
         TickContracts();
         TickStaff(dt);
         MoveStaff(dt);
@@ -135,6 +136,7 @@ public sealed partial class GameState
         if (Now >= NextScheduleAt)
         {
             NextScheduleAt = Now + 2;
+            AllotCover();
             ReleaseHeld();
             AssignCarriers();
             Schedule();
@@ -156,6 +158,7 @@ public sealed partial class GameState
         DailyIntelligence();
         DailySupplies();
         DailySecurity();
+        PlanFrequencyChanges();
         foreach (var k in Flows.Keys.ToList())
             if ((Flows[k] *= 0.5) < 0.25) Flows.Remove(k);
         if (Day % 7 == 0) { WeeklyAccounts(); CoverLeft = Defs.CoverPerWeek; WeeklyRota(); }

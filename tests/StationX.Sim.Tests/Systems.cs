@@ -6,6 +6,13 @@ namespace StationX.Tests;
 
 static class TestUtil
 {
+    /// <summary>For pipeline tests: every Y-station on a teleprinter line with sets to spare, so intake isn't the subject.</summary>
+    public static void QuickIntake(GameState g)
+    {
+        foreach (var y in Defs.YStations) g.Lines.Add(y.Id);
+        g.ReceiverSets = 40;
+    }
+
     public static void Run(GameState g, double days)
     {
         for (double t = 0; t < days * Defs.MinutesPerDay; t += 30)
@@ -31,6 +38,7 @@ static class TestUtil
     {
         var g = GameState.NewGame(seed);
         g.DebugSkipToAct(5);
+        QuickIntake(g);
         g.Funds = 50000;
         g.Researched.Add(ResearchId.Bombe);
         foreach (var z in new[] { "hut6", "hut11" }) g.Grid.Zone(z)!.Unlocked = true;
@@ -1283,6 +1291,7 @@ public class LayoutTests
     static GameState Run(int[] xs, out Contract c, int y = 3)
     {
         var g = GameState.NewGame(7);
+        TestUtil.QuickIntake(g);
         Assert.NotNull(g.Place(StationType.Registration, xs[0], y, 0));
         Assert.NotNull(g.Place(StationType.HandCipher, xs[1], y, 0));
         Assert.NotNull(g.Place(StationType.Translation, xs[2], y, 0));
@@ -1945,7 +1954,8 @@ public class OffizierTests(ITestOutputHelper output)
     [Fact]
     public void OffizierMessagesAreReadAndDelivered()
     {
-        var g = GameState.NewGame(31);
+        // On Easy, so the run reaches the U-110 chapter whatever the balance of the day.
+        var g = GameState.NewGame(31, Difficulty.Easy);
         var ai = new AutoPlayer(g);
         for (int h = 0; h < 24 * 200 && g.Status == GameStatus.Playing && (g.ActIndex < Campaign.OffizierFrom || g.Stats.OffizierRead == 0); h++)
         {

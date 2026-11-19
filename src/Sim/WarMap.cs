@@ -128,7 +128,7 @@ public sealed partial class GameState
                 break;
             case OpUse.Covered:
                 CoverLeft--;
-                AddSuspicion(sv, Defs.OpCoverSuspicion);
+                AddSuspicion(sv, Defs.OpCoverSuspicion * CoverSuspicionFactor(sv));
                 Tally(op, 0.75);
                 ChangeMorale(0.01);
                 break;

@@ -763,6 +763,7 @@ public partial class Main : Node3D
             case Key.Period: RotateView(1); break;
             case Key.F: ShowFlows = !ShowFlows; Hud.Toast(ShowFlows ? "Flow view: lines show where paper goes; rings show how long it waits." : "Flow view off."); break;
             case Key.I: Hud.TogglePanel("intel"); break;
+            case Key.Y: Hud.TogglePanel("ystations"); break;
             case Key.K: Hud.TogglePanel("stats"); break;
             case Key.N: Hud.TogglePanel("intercepts"); break;
             case Key.O: Hud.TogglePanel("war"); break;

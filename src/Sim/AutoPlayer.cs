@@ -129,6 +129,39 @@ public sealed class AutoPlayer
 
     int Have(StationType t) => g.Stations.Count(s => s.Type == t && !s.PendingRemoval && !s.Obsolete);
 
+    /// <summary>
+    /// The Y-station tips: networks with requests need their sets (moved from networks with none, or bought); keep a
+    /// spare once a frequency change has been seen; lay teleprinter lines from the busiest stations; set up
+    /// direction-finding for the most suspicious service.
+    /// </summary>
+    void YService(bool saving)
+    {
+        int Busy(Net n) => g.Contracts.Where(c => c.Net == n && c.State is ContractState.Active or ContractState.Offered).Sum(c => c.Quantity - c.Delivered);
+        var nets = g.CoveredNets().ToList();
+        foreach (var n in nets.Where(n => Busy(n) > 0 && g.CoverOf(n) < Defs.SetsWanted).OrderByDescending(Busy))
+            while (g.CoverOf(n) < Defs.SetsWanted)
+            {
+                if (g.SpareSets > (g.Stats.FreqChanges > 0 ? 1 : 0)) { g.MoveSet(n, 1); continue; }
+                var idle = nets.FirstOrDefault(x => Busy(x) == 0 && g.CoverOf(x) > 0);
+                if (idle != null) { g.MoveSet(idle, -1); continue; }
+                if (g.SpareSets > 0) { g.MoveSet(n, 1); continue; }
+                if (g.Funds > Defs.SetCost + 400 && g.BuySet()) continue;
+                break;
+            }
+        if (g.Stats.FreqChanges > 0 && g.SpareSets == 0 && g.Funds > Defs.SetCost + 800) g.BuySet();
+        if (!saving && g.ActIndex >= 2 && g.Funds > Defs.LineCost + 900)
+        {
+            var station = Defs.YStations.Where(y => !g.Lines.Contains(y.Id))
+                .OrderByDescending(y => y.Nets.Sum(Busy)).FirstOrDefault(y => y.Nets.Sum(Busy) > 0);
+            if (station != null) g.LayLine(station.Id);
+        }
+        if (!saving && g.MaxSuspicion > 30 && g.Funds > Defs.DfCost + 900)
+        {
+            var sv = Enum.GetValues<Service>().Where(x => g.CanBuyDf(x) == null).OrderByDescending(g.SuspicionOf).FirstOrDefault();
+            if (g.CanBuyDf(sv) == null) g.BuyDf(sv);
+        }
+    }
+
     /// <summary>Whether to carry on into the Tunny chapter after winning.</summary>
     public bool ContinuePastEnigma { get; set; }
 
@@ -214,6 +247,8 @@ public sealed class AutoPlayer
                 if (g.Stations.Any(s => z.InOuter(s.X, s.Y)) && !g.Stations.Any(s => s.Type == StationType.Stove && z.InOuter(s.X, s.Y))
                     && g.Funds > Defs.Station(StationType.Stove).Cost + 50)
                     TryBuildIn(StationType.Stove, z);
+
+        YService(saving);
 
         // A sick bay once flu season comes.
         if (g.Winter && !g.HasSickBay && g.StationUnlocked(StationType.SickBay, out _) && g.Funds > 1200)

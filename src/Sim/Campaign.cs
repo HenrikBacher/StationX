@@ -587,6 +587,11 @@ public sealed partial class GameState
         foreach (var n in Campaign.NetsOf(Act)) ActiveNets.Add(n);
         if (index >= 10) ActiveNets.Add(Net.Shark);
         NewChapterIntake(index);
+        if (index > 0)
+        {
+            ReceiverSets += Defs.SetsPerAct;
+            Emit(EventKind.Info, $"The Y Board allots the Park's networks {(Defs.SetsPerAct == 1 ? "another receiver set" : $"{Defs.SetsPerAct} more receiver sets")} (Y-stations, Y).");
+        }
         Act.OnStart?.Invoke(this);
         Emit(EventKind.ActStarted, $"Chapter {Act.Chapter}: {Act.ChapterTitle}. {Act.Title}");
     }

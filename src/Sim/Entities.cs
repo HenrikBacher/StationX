@@ -278,6 +278,7 @@ public sealed class Stats
     public int LateDecrypts { get; set; }
     /// <summary>Typex runs that came out as gibberish because the wheels were set wrong.</summary>
     public int TypexSlips { get; set; }
+    public int FreqChanges { get; set; }
     /// <summary>Half-done messages picked up after sitting cold, and the desk-minutes of work lost re-reading them.</summary>
     public int ColdHandovers { get; set; }
     public int PapersFound { get; set; }
@@ -366,6 +367,8 @@ public sealed class DilemmaOption
     public int Points { get; set; }
     public bool DismissStaff { get; set; }
     public bool RevealTalker { get; set; }
+    /// <summary>Acting under a cover story: direction-finding makes it more believable.</summary>
+    public bool Cover { get; set; }
     /// <summary>A special effect handled by the sim (a crisis response), or null.</summary>
     public string? Action { get; set; }
 

@@ -289,6 +289,25 @@ public static partial class Defs
     public const int OutstationUpkeep = 40;
     public const int GardeningCost = 300;
     public const double GarbledChance = 0.06;
+
+    // ---- The Y service: receiver sets, riders or teleprinter lines, direction-finding, frequency changes ----
+    public const int StartSets = 4, SetsWanted = 2, SetsPerAct = 1, SetCost = 120, LineCost = 250, DfCost = 400;
+    /// <summary>Dispatch riders leave a Y-station every two hours; the ride takes most of an hour.</summary>
+    public const double RiderEvery = 120, RideMinutes = 45, LineMinutes = 10;
+    /// <summary>A thinly covered network is caught only on repeats; an uncovered one by chance, hours later.</summary>
+    public const double ThinCoverDelay = 90, NoCoverDelay = 300;
+    public const int FreqChangesFromAct = 2;
+    public const double FreqChangeChance = 0.04, SearchHours = 10, SparePerSearch = 0.5, DfCoverFactor = 0.5;
+
+    public static readonly YStationDef[] YStations =
+    {
+        new("denmarkhill", "Denmark Hill", new[] { Net.Police }, null, 0),
+        new("chicksands", "RAF Chicksands", new[] { Net.Red, Net.LightBlue, Net.Brown }, Service.Luftwaffe, 3),
+        new("arkley", "Arkley View", new[] { Net.Abwehr }, Service.Security, 2),
+        new("beaumanor", "Beaumanor", new[] { Net.Chaffinch }, Service.Heer, 7),
+        new("scarborough", "Scarborough", new[] { Net.Dolphin, Net.Shark }, Service.Kriegsmarine, 7),
+        new("knockholt", "Knockholt", new[] { Net.Tunny }, null, 0),
+    };
     /// <summary>Daily chance that a man on the staff is called up (1940-42).</summary>
     public const double CallUpChance = 0.1;
     public const int CallUpRulingCost = 150;

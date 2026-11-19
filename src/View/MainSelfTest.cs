@@ -111,7 +111,7 @@ public partial class Main
 
             // Panels by keyboard
             foreach (var (key, id) in new[] { (Godot.Key.B, "build"), (Godot.Key.H, "staff"), (Godot.Key.Q, "requests"), (Godot.Key.T, "research"),
-                                              (Godot.Key.G, "huts"), (Godot.Key.I, "intel"), (Godot.Key.N, "intercepts"), (Godot.Key.O, "war"), (Godot.Key.K, "stats") })
+                                              (Godot.Key.G, "huts"), (Godot.Key.I, "intel"), (Godot.Key.Y, "ystations"), (Godot.Key.N, "intercepts"), (Godot.Key.O, "war"), (Godot.Key.K, "stats") })
             {
                 await Tap(key);
                 Check(Hud.PanelId == id, $"key {key} opens the {id} panel");

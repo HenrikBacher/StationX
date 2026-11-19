@@ -605,20 +605,24 @@ public sealed partial class GameState
                     }
                     break;
                 case ContractState.Active:
-                    while (c.Spawned < c.Quantity && c.SpawnTimes[c.Spawned] <= Now)
+                    // Traffic reaches the Park after the Y-station has caught it and sent it on; a network lost after a
+                    // change of frequencies sends nothing until it is found. MOST IMMEDIATE traffic is already in hand.
+                    while (c.Spawned < c.Quantity && !Searching(c.Net) &&
+                           c.SpawnTimes[c.Spawned] + (c.Flash ? 0 : TransitMinutes(c.Net, c.SpawnTimes[c.Spawned])) <= Now)
                     {
+                        double sent = Math.Min(c.SpawnTimes[c.Spawned], Now);
                         // The teleprinters this network is routed to; if none, any teleprinter, so nothing is lost.
                         // A jammed teleprinter takes nothing: its traffic waits at the Y-station until a line is free.
                         inbox = Stations.Where(s => s.Type == StationType.Inbox && !s.PendingRemoval && !s.IsDown(Now) && s.ReceivesNet(c.Net))
                                     .OrderBy(s => s.Output.Count).FirstOrDefault()
                                 ?? Stations.Where(s => s.Type == StationType.Inbox && !s.PendingRemoval && !s.IsDown(Now)).OrderBy(s => s.Output.Count).FirstOrDefault();
                         if (inbox == null) break;
-                        double hour = MinuteOfDay / 60;
+                        double hour = sent % Defs.MinutesPerDay / 60;
                         var m = new Message
                         {
-                            Id = NextId++, Net = c.Net, ContractId = c.Id, Day = Day, Created = Now, Since = Now,
+                            Id = NextId++, Net = c.Net, ContractId = c.Id, Day = (int)Math.Floor(sent / Defs.MinutesPerDay), Created = sent, Since = Now,
                             Loc = Loc.Output, LocId = inbox.Id,
-                            Garbled = ActIndex >= 1 && Rng.Chance(Defs.GarbledChance * (hour < 6 || hour >= 20 ? 1.6 : 1) * WeatherGarble),
+                            Garbled = ActIndex >= 1 && Rng.Chance(Defs.GarbledChance * (hour < 6 || hour >= 20 ? 1.6 : 1) * WeatherGarble * CoverGarble(c.Net)),
                         };
                         Messages[m.Id] = m;
                         inbox.Output.Add(m.Id);

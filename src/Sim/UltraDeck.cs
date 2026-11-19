@@ -35,7 +35,9 @@ public sealed partial class GameState
             if ((x -= s.Weight) < 0) { pick = s; break; }
         RecentScenarios.Add(pick.Id);
         if (RecentScenarios.Count > 8) RecentScenarios.RemoveAt(0);
-        return pick.Make(t);
+        var d = pick.Make(t);
+        d.Options[1].Cover = true;
+        return d;
     }
 
     /// <summary>Every scenario id, for the tests.</summary>

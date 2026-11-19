@@ -65,6 +65,7 @@ public partial class Hud
             "research" => $"{S.Points}|{string.Join(",", S.Researched)}|{string.Join(",", S.ResearchAvailable)}",
             "huts" => $"{S.Funds / 100}|{S.OutstationBombes}|{S.CanBuyOutstation()}|" + string.Join(",", S.Grid.Zones.Select(z => $"{z.Available}{z.Unlocked}")),
             "intel" => IntelSig(),
+            "ystations" => YSig(),
             "intercepts" => InterceptsSig(),
             "war" => WarMapSig(),
             "stats" => $"{S.History.Count}|{_statsRange}",
@@ -83,6 +84,7 @@ public partial class Hud
             case "research": ResearchPanel(); break;
             case "huts": HutsPanel(); break;
             case "intel": IntelPanel(); break;
+            case "ystations": YStationsPanel(); break;
             case "intercepts": InterceptsPanel(); break;
             case "war": WarMapPanel(); break;
             case "stats": StatsPanel(); break;
