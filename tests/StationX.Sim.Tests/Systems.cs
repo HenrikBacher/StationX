@@ -1908,3 +1908,71 @@ public class TeleprinterTests
         Assert.True(tp.Wear > 0 || tp.IsDown(g.Now) || g.Stats.Breakdowns > 0);
     }
 }
+
+public class SuppliesTests
+{
+    static GameState Line()
+    {
+        var g = TestUtil.BombeLine(12, checking: true);
+        g.DebugSkipToAct(Defs.StoresFromAct);
+        return g;
+    }
+
+    [Fact]
+    public void RegistrationUsesStoresAndRunningOutHalvesTheDesks()
+    {
+        var g = GameState.NewGame(5);
+        var ai = new AutoPlayer(g);
+        while (g.ActIndex < Defs.StoresFromAct && g.Day < 60) { ai.Think(); g.Advance(60); g.Events.Clear(); }
+        Assert.True(g.SuppliesActive);
+        double used = 0;
+        for (int i = 0; i < 24 * 3; i++)
+        {
+            double before = g.Stores;
+            ai.Think(); g.Advance(60); g.Events.Clear();
+            if (g.Stores < before) used += before - g.Stores;
+        }
+        Assert.True(used > 0, "registering messages uses stores");
+        g.Stores = 0;
+        Assert.True(g.OutOfStores);
+        Assert.Equal(Defs.NoStoresWorkRate, g.StoresWorkFactor);
+    }
+
+    [Fact]
+    public void AnOrderCostsMoneyAndArrivesNextDay()
+    {
+        var g = Line();
+        g.Stores = 10;
+        g.Funds = 500;
+        Assert.Null(g.CanOrderStores());
+        Assert.True(g.OrderStores());
+        Assert.Equal(500 - Defs.StoresOrderCost, g.Funds);
+        Assert.NotNull(g.CanOrderStores());   // one at a time
+        double due = g.StoresDueAt;
+        while (g.Now < due + 1) g.Advance(30);
+        Assert.False(g.StoresOnOrder);
+        Assert.True(g.Stores > 10 + Defs.StoresOrderSize - 20, $"restocked ({g.Stores})");
+    }
+
+    [Fact]
+    public void AStandingOrderReordersByItselfAtAPremium()
+    {
+        var g = Line();
+        g.SetStandingOrder(true);
+        g.Funds = 500;
+        g.Stores = 5;
+        g.Advance(5);
+        Assert.True(g.StoresOnOrder);
+        Assert.Equal(500 - (int)Math.Round(Defs.StoresOrderCost * Defs.StandingOrderMarkup), g.Funds);
+    }
+
+    [Fact]
+    public void BeforeTheSpringOf1940ThereAreNoStoresToWorryAbout()
+    {
+        var g = GameState.NewGame(12);
+        Assert.True(g.ActIndex < Defs.StoresFromAct);
+        g.Stores = 0;
+        Assert.False(g.OutOfStores);
+        Assert.NotNull(g.CanOrderStores());
+    }
+}

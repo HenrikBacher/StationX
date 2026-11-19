@@ -49,6 +49,10 @@ public partial class Hud
             list.Add(new Alert($"{S.SickCount} staff off sick", Gfx.Warn, () => OpenPanel("staff")));
         if (S.Overcrowded > 0)
             list.Add(new Alert($"{S.Overcrowded} staff lodged far away: requisition billets", Gfx.Warn, () => OpenPanel("staff")));
+        if (S.OutOfStores)
+            list.Add(new Alert(S.StoresOnOrder ? "Out of stores: desks at half speed until the lorry comes" : "Out of stores: desks at half speed. Order more", Gfx.Bad, () => OpenPanel("staff")));
+        else if (S.StoresLow && S.StoresDaysLeft < 1)
+            list.Add(new Alert("Stores nearly gone: order more", Gfx.Warn, () => OpenPanel("staff")));
         if (S.Funds < 0)
             list.Add(new Alert("Overdrawn: reputation falls every day until you're back in credit", Gfx.Bad, () => OpenPanel("staff")));
         foreach (var st in S.Stations.Where(s => s.Wears && !s.IsDown(S.Now) && s.Wear > 0.7))

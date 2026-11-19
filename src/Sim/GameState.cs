@@ -130,6 +130,7 @@ public sealed partial class GameState
         TickCrises();
         TickInspection();
         TickOperations();
+        TickSupplies();
 
         if (Now >= NextScheduleAt)
         {
@@ -153,6 +154,7 @@ public sealed partial class GameState
         PlanInspection();
         DailyPeople();
         DailyIntelligence();
+        DailySupplies();
         foreach (var k in Flows.Keys.ToList())
             if ((Flows[k] *= 0.5) < 0.25) Flows.Remove(k);
         if (Day % 7 == 0) { WeeklyAccounts(); CoverLeft = Defs.CoverPerWeek; }
@@ -389,7 +391,7 @@ public sealed partial class GameState
 
             if (st.Wears && WearAndMaybeBreak(st, dt)) { ReleaseOperator(st); continue; }
             double head = _heads.Count > 0 && Grid.ZoneAt(st.X, st.Y) is { } hz && _heads.TryGetValue(hz, out var hs) ? hs.Work : 1;
-            st.WorkDone += dt * op.WorkRate * RaidWorkFactor * head * OvertimeFactor * RivalryFactor(op, dt);
+            st.WorkDone += dt * op.WorkRate * RaidWorkFactor * head * OvertimeFactor * RivalryFactor(op, dt) * StoresWorkFactor;
             st.LastWorked = Now;
             if (st.WorkDone >= st.WorkTotal)
             {
@@ -615,6 +617,7 @@ public sealed partial class GameState
     void Complete(Station st, Staff? op, Message m)
     {
         var net = Defs.NetOf(m.Net);
+        if (st.Type == StationType.Registration) UseStores();
         switch (st.Type)
         {
             case StationType.Registration:

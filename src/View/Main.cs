@@ -355,7 +355,8 @@ public partial class Main : Node3D
             else
             {
                 GetViewport().GetTexture().GetImage().SavePng(_shotPath!);
-                GD.Print($"Saved screenshot to {_shotPath}");
+                GD.Print($"Saved screenshot to {_shotPath} ({Performance.GetMonitor(Performance.Monitor.RenderTotalDrawCallsInFrame)} draw calls, " +
+                         $"{Performance.GetMonitor(Performance.Monitor.RenderTotalObjectsInFrame)} objects, {Performance.GetMonitor(Performance.Monitor.RenderTotalPrimitivesInFrame) / 1000:0}k primitives)");
                 GetTree().Quit();
             }
         }

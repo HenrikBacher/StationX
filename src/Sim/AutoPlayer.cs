@@ -213,6 +213,10 @@ public sealed class AutoPlayer
         if (g.Winter && !g.HasSickBay && g.StationUnlocked(StationType.SickBay, out _) && g.Funds > 1200)
             TryBuildIn(StationType.SickBay, g.Grid.Zone("mansion")!);
 
+        // Stores, as the tip says: order when they're down to a couple of days, before they run out.
+        if ((g.StoresLow || g.OutOfStores) && g.CanOrderStores() == null)
+            g.OrderStores();
+
         // All hands when a request is about to be missed.
         if (g.CanCallAllHands() == null && g.Contracts.Any(c => c.State == ContractState.Active && c.Due - g.Now < 8 * 60 && c.Quantity - c.Delivered >= 2))
             g.CallAllHands();

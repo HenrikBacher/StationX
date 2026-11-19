@@ -218,6 +218,8 @@ public partial class Hud
             "Intelligence goes off. A decrypt delivered more than a day after it was intercepted earns half the breakthroughs; after two days, none. It still counts for its request. Clear backlogs before they go stale.");
         yield return ("offizier", S.Messages.Values.Any(m => m.Offizier && m.Next == StationType.HandCipher),
             "An Offizier message: under the day's naval key it's enciphered again on an officers-only setting. After the Typex it goes to a hand-cipher desk to be unpicked. If naval traffic is heavy, build a second hand-cipher desk.");
+        yield return ("stores", S.StoresLow,
+            "The stores are running low: every message needs its dockets and worksheets at registration, and without them the desks work at half speed. Order more under Staff; the lorry takes most of a day. A standing order reorders by itself, at a quarter more.");
         yield return ("inspection", S.InspectionDue,
             "A visitor from Whitehall is coming. They judge what they see: overflowing in-trays, broken machines, glum faces, a request about to be missed, an overdrawn account. A smooth-running Park earns reputation; a shambles loses it, and a quarter of next week's grant.");
         yield return ("priorities", S.KeysQueueing,

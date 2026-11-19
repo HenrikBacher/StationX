@@ -30,7 +30,7 @@ public class Diag(ITestOutputHelper output)
                 log.Clear();
                 var backlog = string.Join(" ", g.Messages.Values.GroupBy(m => m.Next?.ToString() ?? "wait").Select(x => $"{x.Key}:{x.Count()}"));
                 var act = g.Contracts.Where(c => c.State == ContractState.Active).Select(c => $"{c.Net}{c.Delivered}/{c.Quantity}");
-                output.WriteLine($"day {g.Day,3} act {g.ActIndex} £{g.Funds,6} rep {g.Reputation,3:0} staff {g.Staff.Count,2} E{g.AverageEnergy:0.00} M{g.AverageMorale:0.00} susp {g.MaxSuspicion,3:0} done {g.Stats.ContractsCompleted} fail {g.Stats.ContractsFailed} | {string.Join(",", act)} | {backlog}");
+                output.WriteLine($"day {g.Day,3} act {g.ActIndex} £{g.Funds,6} rep {g.Reputation,3:0} staff {g.Staff.Count,2} E{g.AverageEnergy:0.00} M{g.AverageMorale:0.00} susp {g.MaxSuspicion,3:0} delivered {g.Stats.DeliveredTotal} stores {g.Stores:0}/{g.StoresPerDay:0.0}{(g.OutOfStores ? "OUT" : "")} done {g.Stats.ContractsCompleted} fail {g.Stats.ContractsFailed} | {string.Join(",", act)} | {backlog}");
                 if (g.Day is 4000)
                     foreach (var s in g.Staff)
                         output.WriteLine($"        {s.Name,-22} {s.Role,-12} {s.Shift,-7} away={s.Away} E{s.Energy:0.00} M{s.Morale:0.00} task={s.Task?.Kind}/{s.Task?.Phase}/{s.Task?.Dest} path={s.Path.Count} at {s.TilePos}");

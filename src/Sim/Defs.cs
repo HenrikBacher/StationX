@@ -131,6 +131,10 @@ public static partial class Defs
     /// <summary>Walking slows by this much for each other person on the tile ahead or the one you're on.</summary>
     // Crises (from act 2): a power cut stops the machines; a surge brings a run of MOST IMMEDIATE requests.
     public const int CrisesFromAct = 2;
+    /// <summary>Stores (dockets, worksheets, carbons): from the expansion in spring 1940 the Park orders its own.</summary>
+    public const int StoresFromAct = 3;
+    public const int StoresStart = 60, StoresOrderSize = 60, StoresCap = 240, StoresOrderCost = 45;
+    public const double StoresLeadMinutes = 20 * 60, StandingOrderMarkup = 1.25, NoStoresWorkRate = 0.5;
     /// <summary>Visits from Whitehall: from the Battle of Britain, every 9-13 days.</summary>
     public const int InspectionsFromAct = 3;
     /// <summary>Share of naval decrypts that turn out to be Offizier messages, and their time at the hand-cipher desk.</summary>

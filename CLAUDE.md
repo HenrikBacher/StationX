@@ -35,7 +35,7 @@ state, so the work can be resumed on any machine.
 
 ## Current work (2026-11-19)
 
-Last release **v0.25.0**. Untagged on `main` since: teleprinter jams, faster CI, Node 24 actions, overhaul parts 1–5 and part of 6, bad visits cut the grant.
+Last release **v0.25.0**. Untagged on `main` since: teleprinter jams, faster CI, Node 24 actions, overhaul parts 1–5 and part of 6, bad visits cut the grant, Stores.
 
 ### Graphics overhaul: period realism, CC0 assets allowed
 
@@ -67,11 +67,12 @@ settings. Materials are mapped in `Textures.Pbr` (folder, tiles per repeat, tone
 
 ### Core-gameplay ideas to alternate with the overhaul
 
+Done: bad Whitehall visits withhold a quarter of next week's grant; Stores (`Supplies.cs`, from act 3: one per
+registration, order 60 for £45 with a 20 h lead, out = desks at half speed, standing order at +25%).
+
 - Hut 3 priorities: decrypts carry operational urgency; urgent ones lose value faster, so order matters.
 - Shift handovers: a desk left mid-message at a watch change loses time unless someone takes it over.
-- Supplies: paper, punch cards and spare Bombe drums run low and must be ordered ahead.
 - Security incidents: papers left out or a talkative billet raise suspicion; sweeps cost staff time.
-- Whitehall visits that go badly cut the grant, not just reputation.
 
-Balance data (2026-11-19): on Normal, games are lost in acts 7–9 (Claymore to Action This Day) when reputation hits 0;
-the early acts rarely decide a game. Latest 40-seed run: Easy 39, Normal 18, Hard 10.
+Balance data (2026-11-19, with Stores): Easy 40, Normal 18, Hard 8 of 40. On Normal, games are lost in acts 7–9 (Claymore to Action This Day) when reputation hits 0;
+the early acts rarely decide a game.

@@ -58,7 +58,7 @@ public partial class Hud
         string sig = _panel switch
         {
             "build" => $"{S.Funds / 50}|{S.ActIndex}|{string.Join(",", S.Researched)}|{S.IndicatorChanged}",
-            "staff" => string.Join(",", S.Staff.Select(s => $"{s.Id}{s.Task?.Kind}{s.Leaving}{s.Away}{s.Shift}{(int)(s.Energy * 5)}{(int)(s.Morale * 5)}{s.FarBillet}{s.IsSick(S.Now)}{s.Arriving(S.Now)}{s.HeadOf}")) + $"|{S.Billets}{S.Funds >= Defs.BilletCost}{S.AllHands}{S.CanCallAllHands() == null}|" +
+            "staff" => string.Join(",", S.Staff.Select(s => $"{s.Id}{s.Task?.Kind}{s.Leaving}{s.Away}{s.Shift}{(int)(s.Energy * 5)}{(int)(s.Morale * 5)}{s.FarBillet}{s.IsSick(S.Now)}{s.Arriving(S.Now)}{s.HeadOf}")) + $"|{S.Billets}{S.Funds >= Defs.BilletCost}{S.AllHands}{S.CanCallAllHands() == null}|{(int)S.Stores}{S.StoresOnOrder}{S.StandingOrder}{S.CanOrderStores() == null}|" +
                        string.Join(",", S.Candidates.Select(c => c.Id)) + $"|{S.Funds / 25}",
             "requests" => string.Join(",", S.Contracts.Select(c => $"{c.Id}{c.State}{c.Delivered}{c.Spawned}{c.MilestonesChecked}{(int)((c.State == ContractState.Offered ? c.OfferExpires : c.Due) - S.Now) / 60}")) +
                           $"|{string.Join(",", S.KeyBoardNets().Select(n => S.KeyRoute(n)))}",
@@ -217,6 +217,21 @@ public partial class Hud
             string? why = S.CanRequisitionBillets();
             _sideBox.AddChild(Row(bl, UiTheme.Button($"+{Defs.BilletBlock} billets (£{Defs.BilletCost})", () => { S.RequisitionBillets(); _sideSig = ""; }, why == null,
                 tooltip: why ?? "The billeting officer finds rooms in Bletchley and the villages. Without them, new staff lodge miles away and are bussed in.")));
+        }
+        if (S.SuppliesActive)
+        {
+            double days = S.StoresDaysLeft;
+            string left = double.IsInfinity(days) ? "" : days < 1 ? " · under a day left" : $" · {days:0} days' worth";
+            var sl = UiTheme.Label($"Stores for {Math.Max(0, (int)S.Stores)} messages{left}" + (S.StoresOnOrder ? $" · lorry due {(int)(S.StoresDueAt % Defs.MinutesPerDay / 60):00}:00" : ""), 13,
+                S.OutOfStores ? Gfx.Bad : S.StoresLow ? Gfx.Warn : UiTheme.Text);
+            sl.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+            string? why = S.CanOrderStores();
+            _sideBox.AddChild(Row(sl, UiTheme.Button($"Order {Defs.StoresOrderSize} (£{S.StoresOrderCost})", () => { S.OrderStores(); _sideSig = ""; }, why == null,
+                tooltip: why ?? "Dockets, worksheets, carbons and card stock from the Stationery Office: every message uses some at registration. The lorry takes most of a day.")));
+            var so = UiTheme.Label(S.StandingOrder ? "Standing order: reorders when two days are left" : "No standing order", 12, UiTheme.TextDim);
+            so.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+            _sideBox.AddChild(Row(so, UiTheme.Button(S.StandingOrder ? "Cancel" : "Standing order", () => { S.SetStandingOrder(!S.StandingOrder); _sideSig = ""; },
+                tooltip: $"The Stationery Office sends more whenever the stores fall to two days' use, at {Defs.StandingOrderMarkup - 1:P0} over the usual price.")));
         }
         {
             string? why = S.CanCallAllHands();
