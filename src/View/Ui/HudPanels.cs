@@ -90,6 +90,14 @@ public partial class Hud
         }
     }
 
+    /// <summary>Hours since the oldest message at a station (in, out or on the desk) was intercepted.</summary>
+    int OldestHours(Station st)
+    {
+        double oldest = st.Input.Concat(st.Output).Concat(st.Current is int c ? new[] { c } : System.Array.Empty<int>())
+            .Select(id => S.Messages.TryGetValue(id, out var m) ? S.Now - m.Created : 0).DefaultIfEmpty(0).Max();
+        return (int)(oldest / 60);
+    }
+
     Control Card(Color? edge = null)
     {
         var p = new PanelContainer();
@@ -459,7 +467,7 @@ public partial class Hud
         if (!_inspector.Visible) { _inspSig = ""; return; }
 
         string sig = st != null
-            ? $"st{st.Id}{st.Input.Count}{st.Output.Count}{st.OperatorId}{st.OperatorPresent}{st.Current}{(int)(st.Progress * 20)}{st.PendingRemoval}{st.X},{st.Y}|{string.Join(",", S.PinnedTo(st.Id).Select(p => p.Id))}|{S.Funds >= Defs.MoveCost}|{(int)(st.Wear * 20)}{st.IsDown(S.Now)}{S.Funds >= Defs.ServiceCost}|{(st.Receives == null ? "all" : string.Join(",", st.Receives))}{S.ActiveNets.Count}"
+            ? $"st{st.Id}{st.Input.Count}{st.Output.Count}{st.OperatorId}{st.OperatorPresent}{st.Current}{(int)(st.Progress * 20)}{st.PendingRemoval}{st.X},{st.Y}|{string.Join(",", S.PinnedTo(st.Id).Select(p => p.Id))}|{S.Funds >= Defs.MoveCost}|{(int)(st.Wear * 20)}{st.IsDown(S.Now)}{S.Funds >= Defs.ServiceCost}|{(st.Receives == null ? "all" : string.Join(",", st.Receives))}{S.ActiveNets.Count}|{OldestHours(st)}"
             : sf != null ? $"sf{sf.Id}{sf.Task?.Kind}{sf.Task?.Dest}{sf.Leaving}{sf.Decrypts}{sf.Away}{sf.IsSick(S.Now)}{sf.Shift}{sf.Pinned}{sf.Posted}{sf.HeadOf}{sf.HeadStyle}{S.Grid.Zones.Count(z => z.Unlocked)}{(int)(sf.Energy * 10)}{(int)(sf.Morale * 10)}{(int)(sf.Strain * 10)}{sf.Rival}{(sf.Rival != null && S.WithRival(sf))}{sf.OffReason}{sf.CarelessKnown}{(int)(sf.Experience / 60)}{sf.Skill}"
             : $"z{z!.Id}{z.Unlocked}{S.Funds >= z.Cost}{S.ColdZones()?.Contains(z.Id)}";
         if (sig == _inspSig) return;
@@ -545,6 +553,12 @@ public partial class Hud
             }
         }
         if (st.Wears) InspectWear(st);
+        int oldest = OldestHours(st);
+        if (oldest >= 12)
+            _inspBox.AddChild(UiTheme.Label(oldest >= (int)(Defs.DeadIntelAfter / 60) ? $"The oldest paper here was intercepted {oldest} hours ago: too late to earn breakthroughs."
+                : oldest >= (int)(Defs.StaleIntelAfter / 60) ? $"The oldest paper here was intercepted {oldest} hours ago: it's going stale (half the breakthroughs)."
+                : $"The oldest paper here was intercepted {oldest} hours ago.", 12,
+                oldest >= (int)(Defs.StaleIntelAfter / 60) ? Gfx.Bad : Gfx.Warn));
         int waiting = st.Output.Count(id => S.Messages.TryGetValue(id, out var mm) && mm.Next == null);
         if (waiting > 0)
             _inspBox.AddChild(UiTheme.Label($"{waiting} message(s) in the out tray are waiting for their day's key.", 12, Gfx.PaperWaiting));

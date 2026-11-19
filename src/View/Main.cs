@@ -234,6 +234,12 @@ public partial class Main : Node3D
                 Rig.LookAtTile(float.Parse(p[0]), float.Parse(p[1]));
             }
             if (args.TryGetValue("panel", out var panel)) Hud.OpenPanel(panel);
+            // --age=H : make every message on the floor H hours older; --inspect=Type : open the busiest station of that type
+            if (args.TryGetValue("age", out var age))
+                foreach (var m in State.Messages.Values) m.Created -= double.Parse(age) * 60;
+            if (args.TryGetValue("inspect", out var insp) && System.Enum.TryParse<StationType>(insp, out var it)
+                && State.Stations.Where(s => s.Type == it).OrderByDescending(s => s.Input.Count).FirstOrDefault() is { } ist)
+                Hud.ShowInspector(ist.Id, null);
             if (args.ContainsKey("breakdown") && State.Stations.FirstOrDefault(s => s.Wears) is { } worn)
             {
                 worn.DownUntil = State.Now + Defs.RepairMinutes;
