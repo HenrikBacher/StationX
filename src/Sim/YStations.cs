@@ -200,14 +200,30 @@ public sealed partial class GameState
     /// New networks on the air take spare sets, up to what they need; a network that goes off the air gives its sets
     /// back.
     /// </summary>
+    readonly List<Net> _onAir = new();
+
     void AllotCover()
     {
-        var onAir = CoveredNets().ToList();
-        foreach (var n in Cover.Keys.Where(n => !onAir.Contains(n)).ToList())
+        // CoveredNets() without the LINQ, into a list kept for reuse (this runs every few minutes): the networks in play,
+        // in a stable sort by NetOrder.
+        var onAir = _onAir;
+        onAir.Clear();
+        foreach (var n in ActiveNets)
         {
-            Cover.Remove(n);
-            Covered.Remove(n);
+            if (!InPlay(n)) continue;
+            int at = onAir.Count, key = NetOrder.IndexOf(n);
+            while (at > 0 && NetOrder.IndexOf(onAir[at - 1]) > key) at--;
+            onAir.Insert(at, n);
         }
+        List<Net>? gone = null;
+        foreach (var n in Cover.Keys)
+            if (!onAir.Contains(n)) (gone ??= new()).Add(n);
+        if (gone != null)
+            foreach (var n in gone)
+            {
+                Cover.Remove(n);
+                Covered.Remove(n);
+            }
         foreach (var n in onAir)
         {
             if (!Covered.Add(n)) continue;
@@ -236,22 +252,25 @@ public sealed partial class GameState
 
     void TickYService()
     {
-        foreach (var (n, at) in FreqChangeAt.ToList())
-        {
-            if (Now < at) continue;
-            FreqChangeAt.Remove(n);
-            if (Searching(n) || !Covered.Contains(n)) continue;
-            double h = SearchHours(n);
-            SearchUntil[n] = Now + h * 60;
-            Stats.FreqChanges++;
-            Emit(EventKind.Bad, $"{Defs.NetOf(n).Name} has changed its frequencies and gone quiet. {YStationOf(n).Name} is searching the band: " +
-                                $"with {SpareSets} spare set{(SpareSets == 1 ? "" : "s")}, about {Math.Max(1, (int)Math.Round(h))} hours.");
-        }
-        foreach (var (n, until) in SearchUntil.ToList())
-            if (Now >= until)
+        // Copies of the tables only when there is something in them: this runs every tick.
+        if (FreqChangeAt.Count > 0)
+            foreach (var (n, at) in FreqChangeAt.ToList())
             {
-                SearchUntil.Remove(n);
-                Emit(EventKind.Good, $"{YStationOf(n).Name} has found {Defs.NetOf(n).Name} on its new frequencies. The traffic it missed was caught on repeats.");
+                if (Now < at) continue;
+                FreqChangeAt.Remove(n);
+                if (Searching(n) || !Covered.Contains(n)) continue;
+                double h = SearchHours(n);
+                SearchUntil[n] = Now + h * 60;
+                Stats.FreqChanges++;
+                Emit(EventKind.Bad, $"{Defs.NetOf(n).Name} has changed its frequencies and gone quiet. {YStationOf(n).Name} is searching the band: " +
+                                    $"with {SpareSets} spare set{(SpareSets == 1 ? "" : "s")}, about {Math.Max(1, (int)Math.Round(h))} hours.");
             }
+        if (SearchUntil.Count > 0)
+            foreach (var (n, until) in SearchUntil.ToList())
+                if (Now >= until)
+                {
+                    SearchUntil.Remove(n);
+                    Emit(EventKind.Good, $"{YStationOf(n).Name} has found {Defs.NetOf(n).Name} on its new frequencies. The traffic it missed was caught on repeats.");
+                }
     }
 }

@@ -404,7 +404,7 @@ public sealed partial class GameState
 
     void WorkStations(double dt)
     {
-        _heads = HeadsToday();
+        _heads = HeadsToday(into: _headsNow);
         foreach (var st in Stations)
         {
             if (st.Def.Operator == null)

@@ -171,22 +171,48 @@ public sealed partial class GameState
         return false;
     }
 
+    readonly bool[] _spotTaken = new bool[Grid.Width * Grid.Height];
+
+    /// <summary>
+    /// The nearest station (the first of equals) of the kind someone waits by: 0 the one they're pinned to, 1 their
+    /// kind of desk in the building they're posted to, 2 their kind of desk anywhere, 3 any desk.
+    /// </summary>
+    Station? NearestWork(Staff s, int kind)
+    {
+        Station? best = null;
+        int bestD = 0;
+        foreach (var st in Stations)
+        {
+            bool fits = kind switch
+            {
+                0 => st.Id == s.Pinned,
+                1 => st.Def.Operator == s.Role && !st.Obsolete && MayWorkAt(s, st.UseTile),
+                2 => st.Def.Operator == s.Role && !st.Obsolete,
+                _ => st.Def.Operator != null,
+            };
+            if (!fits) continue;
+            int d = Manhattan(st.UseTile, s.TilePos);
+            if (best == null || d < bestD) { best = st; bestD = d; }
+        }
+        return best;
+    }
+
     (int x, int y)? WaitingSpot(Staff s)
     {
         // Near the desks they work at; anyone else (and messengers) near the desks that make the most paper.
-        var work = Stations.Where(st => st.Id == s.Pinned).ToList();
-        if (work.Count == 0 && s.Posted != null)
-            work = Stations.Where(st => st.Def.Operator == s.Role && !st.Obsolete && MayWorkAt(s, st.UseTile)).ToList();
-        if (work.Count == 0) work = Stations.Where(st => st.Def.Operator == s.Role && !st.Obsolete).ToList();
-        if (work.Count == 0) work = Stations.Where(st => st.Def.Operator != null).ToList();
-        var anchor = work.OrderBy(st => Manhattan(st.UseTile, s.TilePos)).FirstOrDefault();
+        var anchor = NearestWork(s, 0) ?? (s.Posted != null ? NearestWork(s, 1) : null) ?? NearestWork(s, 2) ?? NearestWork(s, 3);
         var zone = s.Posted != null ? Grid.Zone(s.Posted)
                  : anchor != null ? Grid.ZoneAt(anchor.UseTile.x, anchor.UseTile.y) : Grid.Zone("mansion");
         if (anchor != null && zone != null && Grid.ZoneAt(anchor.UseTile.x, anchor.UseTile.y) != zone) anchor = null;
         if (zone == null) return null;
         var from = anchor?.UseTile ?? zone.InsideDoor;
-        var standing = new HashSet<(int, int)>(Staff.Where(o => o != s && !o.Away).Select(o => o.Path.Count > 0 ? o.Path[^1] : o.TilePos));
-        var uses = new HashSet<(int, int)>(Stations.Select(st => st.UseTile));
+        // Where everyone else stands (or is heading) and the stations' working tiles, as tile maps kept for reuse. Only
+        // tiles inside the hut are asked about, so anything off the map can be left out.
+        Array.Clear(_spotTaken);
+        foreach (var o in Staff)
+            if (o != s && !o.Away && (o.Path.Count > 0 ? o.Path[^1] : o.TilePos) is var (ox, oy) && Grid.InBounds(ox, oy)) _spotTaken[oy * Grid.Width + ox] = true;
+        foreach (var st in Stations)
+            if (Grid.InBounds(st.UseTile.x, st.UseTile.y)) _spotTaken[st.UseTile.y * Grid.Width + st.UseTile.x] = true;
         (int x, int y)? best = null;
         int bestScore = int.MaxValue;
         var fromRoom = Grid.RoomAt(from.x, from.y);
@@ -194,7 +220,7 @@ public sealed partial class GameState
         for (int y = zone.Y + 1; y < zone.Y + zone.H - 1; y++)
             for (int x = zone.X + 1; x < zone.X + zone.W - 1; x++)
             {
-                if (!Grid.Walkable(x, y) || uses.Contains((x, y)) || standing.Contains((x, y)) || Grid.NearDoorway(x, y) || door == (x, y)) continue;
+                if (!Grid.Walkable(x, y) || _spotTaken[y * Grid.Width + x] || Grid.NearDoorway(x, y) || door == (x, y)) continue;
                 var room = Grid.RoomAt(x, y);
                 if (room is { Corridor: true }) continue;
                 // By a wall or partition, out of the way.
@@ -322,6 +348,14 @@ public sealed partial class GameState
         s.Task = null;
     }
 
+    /// <summary>Someone is working at, walking to or carrying from a station.</summary>
+    bool Involved(int stationId)
+    {
+        foreach (var s in Staff)
+            if (s.Task is { } t && (t.Dest == stationId || t.Source == stationId)) return true;
+        return false;
+    }
+
     void FinishRemovals()
     {
         for (int i = Stations.Count - 1; i >= 0; i--)
@@ -329,9 +363,9 @@ public sealed partial class GameState
             var st = Stations[i];
             if (!st.PendingRemoval) continue;
             if (st.Input.Count > 0 || st.Output.Count > 0 || st.Current != null || st.ReservedInputs > 0) continue;
-            if (Staff.Any(s => s.Task is { } t && (t.Dest == st.Id || t.Source == st.Id))) continue;
+            if (Involved(st.Id)) continue;
             ReleaseOperator(st);
-            foreach (var p in Staff.Where(p => p.Pinned == st.Id)) p.Pinned = null;
+            foreach (var p in Staff) if (p.Pinned == st.Id) p.Pinned = null;
             Stations.RemoveAt(i);
             Grid.RebuildOccupancy(Stations);
             Funds += (int)(st.Def.Cost * Defs.SellRefund);

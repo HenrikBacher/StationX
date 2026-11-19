@@ -385,7 +385,7 @@ public sealed class AutoPlayer
         int bestD = int.MaxValue;
         for (int y = zone.Y + 1; y < zone.Y + zone.H - 1; y++)
             for (int x = zone.X + 1; x < zone.X + zone.W - 1; x++)
-                foreach (int rot in new[] { 0, 2, 1, 3 })
+                foreach (int rot in Rotations)
                 {
                     var use = Station.UseTileFor(t, x, y, rot);
                     if (g.Grid.RoomAt(use.x, use.y) != room || g.CanPlace(t, x, y, rot) != null) continue;
@@ -423,11 +423,11 @@ public sealed class AutoPlayer
             int bestScore = int.MaxValue;
             for (int y = zone.Y + 1; y < zone.Y + zone.H - 1; y++)
                 for (int x = zone.X + 1; x < zone.X + zone.W - 1; x++)
-                    foreach (int rot in new[] { 0, 2, 1, 3 })
+                    foreach (int rot in Rotations)
                     {
                         if (g.CanPlace(t, x, y, rot) != null) continue;
                         var use = Station.UseTileFor(t, x, y, rot);
-                        int score = ((y - zone.Y) % 3 == 1 ? 0 : 6) + (mates.Count == 0 ? (y - zone.Y) + (x - zone.X) / 4 : mates.Min(m => Math.Abs(m.x - use.x) + Math.Abs(m.y - use.y)) * 2);
+                        int score = ((y - zone.Y) % 3 == 1 ? 0 : 6) + (mates.Count == 0 ? (y - zone.Y) + (x - zone.X) / 4 : Nearest(mates, use) * 2);
                         if (score < bestScore) { bestScore = score; best = (x, y, rot); }
                     }
             if (best is var (bx, by, br)) return g.Place(t, bx, by, br) != null;
@@ -435,11 +435,20 @@ public sealed class AutoPlayer
         return false;
     }
 
+    static readonly int[] Rotations = { 0, 2, 1, 3 };
+
+    static int Nearest(List<(int x, int y)> tiles, (int x, int y) to)
+    {
+        int best = int.MaxValue;
+        foreach (var m in tiles) best = Math.Min(best, Math.Abs(m.x - to.x) + Math.Abs(m.y - to.y));
+        return best;
+    }
+
     bool TryBuildIn(StationType t, Zone zone)
     {
         for (int y = zone.Y + 1; y < zone.Y + zone.H - 1; y++)
             for (int x = zone.X + 1; x < zone.X + zone.W - 1; x++)
-                foreach (int rot in new[] { 0, 2, 1, 3 })
+                foreach (int rot in Rotations)
                     if (g.CanPlace(t, x, y, rot) == null)
                         return g.Place(t, x, y, rot) != null;
         return false;
