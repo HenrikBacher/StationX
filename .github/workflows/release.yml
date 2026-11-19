@@ -14,13 +14,13 @@ permissions:
 env:
   GODOT_VERSION: 4.7.2
 
+# Three jobs: the simulation tests and the Godot build (self-test + exports) run side by side; the release is
+# published only once both have passed.
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0   # history and tags, for the release notes
 
       - uses: actions/setup-dotnet@v4
         with:
@@ -28,6 +28,15 @@ jobs:
 
       - name: Simulation tests
         run: dotnet test tests/StationX.Sim.Tests --nologo
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
 
       - name: Cache Godot
         id: godot-cache
@@ -59,6 +68,17 @@ jobs:
           echo "GODOT=$HOME/godot/Godot_v${GODOT_VERSION}-stable_mono_linux_x86_64/Godot_v${GODOT_VERSION}-stable_mono_linux.x86_64" >> "$GITHUB_ENV"
           "$HOME/godot/Godot_v${GODOT_VERSION}-stable_mono_linux_x86_64/Godot_v${GODOT_VERSION}-stable_mono_linux.x86_64" --headless --path . --import || true
 
+      # Compiled shaders and Vulkan pipelines from earlier runs. Compiling them in software (no GPU here) took
+      # ~40 s before the self-test's first check. Each run saves a fresh copy; stale entries are simply unused.
+      - name: Cache compiled shaders
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.local/share/godot/app_userdata/Station X/shader_cache
+            ~/.local/share/godot/app_userdata/Station X/vulkan
+          key: shaders-${{ env.GODOT_VERSION }}-${{ github.run_id }}
+          restore-keys: shaders-${{ env.GODOT_VERSION }}-
+
       - name: UI self-test (virtual display)
         run: |
           sudo apt-get update -qq && sudo apt-get install -y -qq xvfb mesa-vulkan-drivers > /dev/null
@@ -76,8 +96,21 @@ jobs:
             build/*.tar.gz
           retention-days: 14
 
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [test, build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # history and tags, for the release notes
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: StationX-${{ github.sha }}
+          path: build
+
       - name: Publish release
-        if: startsWith(github.ref, 'refs/tags/v')
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
