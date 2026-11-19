@@ -6,6 +6,8 @@ namespace StationX.Sim;
 
 public enum OpKind { Convoy, Raid, Desert, Fleet, Agents, Front }
 public enum OpState { Pending, Won, Lost }
+/// <summary>How a won operation's intelligence was used.</summary>
+public enum OpUse { Undecided, Acted, Covered, Withheld }
 
 /// <summary>
 /// What a request is really for: a convoy to route, a raid to meet, a battle to warn of. Accepting a request puts
@@ -26,9 +28,21 @@ public sealed class Operation
     public string Won { get; set; } = "";
     public string Lost { get; set; } = "";
     public OpState State { get; set; }
+    public OpUse Use { get; set; }
+    /// <summary>When the policy decides for an undecided won operation.</summary>
+    public double DecideBy { get; set; }
+    public bool AwaitingUse => State == OpState.Won && Use == OpUse.Undecided;
     public int Day { get; set; }
     public double ResolvedAt { get; set; }
-    public string Outcome => State switch { OpState.Won => Won, OpState.Lost => Lost, _ => "In progress" };
+    public string Outcome => State switch
+    {
+        OpState.Won when Use == OpUse.Withheld => "Held back to protect the source: nothing was done with it.",
+        OpState.Won when Use == OpUse.Undecided => "Decrypts in hand: decide how to use them.",
+        OpState.Won when Use == OpUse.Covered => Won + " (A reconnaissance aircraft was seen first.)",
+        OpState.Won => Won,
+        OpState.Lost => Lost,
+        _ => "In progress",
+    };
 }
 
 /// <summary>The running score of the war as the Park's work shaped it.</summary>
@@ -57,7 +71,7 @@ public sealed partial class GameState
         get
         {
             double since = Now - 7 * Defs.MinutesPerDay;
-            int won = Operations.Count(o => o.State == OpState.Won && o.ResolvedAt >= since);
+            int won = Operations.Count(o => o.State == OpState.Won && o.Use is OpUse.Acted or OpUse.Covered && o.ResolvedAt >= since);
             return Math.Min(1 + 0.02 * won, 1.08);
         }
     }
@@ -83,21 +97,80 @@ public sealed partial class GameState
         if (op == null || op.State != OpState.Pending) return;
         op.State = won ? OpState.Won : OpState.Lost;
         op.ResolvedAt = Now;
+        if (won)
+        {
+            op.DecideBy = Now + Defs.OpDecideHours * 60;
+            Emit(EventKind.Info, $"{op.Name}: the decrypts are in. Act on them, act with cover, or hold back (War map, O).");
+            return;
+        }
+        Tally(op);
+        ChangeMorale(-0.02);
+        Emit(EventKind.Bad, $"{op.Name}: {op.Outcome}");
+    }
+
+    /// <summary>
+    /// ULTRA's price: using a decrypt tells the enemy something. Acting outright gives the full result and draws suspicion;
+    /// a cover story (a reconnaissance aircraft sent to be seen first) gives most of it for little; holding back gives nothing.
+    /// </summary>
+    public bool UseOperation(int opId, OpUse use)
+    {
+        var op = Operations.FirstOrDefault(o => o.Id == opId);
+        if (op is not { AwaitingUse: true } || use == OpUse.Undecided) return false;
+        if (use == OpUse.Covered && CoverLeft <= 0) return false;
+        op.Use = use;
+        var sv = Defs.NetOf(op.Net).Service;
+        switch (use)
+        {
+            case OpUse.Acted:
+                AddSuspicion(sv, Defs.OpActSuspicion);
+                Tally(op);
+                ChangeMorale(0.015);
+                break;
+            case OpUse.Covered:
+                CoverLeft--;
+                AddSuspicion(sv, Defs.OpCoverSuspicion);
+                Tally(op, 0.75);
+                ChangeMorale(0.01);
+                break;
+            case OpUse.Withheld:
+                Stats.OpsWithheld++;
+                break;
+        }
+        Emit(use == OpUse.Withheld ? EventKind.Info : EventKind.Good, $"{op.Name}: {op.Outcome}");
+        return true;
+    }
+
+    /// <summary>What the policy does with a decision left too long.</summary>
+    public OpUse PolicyUse => Policy switch
+    {
+        Policy.Cautious => CoverLeft > 0 ? OpUse.Covered : OpUse.Withheld,
+        Policy.Bold => OpUse.Acted,
+        _ => CoverLeft > 0 ? OpUse.Covered : OpUse.Acted,
+    };
+
+    public int CoverLeft { get; set; } = Defs.CoverPerWeek;
+
+    void TickOperations()
+    {
+        foreach (var op in Operations)
+            if (op.AwaitingUse && Now >= op.DecideBy) UseOperation(op.Id, PolicyUse);
+    }
+
+    void Tally(Operation op, double share = 1)
+    {
+        bool won = op.State == OpState.Won;
         switch (op.Kind)
         {
             case OpKind.Convoy or OpKind.Fleet:
-                if (won) War.ShipsSaved += op.Stake; else War.ShipsSunk += Math.Max(1, op.Stake / 4);
+                if (won) War.ShipsSaved += (int)Math.Round(op.Stake * share); else War.ShipsSunk += Math.Max(1, op.Stake / 4);
                 break;
             case OpKind.Raid:
-                if (won) War.BombersDowned += Math.Max(1, op.Stake / 6); else War.RaidsUnopposed++;
+                if (won) War.BombersDowned += Math.Max(1, (int)Math.Round(op.Stake / 6 * share)); else War.RaidsUnopposed++;
                 break;
             default:
                 if (won) War.BattlesWarned++; else War.BattlesSurprised++;
                 break;
         }
-        // People at the Park rarely heard what their work did; when they did, it mattered.
-        ChangeMorale(won ? 0.015 : -0.02);
-        Emit(won ? EventKind.Good : EventKind.Bad, $"{op.Name}: {op.Outcome}");
     }
 }
 

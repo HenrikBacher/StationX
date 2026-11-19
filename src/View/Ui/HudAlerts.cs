@@ -34,6 +34,8 @@ public partial class Hud
                 Gfx.Bad, () => OpenPanel("requests")));
         foreach (var st in S.Stations.Where(s => s.Wears && s.IsDown(S.Now) && !s.Servicing))
             Station(st, $"{st.Def.Name} #{st.Id} broken down", Gfx.Bad);
+        if (S.Operations.Count(o => o.AwaitingUse) is int dec and > 0)
+            list.Add(new Alert($"{dec} operation{(dec == 1 ? "" : "s")} waiting: act, cover or hold back", Gfx.Warn, () => OpenPanel("war")));
         if (S.PowerCut)
             list.Add(new Alert(S.Generator ? $"Power cut: only the Bombes run, on the generator ({Math.Max(1, (int)((S.PowerCutUntil - S.Now) / 60 + 0.5))} h)"
                                            : $"Power cut: the machines have stopped ({Math.Max(1, (int)((S.PowerCutUntil - S.Now) / 60 + 0.5))} h)", Gfx.Bad, () => { }));

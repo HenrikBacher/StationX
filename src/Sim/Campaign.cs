@@ -576,6 +576,7 @@ public sealed partial class GameState
         ActIndex = index;
         ActStartDay = Day;
         ActDate = Act.Date;
+        ActStarts[Day] = Act.Date;
         ActBaseline = Stats.Clone();
         ActCompletePending = false;
         NextOfferAt = Now;

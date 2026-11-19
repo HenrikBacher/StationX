@@ -252,6 +252,7 @@ public sealed class Stats
     public Dictionary<Net, int> BombeBreaks { get; set; } = new();
     public int MilestonesMet { get; set; }
     public int MilestonesMissed { get; set; }
+    public int OpsWithheld { get; set; }
     public int StandingAccepted { get; set; }
     public int DilemmasResolved { get; set; }
     public HashSet<string> ScriptedDone { get; set; } = new();

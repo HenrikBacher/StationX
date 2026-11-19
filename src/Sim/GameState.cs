@@ -78,7 +78,20 @@ public sealed partial class GameState
     public int Day => (int)Math.Floor(Now / Defs.MinutesPerDay);
     public double MinuteOfDay => Now - Day * Defs.MinutesPerDay;
     public DateOnly Date => ActDate.AddDays(Day - ActStartDay);
-    public DateOnly DateOf(int day) => ActDate.AddDays(day - ActStartDay);
+    /// <summary>
+    /// The calendar date of a game day. The calendar jumps forward between acts, so a day from an earlier act is dated
+    /// from that act's start, not the current one's.
+    /// </summary>
+    public DateOnly DateOf(int day)
+    {
+        if (day >= ActStartDay || ActStarts.Count == 0) return ActDate.AddDays(day - ActStartDay);
+        int best = int.MinValue;
+        foreach (var k in ActStarts.Keys) if (k <= day && k > best) best = k;
+        return best == int.MinValue ? ActDate.AddDays(day - ActStartDay) : ActStarts[best].AddDays(day - best);
+    }
+
+    /// <summary>Each act's first day and its calendar date, for dating days from earlier acts.</summary>
+    public Dictionary<int, DateOnly> ActStarts { get; set; } = new();
     public Act Act => Campaign.Acts[ActIndex];
 
     public Station? StationById(int id) => Stations.Find(s => s.Id == id);
@@ -115,6 +128,7 @@ public sealed partial class GameState
         TickRemote();
         TickRaids();
         TickCrises();
+        TickOperations();
 
         if (Now >= NextScheduleAt)
         {
@@ -139,7 +153,7 @@ public sealed partial class GameState
         DailyIntelligence();
         foreach (var k in Flows.Keys.ToList())
             if ((Flows[k] *= 0.5) < 0.25) Flows.Remove(k);
-        if (Day % 7 == 0) WeeklyAccounts();
+        if (Day % 7 == 0) { WeeklyAccounts(); CoverLeft = Defs.CoverPerWeek; }
         if (Day % 7 == 3) RefreshCandidates();
         if (SharkBlackout) TonnageLost += Rng.Range(14000, 26000);
         if (ActIndex >= 1) AdjustRep(-DailyExpectation, "Whitehall's expectations");

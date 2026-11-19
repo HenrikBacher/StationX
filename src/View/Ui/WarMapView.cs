@@ -18,7 +18,7 @@ public partial class WarMapView : Control
     Operation? _hover;
 
     static readonly Color Sea = new("c9c3a6"), Land = new("e8dcc0"), Coast = new("6d5f48"), Grid = new(0.42f, 0.36f, 0.27f, 0.22f),
-        InkCol = new("3a3226"), Pending = new("c8902a"), Won = new("4f7a3a"), Lost = new("a3392b");
+        InkCol = new("3a3226"), Pending = new("c8902a"), Held = new("8a8270"), Won = new("4f7a3a"), Lost = new("a3392b");
 
     public Vector2 Project(double lat, double lon)
     {
@@ -72,9 +72,9 @@ public partial class WarMapView : Control
         foreach (var o in State.Operations)
         {
             var at = Project(o.Lat, o.Lon);
-            var col = o.State switch { OpState.Won => Won, OpState.Lost => Lost, _ => Pending };
+            var col = o.State switch { OpState.Won when o.Use == OpUse.Withheld => Held, OpState.Won when o.Use == OpUse.Undecided => Pending, OpState.Won => Won, OpState.Lost => Lost, _ => Pending };
             float r = o == _hover ? 7 : 5;
-            if (o.State == OpState.Pending)
+            if (o.State == OpState.Pending || o.AwaitingUse)
             {
                 float pulse = 0.5f + 0.5f * Mathf.Sin((float)Time.GetTicksMsec() / 300f);
                 DrawArc(at, r + 3 + pulse * 3, 0, Mathf.Tau, 24, new Color(col, 0.6f - pulse * 0.4f), 1.5f, true);
@@ -101,7 +101,7 @@ public partial class WarMapView : Control
 
     public override void _Process(double delta)
     {
-        if (State?.Operations.Any(o => o.State == OpState.Pending) == true) QueueRedraw();
+        if (State?.Operations.Any(o => o.State == OpState.Pending || o.AwaitingUse) == true) QueueRedraw();
     }
 
     static readonly (string, double, double)[] SeaNames =

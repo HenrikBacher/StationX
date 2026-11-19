@@ -136,6 +136,9 @@ public static partial class Defs
     // Standing orders: from the Fifteenth of September (act 6), some requests are N a day for a few days with daily milestones.
     public const int StandingFromAct = 6, StandingDays = 3;
     public const double StandingChance = 0.15, MilestoneMissedRep = 0.75, MilestoneRep = 0.5, MilestoneGraceDays = 1.25;
+    // ULTRA and the war map: deciding how a won operation's decrypts are used.
+    public const double OpDecideHours = 12, OpActSuspicion = 4, OpCoverSuspicion = 0.8;
+    public const int CoverPerWeek = 2;
     public const double CrowdSlow = 0.15;
     public const double CrowdFloor = 0.6;
 

@@ -59,6 +59,9 @@ public static class SaveGame
         if (g.Billets <= 0) g.Billets = Math.Max(Defs.StartBillets, (g.Staff.Count + 9) / 10 * 10);
         g.Grid.RebuildOccupancy(g.Stations);
         g.Grid.FitInteriors(g.Stations);
+        // Saves from before the ULTRA choice: operations already won were already acted on.
+        foreach (var op in g.Operations)
+            if (op.State == OpState.Won && op.Use == OpUse.Undecided && op.DecideBy <= 0) op.Use = OpUse.Acted;
         return g;
     }
 

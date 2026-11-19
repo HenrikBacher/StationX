@@ -1321,7 +1321,14 @@ public class WarMapTests
         Assert.False(string.IsNullOrEmpty(op.Won) || string.IsNullOrEmpty(op.Lost));
         TestUtil.Run(g, 4);
         Assert.NotEqual(OpState.Pending, op.State);
-        if (op.State == OpState.Won) Assert.True(g.WarMood > 1, "a win lifts the grant");
+        if (op.State == OpState.Won)
+        {
+            // Left undecided, the policy picks after the decision window.
+            Assert.True(op.Use != OpUse.Undecided || op.DecideBy > g.Now);
+            TestUtil.Run(g, Defs.OpDecideHours / 24 + 0.05);
+            Assert.NotEqual(OpUse.Undecided, op.Use);
+            Assert.True(g.WarMood > 1, "a win acted on lifts the grant");
+        }
         // An impossible request is lost, and the loss is counted.
         var lost = g.AddScripted(Net.Shark, 50, 0.2, 0, 0, "t2", "t", "t");
         TestUtil.Run(g, 1);
@@ -1531,5 +1538,72 @@ public class StandingOrderTests
         Assert.Equal(ContractState.Completed, c.State);
         Assert.Equal(c.TotalDays, c.MilestonesMet);
         Assert.True(g.Funds >= funds + c.MilestonePay * c.TotalDays);
+    }
+}
+
+public class UltraUseTests
+{
+    static (GameState g, Operation op) WonOp()
+    {
+        var g = TestUtil.BombeLine(12, checking: true);
+        var c = g.AddScripted(Net.Red, 1, 4, 0, 0, "t", "t", "t");
+        var op = g.OperationFor(c.Id)!;
+        c.Delivered = c.Quantity;
+        g.Advance(3);
+        Assert.True(op.AwaitingUse);
+        return (g, op);
+    }
+
+    [Fact]
+    public void ActingDrawsSuspicionCoverLittleHoldingBackNone()
+    {
+        var (g, op) = WonOp();
+        double s0 = g.SuspicionOf(Service.Luftwaffe);
+        int ships = g.War.ShipsSaved, downed = g.War.BombersDowned, warned = g.War.BattlesWarned;
+        Assert.True(g.UseOperation(op.Id, OpUse.Acted));
+        Assert.True(g.SuspicionOf(Service.Luftwaffe) > s0 + Defs.OpActSuspicion * 0.5);
+        Assert.True(g.War.ShipsSaved + g.War.BombersDowned + g.War.BattlesWarned > ships + downed + warned);
+        Assert.False(g.UseOperation(op.Id, OpUse.Withheld));   // decided once
+
+        var (g2, op2) = WonOp();
+        int cover = g2.CoverLeft;
+        Assert.True(g2.UseOperation(op2.Id, OpUse.Covered));
+        Assert.Equal(cover - 1, g2.CoverLeft);
+        Assert.True(g2.SuspicionOf(Service.Luftwaffe) < Defs.OpActSuspicion);
+
+        var (g3, op3) = WonOp();
+        double s3 = g3.SuspicionOf(Service.Luftwaffe);
+        Assert.True(g3.UseOperation(op3.Id, OpUse.Withheld));
+        Assert.Equal(s3, g3.SuspicionOf(Service.Luftwaffe));
+        Assert.Equal(1, g3.Stats.OpsWithheld);
+        Assert.Equal(1.0, g3.WarMood);
+    }
+
+    [Fact]
+    public void CoverRunsOut()
+    {
+        var (g, op) = WonOp();
+        g.CoverLeft = 0;
+        Assert.False(g.UseOperation(op.Id, OpUse.Covered));
+        Assert.Equal(OpUse.Acted, g.PolicyUse);
+        g.SetPolicy(Policy.Cautious);
+        Assert.Equal(OpUse.Withheld, g.PolicyUse);
+    }
+}
+
+public class CalendarTests
+{
+    [Fact]
+    public void DaysFromEarlierActsKeepTheirDates()
+    {
+        var g = GameState.NewGame(5);
+        g.Advance(Defs.MinutesPerDay * 2 + 60);
+        int early = g.Day;
+        var dateThen = g.DateOf(early);
+        g.Advance(Defs.MinutesPerDay);
+        g.DebugSkipToAct(5);
+        Assert.True(g.Date > dateThen.AddDays(30), "the calendar jumped");
+        Assert.Equal(dateThen, g.DateOf(early));
+        Assert.Equal(g.Date, g.DateOf(g.Day));
     }
 }
