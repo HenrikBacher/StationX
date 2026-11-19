@@ -16,10 +16,56 @@ public static class Textures
     static readonly Dictionary<Surface, ImageTexture> Cache = new();
     static readonly Dictionary<(Surface, Color, float), StandardMaterial3D> Mats = new();
 
+    /// <summary>
+    /// Photographed CC0 materials (Poly Haven, see CREDITS.md): folder under res://assets/textures, how many tiles one
+    /// texture repeat spans (so bricks and boards come out at a believable size next to the people), and a tone the photo
+    /// is multiplied by.
+    /// </summary>
+    static readonly Dictionary<Surface, (string dir, float tilesPerRepeat, Color tone)> Pbr = new()
+    {
+        [Surface.Brick] = ("red_bricks_04", 1.6f, Colors.White),
+        [Surface.Weatherboard] = ("weathered_brown_planks", 1.4f, new Color("b8aa98")),
+        [Surface.Floorboards] = ("old_planks_02", 2.0f, Colors.White),
+        [Surface.Parquet] = ("herringbone_parquet", 2.8f, new Color("b5a089")),
+        [Surface.Plaster] = ("white_plaster_02", 2.5f, Colors.White),
+        [Surface.Concrete] = ("concrete_floor_02", 3.0f, Colors.White),
+        [Surface.QuarryTile] = ("terracotta_floor_tiles", 1.5f, new Color("c8b0a0")),
+    };
+
+    /// <summary>Set false to fall back to the procedural textures everywhere (for comparison shots).</summary>
+    public static bool UsePhotoMaterials = true;
+
+    static Texture2D? Load(string dir, string map)
+    {
+        string path = $"res://assets/textures/{dir}/{map}.jpg";
+        return ResourceLoader.Exists(path) ? GD.Load<Texture2D>(path) : null;
+    }
+
     public static StandardMaterial3D Mat(Surface s, Color tint, float repeatsPerTile = 1)
     {
         var key = (s, tint, repeatsPerTile);
         if (Mats.TryGetValue(key, out var m)) return m;
+        if (UsePhotoMaterials && Pbr.TryGetValue(s, out var pbr) && Load(pbr.dir, "albedo") is { } albedo)
+        {
+            m = new StandardMaterial3D
+            {
+                AlbedoTexture = albedo,
+                AlbedoColor = tint * pbr.tone,   // the photo's own colour, toned to the period (waxed oak, creosote)
+                NormalEnabled = true,
+                NormalTexture = Load(pbr.dir, "normal"),
+                NormalScale = 1.0f,
+                RoughnessTexture = Load(pbr.dir, "rough"),
+                RoughnessTextureChannel = BaseMaterial3D.TextureChannel.Red,
+                Roughness = 1f,
+                Uv1Triplanar = true,
+                Uv1WorldTriplanar = true,
+                Uv1TriplanarSharpness = 4f,
+                Uv1Scale = Vector3.One / pbr.tilesPerRepeat,
+                TextureFilter = BaseMaterial3D.TextureFilterEnum.LinearWithMipmapsAnisotropic,
+            };
+            Mats[key] = m;
+            return m;
+        }
         m = new StandardMaterial3D
         {
             AlbedoTexture = Get(s),

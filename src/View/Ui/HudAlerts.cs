@@ -30,7 +30,7 @@ public partial class Hud
             list.Add(new Alert(text, c, () => { _main.CenterOnTile(st.X + 1, st.Y + 1); _main.Select(st.Id, null); }));
 
         foreach (var f in S.Contracts.Where(c => c.Flash && c.State == ContractState.Offered))
-            list.Add(new Alert($"MOST IMMEDIATE from the {Defs.IssuerNames[f.Issuer]}: answer within {Math.Max(0, (int)((f.OfferExpires - S.Now) / 60))} h",
+            list.Add(new Alert($"MOST IMMEDIATE from the {Defs.IssuerNames[f.Issuer]}: answer within {Hours(Math.Max(0, f.OfferExpires - S.Now))}",
                 Gfx.Bad, () => OpenPanel("requests")));
         foreach (var st in S.Stations.Where(s => s.Wears && s.IsDown(S.Now) && !s.Servicing))
             Station(st, $"{st.Def.Name} #{st.Id} broken down", Gfx.Bad);
