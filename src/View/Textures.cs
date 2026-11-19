@@ -4,7 +4,7 @@ using Godot;
 
 namespace StationX.View;
 
-public enum Surface { Brick, Weatherboard, Concrete, Felt, Stone, Lino, Hessian }
+public enum Surface { Brick, Weatherboard, Concrete, Felt, Stone, Lino, Hessian, Matchboard, Plaster }
 
 /// <summary>
 /// Procedural, slightly grimy textures for the buildings. Each is mapped in world space (triplanar),
@@ -124,6 +124,24 @@ public static class Textures
                 // Worn brown linoleum with scuffs
                 var c = new Color("6e5a42").Lightened((Smooth(x, y, 8, 61) - 0.5f) * 0.12f);
                 if (Noise(x, y, 62) > 0.985f) c = c.Lightened(0.15f);
+                return c;
+            }
+            case Surface.Matchboard:
+            {
+                // Painted tongue-and-groove boards, about 12 cm wide: neutral, so the tint gives the paint colour.
+                int xx = x % 16;
+                var c = new Color("ece6d8").Darkened(Noise(x / 16, 0, 81) * 0.05f);
+                if (xx == 0) c = c.Darkened(0.26f);              // the groove
+                else if (xx == 1) c = c.Darkened(0.08f);
+                else if (xx == 15) c = c.Lightened(0.06f);       // bead catching light
+                c = c.Darkened(Smooth(x * 3 % N, y, 8, 82) * 0.04f);
+                return Grime(c, x, y, 0.12f);
+            }
+            case Surface.Plaster:
+            {
+                // Distempered plaster: soft mottling and the odd scuff.
+                var c = new Color("f2eee4").Darkened(Smooth(x, y, 32, 91) * 0.07f + Smooth(x, y, 8, 92) * 0.03f);
+                if (Noise(x, y, 93) > 0.993f) c = c.Darkened(0.1f);
                 return c;
             }
             default:

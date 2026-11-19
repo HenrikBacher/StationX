@@ -370,7 +370,7 @@ public partial class Park3D : Node3D
         float h = 0.62f, th = 0.07f;
         var face = mansion ? new Color("cbbd9c") : z.Brick ? new Color("b9b39d") : new Color("a9a383");
         var dado = mansion ? Gfx.OakDark : new Color("5d6448");
-        var paint = Mesh3.Mat(face);
+        var paint = Textures.Mat(mansion ? Surface.Plaster : Surface.Matchboard, face.Lightened(0.06f));
         foreach (var p in z.Partitions)
         {
             var spans = new List<(int a, int b)>();
@@ -390,6 +390,17 @@ public partial class Park3D : Node3D
                 Mesh3.Box(_buildings, Size(len, 0.03f, th + 0.04f), c + new Vector3(0, h + 0.015f, 0), dado);           // capping
                 Mesh3.Box(_buildings, Size(len, 0.025f, th + 0.025f), c + new Vector3(0, h * 0.55f, 0), dado);          // dado rail
                 Mesh3.Box(_buildings, Size(len, 0.07f, th + 0.03f), c + new Vector3(0, 0.035f, 0), Gfx.OakDark);       // skirting
+                if (mansion)
+                {
+                    // Oak wainscot below the dado rail, in raised panels half a tile wide.
+                    float wh = h * 0.55f - 0.07f;
+                    Mesh3.Box(_buildings, Size(len, wh, th + 0.012f), c + new Vector3(0, 0.07f + wh / 2, 0), Gfx.Oak.Darkened(0.12f));
+                    for (float t = a + 0.25f; t < b; t += 0.5f)
+                    {
+                        var pc = p.Vertical ? new Vector3(p.At, 0, t) : new Vector3(t, 0, p.At);
+                        Mesh3.Box(_buildings, Size(0.38f, wh - 0.08f, th + 0.03f), pc + new Vector3(0, 0.07f + wh / 2, 0), Gfx.Oak);
+                    }
+                }
             }
             foreach (int gap in p.Gaps)
                 foreach (float e in new[] { gap + 0.03f, gap + 0.97f })
