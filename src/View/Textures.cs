@@ -4,7 +4,7 @@ using Godot;
 
 namespace StationX.View;
 
-public enum Surface { Brick, Weatherboard, Concrete, Felt, Stone, Lino, Hessian, Matchboard, Plaster, Parquet, Floorboards, QuarryTile }
+public enum Surface { Brick, Weatherboard, Concrete, Felt, Stone, Lino, Hessian, Matchboard, Plaster, Parquet, Floorboards, QuarryTile, Grit }
 
 /// <summary>
 /// Procedural, slightly grimy textures for the buildings. Each is mapped in world space (triplanar),
@@ -136,6 +136,18 @@ public static class Textures
                 else if (xx == 15) c = c.Lightened(0.06f);       // bead catching light
                 c = c.Darkened(Smooth(x * 3 % N, y, 8, 82) * 0.04f);
                 return Grime(c, x, y, 0.12f);
+            }
+            case Surface.Grit:
+            {
+                // Neutral detail multiplied over the painted ground: blades, grit and specks so it isn't flat paint.
+                float v = 0.9f + (Noise(x, y, 131) - 0.5f) * 0.12f + (Smooth(x, y, 8, 132) - 0.5f) * 0.1f;
+                // Short slanted strokes, like blades of grass or raked gravel
+                int sx = (x + y / 3) % 7, sy = y % 9;
+                if (sx == 0 && sy < 6 && Noise(x / 7, y / 9, 133) > 0.45f) v -= 0.1f;
+                if (Noise(x, y, 134) > 0.985f) v += 0.12f;      // a pale stone
+                if (Noise(x, y, 135) > 0.99f) v -= 0.15f;       // a dark speck
+                v = Mathf.Clamp(v, 0, 1);
+                return new Color(v, v, v);
             }
             case Surface.Parquet:
             {

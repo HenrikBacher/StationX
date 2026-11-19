@@ -162,6 +162,14 @@ public partial class Park3D : Node3D
             AlbedoTexture = PaintGround(g),
             Roughness = 0.97f,
             TextureFilter = BaseMaterial3D.TextureFilterEnum.LinearWithMipmapsAnisotropic,
+            // Fine world-space grit over the painted ground, a few repeats per tile
+            DetailEnabled = true,
+            DetailAlbedo = Textures.Get(Surface.Grit),
+            DetailBlendMode = BaseMaterial3D.BlendModeEnum.Mul,
+            DetailUVLayer = BaseMaterial3D.DetailUV.UV2,
+            UV2Triplanar = true,
+            UV2WorldTriplanar = true,
+            UV2Scale = Vector3.One * 2.5f,
         };
 
         _snowMat.AlbedoTexture = SnowMask(g);
