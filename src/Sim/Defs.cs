@@ -148,6 +148,20 @@ public static partial class Defs
     /// <summary>Chance a Wren sets a Typex wrongly, by skill 1..3 (doubled when worn out; halved for the meticulous or a Typex specialist).</summary>
     public static readonly double[] TypexSlip = { 0, 0.07, 0.04, 0.02 };
     public const double StaleIntelAfter = 24 * 60, DeadIntelAfter = 48 * 60;
+
+    /// <summary>
+    /// How long intelligence keeps its value, by what it's about: tonight's raid or a U-boat's position is old news by
+    /// tomorrow, an army's dispositions last a day or two, an agent's or the high command's business for days. It earns
+    /// half once stale, nothing once dead (twice as long).
+    /// </summary>
+    public static double StaleAfter(Net net) => NetOf(net) switch
+    {
+        { Family: Family.Lorenz } => 48 * 60,
+        { Service: Service.Luftwaffe or Service.Kriegsmarine } => 16 * 60,
+        { Service: Service.Security } => 48 * 60,
+        _ => StaleIntelAfter,
+    };
+    public static double DeadAfter(Net net) => 2 * StaleAfter(net);
     public const int InspectionEveryDays = 9;
     public const double InspectionGoodRep = 2;
     public const double InspectionBadRep = 2;

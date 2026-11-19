@@ -830,7 +830,7 @@ public sealed partial class GameState
         DeliveredToday++;
         Stats.Inc(Stats.Delivered, m.Net);
         Points += PointsFor(m);
-        if (Now - m.Created > Defs.StaleIntelAfter) Stats.LateDecrypts++;
+        if (IsStale(m)) Stats.LateDecrypts++;
         OnDecryptUsed(m);
         var c = ContractById(m.ContractId);
         if (c != null && c.State == ContractState.Active) c.Delivered++;
@@ -850,8 +850,11 @@ public sealed partial class GameState
     {
         int p = Defs.NetOf(m.Net).Points;
         double age = Now - m.Created;
-        return age > Defs.DeadIntelAfter ? 0 : age > Defs.StaleIntelAfter ? p / 2 : p;
+        return age > Defs.DeadAfter(m.Net) ? 0 : age > Defs.StaleAfter(m.Net) ? p / 2 : p;
     }
+
+    public bool IsStale(Message m) => Now - m.Created > Defs.StaleAfter(m.Net);
+    public bool IsDead(Message m) => Now - m.Created > Defs.DeadAfter(m.Net);
 
     // ------------------------------------------------------------- keys
 

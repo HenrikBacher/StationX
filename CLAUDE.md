@@ -36,7 +36,7 @@ state, so the work can be resumed on any machine.
 ## Current work (2026-11-19)
 
 Last release **v0.26.0** (overhaul parts 1–5 and most of 6, Stores, bad visits cut the grant). Untagged since: cold
-handovers, the stranded-staff fix, merged static building meshes (`Park3D.MergeStatic`; screenshots print draw calls).
+handovers, the stranded-staff fix, intelligence freshness by service, merged static building meshes (`Park3D.MergeStatic`; screenshots print draw calls).
 
 ### Graphics overhaul: period realism, CC0 assets allowed
 
@@ -72,10 +72,11 @@ Done: bad Whitehall visits withhold a quarter of next week's grant; Stores (`Sup
 registration, order 60 for £45 with a 20 h lead, out = desks at half speed, standing order at +25%). Cold
 handovers (`Station.LeftAt`, `TakeOver`: a desk left mid-message loses nothing within the hour, up to half the work
 done after six). Fixed with it: people boxed in by new furniture are freed (`FreeStranded`), and the foreman tries the
-next-nearest operator when the nearest can't reach the desk (this had starved whole desks).
+next-nearest operator when the nearest can't reach the desk (this had starved whole desks). Intelligence freshness
+by service (`Defs.StaleAfter`: air/naval 16 h, army 24 h, Abwehr/police/TUNNY 48 h; dead at twice that). In-tray
+order by priority and deadline already existed (`MostUrgent`).
 
-- Hut 3 priorities: decrypts carry operational urgency; urgent ones lose value faster, so order matters.
 - Security incidents: papers left out or a talkative billet raise suspicion; sweeps cost staff time.
 
-Balance data (2026-11-19, with Stores and handovers): Easy 40, Normal 18, Hard 7 of 40. On Normal, games are lost in acts 7–9 (Claymore to Action This Day) when reputation hits 0;
+Balance data (2026-11-19, with Stores and handovers): Easy 40, Normal 18, Hard 8 of 40 (after freshness). On Normal, games are lost in acts 7–9 (Claymore to Action This Day) when reputation hits 0;
 the early acts rarely decide a game.

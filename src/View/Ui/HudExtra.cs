@@ -214,8 +214,8 @@ public partial class Hud
             "Hut 6's traffic analysts read what's outside a message: callsigns, frequencies, who sends to whom. A traffic-analysis desk (Build, B) by the crib desks logs two of each network's messages a day, and that key's cribs and Bombe runs go quicker.");
         yield return ("typexslip", S.Stats.TypexSlips > 0,
             "A Typex came out as gibberish: the Wren set a wheel one place out, and the message goes through again. Green or worn-out operators slip more often; experienced, rested Wrens and Typex specialists rarely do.");
-        yield return ("staleintel", S.Messages.Values.Any(m => S.Now - m.Created > Defs.StaleIntelAfter),
-            "Intelligence goes off. A decrypt delivered more than a day after it was intercepted earns half the breakthroughs; after two days, none. It still counts for its request. Clear backlogs before they go stale.");
+        yield return ("staleintel", S.Messages.Values.Any(S.IsStale),
+            "Intelligence goes off, and some sooner than others. Air and naval decrypts (tonight's raid, a U-boat's position) earn half the breakthroughs after 16 hours and none after 32; army ones after a day and two; Abwehr, police and TUNNY after two days and four. They still count for their requests. Clear backlogs before they go stale.");
         yield return ("offizier", S.Messages.Values.Any(m => m.Offizier && m.Next == StationType.HandCipher),
             "An Offizier message: under the day's naval key it's enciphered again on an officers-only setting. After the Typex it goes to a hand-cipher desk to be unpicked. If naval traffic is heavy, build a second hand-cipher desk.");
         yield return ("handover", S.Stats.ColdHandovers >= 3,

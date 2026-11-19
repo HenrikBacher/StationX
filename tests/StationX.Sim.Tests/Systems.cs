@@ -1835,10 +1835,23 @@ public class StaleIntelTests
         var m = new Message { Id = 1, Net = Net.Police, Created = g.Now };
         int full = Defs.NetOf(Net.Police).Points;
         Assert.Equal(full, g.PointsFor(m));
-        m.Created = g.Now - Defs.StaleIntelAfter - 1;
+        m.Created = g.Now - Defs.StaleAfter(Net.Police) - 1;
         Assert.Equal(full / 2, g.PointsFor(m));
-        m.Created = g.Now - Defs.DeadIntelAfter - 1;
+        m.Created = g.Now - Defs.DeadAfter(Net.Police) - 1;
         Assert.Equal(0, g.PointsFor(m));
+    }
+
+    [Fact]
+    public void AirAndNavalIntelligenceGoesOffSoonest()
+    {
+        Assert.True(Defs.StaleAfter(Net.Red) < Defs.StaleAfter(Net.Chaffinch));
+        Assert.True(Defs.StaleAfter(Net.Shark) < Defs.StaleAfter(Net.Chaffinch));
+        Assert.True(Defs.StaleAfter(Net.Chaffinch) < Defs.StaleAfter(Net.Abwehr));
+        var g = GameState.NewGame(5);
+        var red = new Message { Id = 1, Net = Net.Red, Created = g.Now - 20 * 60 };
+        var police = new Message { Id = 2, Net = Net.Police, Created = g.Now - 20 * 60 };
+        Assert.True(g.IsStale(red));
+        Assert.False(g.IsStale(police));
     }
 }
 

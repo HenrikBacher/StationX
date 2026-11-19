@@ -569,11 +569,14 @@ public partial class Hud
         }
         if (st.Wears) InspectWear(st);
         int oldest = OldestHours(st);
-        if (oldest >= 12)
-            _inspBox.AddChild(UiTheme.Label(oldest >= (int)(Defs.DeadIntelAfter / 60) ? $"The oldest paper here was intercepted {oldest} hours ago: too late to earn breakthroughs."
-                : oldest >= (int)(Defs.StaleIntelAfter / 60) ? $"The oldest paper here was intercepted {oldest} hours ago: it's going stale (half the breakthroughs)."
-                : $"The oldest paper here was intercepted {oldest} hours ago.", 12,
-                oldest >= (int)(Defs.StaleIntelAfter / 60) ? Gfx.Bad : Gfx.Warn));
+        if (oldest >= 8)
+        {
+            var here = st.Input.Concat(st.Output).Concat(st.Current is int inHand ? new[] { inHand } : System.Array.Empty<int>())
+                .Select(id => S.Messages.TryGetValue(id, out var mm) ? mm : null).OfType<Message>().ToList();
+            int dead = here.Count(S.IsDead), stale = here.Count(m => S.IsStale(m) && !S.IsDead(m));
+            string note = dead > 0 ? $" {dead} of them too late to earn breakthroughs." : stale > 0 ? $" {stale} going stale (half the breakthroughs)." : "";
+            _inspBox.AddChild(UiTheme.Label($"The oldest paper here was intercepted {oldest} hours ago.{note}", 12, dead + stale > 0 ? Gfx.Bad : Gfx.Warn));
+        }
         int waiting = st.Output.Count(id => S.Messages.TryGetValue(id, out var mm) && mm.Next == null);
         if (waiting > 0)
             _inspBox.AddChild(UiTheme.Label($"{waiting} message(s) in the out tray are waiting for their day's key.", 12, Gfx.PaperWaiting));
