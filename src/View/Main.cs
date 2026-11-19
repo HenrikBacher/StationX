@@ -92,6 +92,10 @@ public partial class Main : Node3D
                 SsaoEnabled = true,
                 SsaoRadius = 0.7f,
                 SsaoIntensity = 2.0f,
+                // Bounce light: warm floorboards and brick tint the walls and furniture near them
+                SsilEnabled = true,
+                SsilRadius = 2.5f,
+                SsilIntensity = 0.9f,
                 GlowEnabled = true,
                 GlowIntensity = 0.3f,
                 AdjustmentEnabled = true,
@@ -100,6 +104,8 @@ public partial class Main : Node3D
             },
         };
         AddChild(_env);
+        // Bounce light at low quality and half resolution: it's a soft effect, and laptops' integrated GPUs must cope.
+        RenderingServer.EnvironmentSetSsilQuality(RenderingServer.EnvironmentSsilQuality.Low, true, 0.5f, 2, 50, 300);
         _weather = new WeatherFx { Name = "Weather" };
         AddChild(_weather);
         _sun = new DirectionalLight3D
@@ -507,6 +513,12 @@ public partial class Main : Node3D
         _park.SetHeads(State);
         // Blackout during a raid: shaded lamps, just enough to work by.
         foreach (var l in _park.Lamps) l.LightEnergy = night * (State.RaidOn ? 0.55f : 1.6f);
+        float desk = Mathf.Max(night, gloom * 0.35f);
+        foreach (var l in StationModel.DeskLamps)
+        {
+            l.Visible = desk > 0.05f;
+            l.LightEnergy = desk * 0.85f;
+        }
     }
 
     // --------------------------------------------------------------- camera
