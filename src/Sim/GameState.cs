@@ -189,14 +189,28 @@ public sealed partial class GameState
     /// <summary>For tests and the flow view: how much walking is slowed on a tile by the people on it (1 = clear).</summary>
     public double CrowdingAt((int x, int y) tile) => 1 / (1 + Defs.CrowdSlow * Math.Max(0, Staff.Count(o => !o.Away && o.TilePos == tile) - 1));
 
+    readonly HashSet<(int, int)> _standing = new();
+
+    /// <summary>For tests.</summary>
+    public bool DebugSendTo(Staff s, (int x, int y) tile) => SendTo(s, tile);
+    public void DebugMoveStaff(double dt) => MoveStaff(dt);
+
     void MoveStaff(double dt)
     {
         double step = Defs.WalkTilesPerMinute * dt;
         double outdoors = OutdoorPace;
         // Crowding: people squeezing past each other (and past those sitting at their desks) slow down.
         _crowd.Clear();
+        _standing.Clear();
         foreach (var o in Staff)
-            if (!o.Away) _crowd[o.TilePos] = _crowd.GetValueOrDefault(o.TilePos) + 1;
+        {
+            if (o.Away) continue;
+            _crowd[o.TilePos] = _crowd.GetValueOrDefault(o.TilePos) + 1;
+            // Only someone busy where they stand (at a desk, at a table) is in the way; the idle step aside, and nobody
+            // holds up a doorway or a corridor.
+            if (o.Path.Count == 0 && o.Task != null && !Grid.NearDoorway(o.TilePos.x, o.TilePos.y) && Grid.RoomAt(o.TilePos.x, o.TilePos.y) is not { Corridor: true })
+                _standing.Add(o.TilePos);
+        }
         for (int i = Staff.Count - 1; i >= 0; i--)
         {
             var s = Staff[i];
@@ -207,6 +221,21 @@ public sealed partial class GameState
             while (remaining > 0 && s.Path.Count > 0)
             {
                 var (tx, ty) = s.Path[0];
+                // Someone busy on the next tile (not where we're going): go round, or wait a moment and squeeze past.
+                if ((tx, ty) != s.TilePos && (tx, ty) != s.Path[^1] && _standing.Contains((tx, ty)) && s.WaitedFor < Defs.SqueezeAfter)
+                {
+                    if (s.WaitedFor == 0)
+                    {
+                        if (Pathfinder.Find(Grid, s.TilePos, s.Path[^1], _standing) is { } round && round.Count <= s.Path.Count + Defs.DetourTiles)
+                        {
+                            s.Path = round;
+                            s.WaitedFor = 1e-6;   // one detour per hold-up
+                            continue;
+                        }
+                    }
+                    s.WaitedFor += dt;
+                    break;
+                }
                 if (!Grid.Walkable(tx, ty))
                 {
                     // Something was built in the way: re-plan to the same goal.
@@ -224,6 +253,7 @@ public sealed partial class GameState
                     s.X = cx; s.Y = cy;
                     remaining -= d;
                     s.Path.RemoveAt(0);
+                    s.WaitedFor = 0;
                     if (s.Path.Count == 0) OnArrive(s);
                 }
                 else
@@ -239,6 +269,7 @@ public sealed partial class GameState
     bool SendTo(Staff s, (int x, int y) tile)
     {
         var from = s.TilePos;
+        s.WaitedFor = 0;
         if (from == tile) { s.Path.Clear(); return true; }
         var p = Pathfinder.Find(Grid, from, tile);
         if (p == null) return false;

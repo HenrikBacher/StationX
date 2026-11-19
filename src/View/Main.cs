@@ -417,6 +417,38 @@ public partial class Main : Node3D
         }
     }
 
+    readonly List<PersonModel> _shownPeople = new();
+
+    /// <summary>
+    /// Nobody walks through anybody: figures closer than a shoulder's width step apart, sideways if they meet head on.
+    /// The seated stay put and the walker goes round them.
+    /// </summary>
+    void SeparatePeople()
+    {
+        const float gap = 0.36f;
+        _shownPeople.Clear();
+        foreach (var m in PersonModels.Values) if (m.Visible) _shownPeople.Add(m);
+        for (int i = 0; i < _shownPeople.Count; i++)
+        {
+            var a = _shownPeople[i];
+            for (int j = i + 1; j < _shownPeople.Count; j++)
+            {
+                var b = _shownPeople[j];
+                if (a.Settled && b.Settled) continue;
+                var d = a.Shown - b.Shown;
+                d.Y = 0;
+                float len = d.Length();
+                if (len >= gap) continue;
+                // Head on (or exactly together): step to the side of the way they face.
+                var dir = len > 0.02f ? d / len : new Vector3(Mathf.Cos(a.Rotation.Y), 0, -Mathf.Sin(a.Rotation.Y));
+                var push = dir * (gap - len);
+                if (a.Settled) b.Nudge(-push);
+                else if (b.Settled) a.Nudge(push);
+                else { a.Nudge(push * 0.5f); b.Nudge(-push * 0.5f); }
+            }
+        }
+    }
+
     void SyncPeople(float dt)
     {
         foreach (var s in State.Staff)
@@ -448,6 +480,7 @@ public partial class Main : Node3D
             PersonModels[id].QueueFree();
             PersonModels.Remove(id);
         }
+        SeparatePeople();
     }
 
     void UpdateSelectionRing()

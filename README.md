@@ -52,7 +52,7 @@ Godot lives in `~/.local/opt/godot/` and is linked as `~/.local/bin/godot`. Expo
   Canteens and tubes go anywhere; coke stoves go in any timber hut. The Huts panel lists what each one takes, and when you place a station the huts that take it are outlined.
 
   Machines (the Bombes and Colossus) keep running once a Wren has set them going. **Pneumatic tubes** carry paper between huts on their own.
-- **Staff** walk messages between stations and between buildings. Messengers go first, then clerks, then anyone whose own desks are quiet. A day lasts four minutes at 1×.
+- **Staff** walk messages between stations and between buildings. Messengers go first, then clerks; cryptanalysts, linguists and Wrens would rather stay by their desks, and only carry paper that a busy messenger or clerk hasn't collected within ten minutes (or straight away if none is out on an errand). Nobody walks through anybody: walkers go round people working at a desk or sitting at a table, wait a moment and squeeze past if there's no way round, and step aside when they meet. A day lasts four minutes at 1×.
 - **Enigma keys change at midnight.** Each day, for each network, one message has to go through key-breaking:
   - in 1939–40, Zygalski sheets;
   - later, a crib desk followed by a Bombe;
@@ -115,7 +115,7 @@ Godot lives in `~/.local/opt/godot/` and is linked as `~/.local/bin/godot`. Expo
 - **Pinning.** You can pin a person to a station; they work there first and don't run errands.
 - **ULTRA and suspicion.**
   - Every decrypt that gets used makes its German service (Luftwaffe, Heer, Kriegsmarine, Abwehr/SD) a little more suspicious. At 100, that service tightens procedures and its keys go dark for three days.
-  - Choose a cautious, standard or bold policy, and answer the occasional **dilemma**: act on this, or protect the source?
+  - Choose a cautious, standard or bold policy, and answer the occasional **dilemma**: act on this, or protect the source? Each one says what we know and how (the source, how sure, what's at stake), how close that German service is to locking us out and which keys it would cost, and where each choice would leave its suspicion.
   - From 1941 you can ask for **gardening**: minelaying that gives naval cribs, at a price in suspicion.
 - **Outstations** (Eastcote, Stanmore, Wavendon, Adstock, Gayhurst) are bought as remote Bombe capacity. An outstation teleprinter in the park sends them menus when your own Bombes are busy. They are not separate maps.
 - **Research** is paid for with breakthroughs, which you earn from delivered decrypts.
@@ -195,7 +195,7 @@ godot --path . --resolution 1600x900 -- --selftest      # exits 1 on any failure
 Optional flags:
 
 - `--panel=requests|build|staff|research|huts|intel|stats`
-- `--modal=pause|settings|save|load|newgame|dilemma|end` `--place=Type@x,y;...` puts stations down (free, building unlocked) for a visual check. `--lineup=x,y` stands everyone on duty in rows by role, to check how people look. `--age=H` makes every message H hours older; `--inspect=Type` opens the busiest station of that type.
+- `--modal=pause|settings|save|load|newgame|dilemma|update|end` `--place=Type@x,y;...` puts stations down (free, building unlocked) for a visual check. `--lineup=x,y` stands everyone on duty in rows by role, to check how people look. `--age=H` makes every message H hours older; `--inspect=Type` opens the busiest station of that type.
 - `--select=bombe`, `--briefing`, `--title`, `--build=Registration`
 - `--weather=fine|overcast|rain|fog|snow|storm`, `--raid`, `--head=hut6` (appoints the best cryptanalyst head of that hut)
 - `--quarter=0..3`, `--flows`, `--breakdown` (breaks the first machine and wears another)

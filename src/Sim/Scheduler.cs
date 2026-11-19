@@ -84,6 +84,9 @@ public sealed partial class GameState
             .ToList();
         if (waiting.Count == 0) return;
         int idle = Staff.Count(s => s.Available);
+        // Is anyone whose job it is to carry paper (a messenger, or an unpinned clerk) out on an errand, and soon free?
+        bool porters = Staff.Any(s => (s.Role == Role.Messenger || (s.Role == Role.Clerk && s.Pinned == null)) && !s.Away && !s.Leaving && OnDuty(s)
+                                      && s.Task is { Kind: TaskKind.Carry });
         foreach (var m in waiting)
         {
             if (idle == 0) break;
@@ -95,12 +98,14 @@ public sealed partial class GameState
             if (dest == null) continue;
             if (src.Type != StationType.Tube && TubeVia(src, dest) is { } tube) dest = tube;
 
-            // Messengers first, then clerks, then anyone whose own desks are quiet.
+            // Messengers first, then clerks. Cryptanalysts, linguists and Wrens would rather stay by their desks: they
+            // only carry paper nobody else has collected for a while, or when there's no messenger or clerk on duty.
             // People posted to a building only carry within it.
             bool may(Staff s) => MayWorkAt(s, src.UseTile) && MayWorkAt(s, dest.UseTile);
+            bool specialistsMay = !porters || Now - m.Since >= Defs.SpecialistsCarryAfter;
             var runner = FindIdle(src.UseTile, s => s.Role == Role.Messenger && may(s))
                          ?? FindIdle(src.UseTile, s => s.Role == Role.Clerk && s.Pinned == null && may(s))
-                         ?? FindIdle(src.UseTile, s => !RoleNeeded(s.Role) && s.Pinned == null && may(s));
+                         ?? (specialistsMay ? FindIdle(src.UseTile, s => !RoleNeeded(s.Role) && s.Pinned == null && may(s)) : null);
             if (runner == null) continue;
             if (!SendTo(runner, src.UseTile)) continue;
 

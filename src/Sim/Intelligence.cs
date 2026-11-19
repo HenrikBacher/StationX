@@ -155,12 +155,15 @@ public sealed partial class GameState
                 Service = Service.Heer, Title = "Orders from the high command",
                 Text = "TUNNY decrypts give the German high command's plans for the next offensive in the east, " +
                        "in more detail than Moscow has ever had.",
+                Context = "The Testery has read a run of teleprinter messages between the high command and an army group: dates, " +
+                          "objectives, divisions. It is as good as intelligence gets. But Stalin distrusts anything British, " +
+                          "and the Soviets' own ciphers are known to be read by the Germans: whatever we tell Moscow, Berlin may overhear.",
                 Options =
                 {
-                    new() { Label = "Pass it to Moscow disguised as a spy report", Rep = 4, Suspicion = 4,
-                        Outcome = "The Soviets receive it from a 'source in Switzerland'. They act on it, and no one asks about teleprinters." },
-                    new() { Label = "Tell Moscow it comes from decrypts", Rep = 2, Suspicion = 16,
-                        Outcome = "Soviet ciphers are not as secure as ours. Within weeks German signals mention a leak." },
+                    new() { Label = "Tell Moscow it comes from decrypts", Rep = 6, Suspicion = 16,
+                        Outcome = "Moscow believes it and acts in full. But Soviet ciphers are not as secure as ours, and within weeks German signals mention a leak." },
+                    new() { Label = "Pass it to Moscow disguised as a spy report", Rep = 3, Suspicion = 4,
+                        Outcome = "The Soviets receive it from a 'source in Switzerland'. Stalin half-believes it; no one asks about teleprinters." },
                     new() { Label = "Keep it in London", Rep = -3,
                         Outcome = "The offensive comes as a surprise to our ally. Whitehall is unimpressed." },
                 },
@@ -171,6 +174,9 @@ public sealed partial class GameState
             {
                 Service = Service.Luftwaffe, Title = "Airfield strengths",
                 Text = $"A {name} decrypt lists the serviceable aircraft at every Luftwaffe airfield in northern France.",
+                Context = "A Luftflotte's daily strength return, read in full: which airfields are crowded and which are thin. " +
+                          "The figures are a day old and good for perhaps two more. Bombing exactly the weak ones points at Enigma; " +
+                          "a reconnaissance flight first gives the RAF a plausible reason to know. Filed, it builds Hut 3's order of battle.",
                 Options =
                 {
                     new() { Label = "Bomb the weakest-defended airfields tonight", Rep = 3, Suspicion = 12,
@@ -185,6 +191,9 @@ public sealed partial class GameState
             {
                 Service = Service.Heer, Title = "A convoy for Rommel",
                 Text = $"{name} gives the sailing time and route of a tanker convoy leaving {Rng.Pick(Ports)} for Libya.",
+                Context = "The sailing signal to the escort, read within hours: ships, times and route. Rommel's advance runs on this fuel. " +
+                          "The rule for Malta is that no strike goes in unless a reconnaissance aircraft has been seen to 'find' the ships first. " +
+                          "Every convoy that arrives untouched also reassures Rome that its signals are safe.",
                 Options =
                 {
                     new() { Label = "Strike from Malta at once", Rep = 5, Suspicion = 18,
@@ -199,19 +208,25 @@ public sealed partial class GameState
             {
                 Service = Service.Kriegsmarine, Title = "A U-boat rendezvous",
                 Text = $"{name} shows a tanker will refuel a wolf pack west of the Azores in three days.",
+                Context = "U-boat Command's orders to the boats and their supply tanker: a position and a time. Hut 8 is sure of it. " +
+                          "Sinking them at a secret rendezvous is hard to explain any other way; moving the convoys is invisible but leaves the pack to hunt. " +
+                          "Do nothing, and the refuelled pack will find someone.",
                 Options =
                 {
                     new() { Label = "Sink the tanker and the U-boats", Rep = 5, Suspicion = 20,
                         Outcome = "Escort carriers are waiting. Dönitz demands to know how they knew." },
                     new() { Label = "Quietly route the convoys around it", Rep = 2, Suspicion = 3,
                         Outcome = "The convoys sail clear. To the Germans it looks like good luck." },
-                    new() { Label = "Do nothing", Suspicion = -3, Tonnage = 30000,
-                        Outcome = "The wolf pack refuels and finds a convoy. Ships are lost; the secret is safe." },
+                    new() { Label = "Do nothing", Rep = -2, Suspicion = -3, Tonnage = 30000,
+                        Outcome = "The wolf pack refuels and finds a convoy. Ships are lost and the Admiralty is bitter; the secret is safe." },
                 },
             } : new Dilemma
             {
                 Service = Service.Kriegsmarine, Title = "The supply ships",
                 Text = $"{name} gives the positions of nine supply ships waiting in the Atlantic for raiders and U-boats.",
+                Context = "A whole season's supply plan, read from the naval key: where each ship waits and for whom. " +
+                          "Take them all and the raiders and U-boats starve, but nine sinkings in a week can't all be luck. " +
+                          "Two might be.",
                 Options =
                 {
                     new() { Label = "Sink all of them", Rep = 6, Suspicion = 28,
@@ -226,14 +241,18 @@ public sealed partial class GameState
             {
                 Service = Service.Security, Title = "An agent by parachute",
                 Text = $"{name} traffic says the Abwehr is dropping an agent near {Rng.Pick(Towns)} on Thursday night.",
+                Context = "The Abwehr's own signals give the night, the field and his cover name. MI5 can be waiting. " +
+                          "A captured agent can be turned (MI5's Twenty Committee runs them, feeding the Abwehr what we choose), " +
+                          "and a turned agent who keeps reporting reassures the Abwehr that its network is sound. " +
+                          "A public arrest wins headlines and makes the Abwehr ask how we knew; a free agent may lead to others.",
                 Options =
                 {
-                    new() { Label = "Arrest him quietly and offer him to the Twenty Committee", Rep = 3, Points = 6, Suspicion = 3,
-                        Outcome = "He takes the offer. Soon he is sending the Abwehr exactly what MI5 wants it to hear." },
-                    new() { Label = "Arrest him publicly", Rep = 3, Suspicion = 12,
-                        Outcome = "The newspapers love it. The Abwehr wonders how the police were waiting in the right field." },
-                    new() { Label = "Let him land and watch", Rep = -1, Points = 2,
-                        Outcome = "He is followed for a week, then picked up by a sharp-eyed village constable." },
+                    new() { Label = "Arrest him publicly", Rep = 5, Suspicion = 12,
+                        Outcome = "The newspapers love it, and so does the War Cabinet. The Abwehr wonders how the police were waiting in the right field." },
+                    new() { Label = "Arrest him quietly and offer him to the Twenty Committee", Rep = 2, Points = 4, Suspicion = -2,
+                        Outcome = "He takes the offer. Soon he is sending the Abwehr exactly what MI5 wants it to hear, and the Abwehr is pleased with him." },
+                    new() { Label = "Let him land and follow him to his contacts", Rep = 1, Points = 6, Suspicion = 6,
+                        Outcome = "He leads MI5 to two more agents before he is picked up. The Abwehr loses a network and starts asking why." },
                 },
             },
         };
@@ -246,6 +265,9 @@ public sealed partial class GameState
         {
             Service = Service.Luftwaffe, Title = $"A raid on {city}",
             Text = $"{name} decrypts give tonight's target: {city}, with about {Rng.Range(8, 30) * 10} bombers.",
+            Context = "A Fliegerkorps order to its bomber groups, broken this afternoon: target, numbers and time over target. " +
+                      "Only Enigma could have told us this early. Night fighters waiting over a city before any radar plot " +
+                      "point straight at it; passed on as a radar and Y-service warning, the defences are readier but not suspiciously so.",
             Options =
             {
                 new() { Label = "Warn the city and send the night fighters", Rep = 4, Suspicion = 16,
@@ -267,11 +289,14 @@ public sealed partial class GameState
             Service = worst, StaffId = s.Id, Title = "Careless talk",
             Text = $"MI5 reports that {s.Name} ({Defs.Roles[s.Role].Name.ToLowerInvariant()}) was overheard at {pub} " +
                    "talking about 'machines that read German signals'.",
+            Context = "The talk has happened; what matters is whether it happens again. Careless talkers keep raising the " +
+                      "Abwehr's suspicion a little every day they stay. Dismissing them stops it but costs us their work and shakes the huts; " +
+                      "a reprimand marks them, so you know who to watch. Ignoring MI5 costs us standing in Whitehall.",
             Options =
             {
                 new() { Label = $"Dismiss {s.Name}", DismissStaff = true, Morale = -0.03, Suspicion = -5, RevealTalker = true,
                     Outcome = $"{s.Name} is sent away, reminded that the Official Secrets Act lasts for life." },
-                new() { Label = "A reprimand, and they sign the Act again", Morale = -0.02, Suspicion = 4, RevealTalker = true,
+                new() { Label = "A reprimand, and they sign the Act again", Morale = -0.02, RevealTalker = true,
                     Outcome = $"{s.Name} is badly shaken. Whether it sticks remains to be seen." },
                 new() { Label = "Take no action", Rep = -3, Suspicion = 12,
                     Outcome = "MI5 notes our lack of interest. So, perhaps, does someone else." },

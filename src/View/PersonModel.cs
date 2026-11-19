@@ -25,6 +25,17 @@ public partial class PersonModel : Node3D
     float _phase, _yaw, _idleT, _lookYaw, _lookGoal;
     Vector3 _shown;
     bool _placed;
+
+    /// <summary>Sitting at a desk or a table, or playing rounders: others step round them, not the other way.</summary>
+    public bool Settled { get; private set; }
+    public Vector3 Shown => _shown;
+
+    /// <summary>Sidestep: shifts the figure; the next frames glide it back on course.</summary>
+    public void Nudge(Vector3 by)
+    {
+        _shown += by;
+        Position = _shown;
+    }
     float _baseScale = 1;
 
     public static PersonModel Create(Staff s)
@@ -399,6 +410,7 @@ public partial class PersonModel : Node3D
 
         bool tired = s.Energy < Defs.BreakAt;
         bool sitting = !walking && ((atRest && rest!.Value.Sit) || deskWork);
+        Settled = atRest || deskWork;
         if (_skirt != null) { _skirt.Visible = !sitting; _lap!.Visible = sitting; }
 
         Pose p = default;

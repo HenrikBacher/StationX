@@ -57,6 +57,7 @@ public class PipelineTests
         g.Place(StationType.Registration, 5, 3, 0);
         g.Place(StationType.HandCipher, 8, 3, 0);
         g.Place(StationType.Translation, 11, 3, 0);
+        Assert.NotNull(g.Place(StationType.Canteen, 14, 8, 0));   // nobody lasts long without a cup of tea
         g.Advance(1);
         var c = g.Contracts.First(c => c.State == ContractState.Offered);
         Assert.True(g.Accept(c.Id));

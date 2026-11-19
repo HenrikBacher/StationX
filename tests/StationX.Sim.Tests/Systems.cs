@@ -151,6 +151,39 @@ public class PeopleTests
     }
 
     [Fact]
+    public void WalkersGoRoundPeopleStandingInTheWay()
+    {
+        var g = GameState.NewGame(5);
+        foreach (var o in g.Staff) o.Away = true;   // just the two of them
+        var stander = TestUtil.Add(g, Role.Linguist, 9.5, 5.5);
+        stander.Task = new StaffTask { Kind = TaskKind.Rest, Dest = -1 };   // busy, so not shooed aside
+        var walker = TestUtil.Add(g, Role.Clerk, 5.5, 5.5);
+        Assert.True(g.DebugSendTo(walker, (13, 5)));
+        Assert.Contains((9, 5), walker.Path);
+        var visited = new HashSet<(int, int)>();
+        for (int t = 0; t < 2000 && walker.Path.Count > 0; t++) { g.DebugMoveStaff(0.25); visited.Add(walker.TilePos); }
+        Assert.Equal((13, 5), walker.TilePos);
+        Assert.DoesNotContain((9, 5), visited);
+    }
+
+    [Fact]
+    public void NobodyHoldsUpTheEntranceHall()
+    {
+        var g = GameState.NewGame(5);
+        foreach (var o in g.Staff) o.Away = true;
+        // Someone busy in the Entrance Hall (a corridor) never holds up those going in and out.
+        var door = g.Grid.Zone("mansion")!;
+        var inside = door.InsideDoor;
+        var stander = TestUtil.Add(g, Role.Linguist, inside.x + 0.5, inside.y - 1 + 0.5);
+        stander.Task = new StaffTask { Kind = TaskKind.Rest, Dest = -1 };
+        var walker = TestUtil.Add(g, Role.Clerk, inside.x + 0.5, inside.y - 2 + 0.5);
+        Assert.True(g.DebugSendTo(walker, (door.OutsideDoor.x, door.OutsideDoor.y + 2)));
+        for (int t = 0; t < 2000 && walker.Path.Count > 0; t++) g.DebugMoveStaff(0.25);
+        Assert.Empty(walker.Path);
+        Assert.True(walker.WaitedFor == 0);
+    }
+
+    [Fact]
     public void IdlePeopleSitDownNearbyAndGetUpForWork()
     {
         var g = GameState.NewGame(5);

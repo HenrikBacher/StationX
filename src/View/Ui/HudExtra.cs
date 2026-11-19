@@ -531,8 +531,17 @@ public partial class Hud
         v.AddChild(Ink(d.Service == Service.Security ? "SECURITY" : $"ULTRA · {Defs.ServiceNames[d.Service].ToUpperInvariant()}", 13, Fonts.BodyBold, UiTheme.Stamp));
         v.AddChild(Ink(d.Title, 26, Fonts.Heading));
         v.AddChild(Ink(d.Text, 15));
-        v.AddChild(Ink($"{Defs.ServiceNames[d.Service]} suspicion now {(int)S.SuspicionOf(d.Service)} of {(int)Defs.SuspicionLimit}.", 12, Fonts.Body,
-            S.SuspicionOf(d.Service) >= Defs.SuspicionWarn ? UiTheme.Stamp : null));
+        if (d.Context.Length > 0)
+        {
+            v.AddChild(Ink("What we know", 12, Fonts.BodyBold, UiTheme.Stamp));
+            v.AddChild(Ink(d.Context, 13));
+        }
+        // What's at stake on the German side: how close this service is to tightening up, and what we'd lose if it did.
+        double now = S.SuspicionOf(d.Service);
+        var keys = S.ActiveNets.Where(n => Defs.NetOf(n).Service == d.Service).Select(n => Defs.NetOf(n).Name).ToList();
+        string lose = keys.Count == 0 ? "" : $" At {(int)Defs.SuspicionLimit} it tightens its procedures and {(keys.Count == 1 ? keys[0] : string.Join(", ", keys.Take(keys.Count - 1)) + " and " + keys[^1])} can't be broken for {Defs.LockdownDays + 1} days.";
+        v.AddChild(Ink($"{Defs.ServiceNames[d.Service]} suspicion is {(int)now} of {(int)Defs.SuspicionLimit}.{lose}", 12, Fonts.Body,
+            now >= Defs.SuspicionWarn ? UiTheme.Stamp : null));
         for (int i = 0; i < d.Options.Count; i++)
         {
             var o = d.Options[i];
@@ -547,6 +556,11 @@ public partial class Hud
             b.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
             box.AddChild(b);
             var fx = o.Effects();
+            if (o.Suspicion != 0)
+            {
+                double after = System.Math.Clamp(now + (o.Suspicion > 0 ? o.Suspicion * Defs.Difficulties[S.Difficulty].SuspicionMult : o.Suspicion), 0, Defs.SuspicionLimit);
+                fx += $" (to {(int)after}{(after >= Defs.SuspicionLimit ? ": they'd lock us out" : "")})";
+            }
             if (fx.Length > 0) box.AddChild(Ink(fx, 12, Fonts.Body, UiTheme.PaperInk with { A = 0.75f }));
             v.AddChild(box);
         }

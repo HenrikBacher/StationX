@@ -96,6 +96,12 @@ public static partial class Defs
     public const double EnergyDrainOther = 1.0 / 900;
     /// <summary>Idle people with energy below this go and sit down with a cup of tea if there's a seat nearby.</summary>
     public const double LoafBelow = 0.8;
+    /// <summary>People don't walk through each other: they go round, ask an idle one to step aside, and only after
+    /// this many minutes' wait squeeze past (so a doorway can never jam for good). A detour may add this many tiles.</summary>
+    public const double SqueezeAfter = 1;
+    /// <summary>Minutes paper waits for a messenger or clerk who is about (not at a desk) before a cryptanalyst, linguist or Wren carries it.</summary>
+    public const double SpecialistsCarryAfter = 10;
+    public const int DetourTiles = 6;
     /// <summary>With no canteen or common room anywhere in the Park, people catch their breath where they stand, slowly.</summary>
     public const double EnergyRecoverNowhere = 1.0 / 1500;
     public const int LoafRange = 14;

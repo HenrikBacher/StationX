@@ -168,7 +168,8 @@ public static class Pathfinder
     [ThreadStatic] static int[]? _stamp;
     [ThreadStatic] static int _gen;
 
-    public static List<(int x, int y)>? Find(Grid g, (int x, int y) from, (int x, int y) to)
+    /// <param name="avoid">Tiles to go round if possible (people standing there); the goal itself is never avoided.</param>
+    public static List<(int x, int y)>? Find(Grid g, (int x, int y) from, (int x, int y) to, HashSet<(int, int)>? avoid = null)
     {
         if (!Grid.InBounds(from.x, from.y) || !Grid.InBounds(to.x, to.y)) return null;
         if (from == to) return new List<(int, int)>();
@@ -196,6 +197,7 @@ public static class Pathfinder
             {
                 int nx = cx + Dx[i], ny = cy + Dy[i];
                 if (!g.Walkable(nx, ny) || g.Blocked(cx, cy, nx, ny)) continue;
+                if (avoid != null && (nx, ny) != to && avoid.Contains((nx, ny))) continue;
                 int ni = ny * Grid.Width + nx;
                 int nc = _cost[cur] + 1;
                 if (_stamp[ni] == _gen && _cost[ni] <= nc) continue;

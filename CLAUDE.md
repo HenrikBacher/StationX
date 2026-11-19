@@ -50,6 +50,12 @@ Then (user requests, 2026-11-19):
 - Self-updater (`src/View/Updater.cs`): GitHub latest-release check, download, swap, restart; CI stamps
   `config/version` on tags. Only testable end to end from the second release that has it.
 - The user wants **Hard ≤ 5/40** wins (Normal still ≈ 50%).
+- No walking through each other: busy people standing still block (`_standing`, not in doorways or corridors); walkers
+  detour (≤ `DetourTiles`) or wait `SqueezeAfter` minutes, and the view's `SeparatePeople` sidesteps figures.
+- Specialists leave carrying to messengers and clerks (`SpecialistsCarryAfter`). A Park without a canteen is now
+  crippling: tests that run a pipeline need a canteen table.
+- Intel dilemmas carry a `Context` ("What we know"); the dialog shows lockdown stakes and suspicion after each option.
+  Options were rebalanced so none is strictly worse; keep option 1 the middle (cover) choice, the autoplayer's default.
 
 ### Graphics overhaul: period realism, CC0 assets allowed
 

@@ -124,6 +124,8 @@ public sealed class Staff
     public double HomeY { get; set; }
     public double LowMoraleDays { get; set; }
 
+    /// <summary>Minutes spent waiting for someone standing in the way to move.</summary>
+    public double WaitedFor { get; set; }
     public double X { get; set; }
     public double Y { get; set; }
     public List<(int x, int y)> Path { get; set; } = new();
@@ -342,6 +344,8 @@ public sealed class Dilemma
     public int Id { get; set; }
     public string Title { get; set; } = "";
     public string Text { get; set; } = "";
+    /// <summary>What we know and how we know it: the source, how sure it is, and what's at stake. Shown before the options.</summary>
+    public string Context { get; set; } = "";
     public Service Service { get; set; }
     public int? StaffId { get; set; }
     public double Created { get; set; }
