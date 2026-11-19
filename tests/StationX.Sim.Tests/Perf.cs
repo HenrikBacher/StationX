@@ -36,7 +36,8 @@ public class Perf(ITestOutputHelper output)
             var ai = new AutoPlayer(g);
             var calls = Phases.Select(p => (p, Bind(g, p))).ToArray();
             var phaseTicks = new long[Phases.Length];
-            long aiTicks = 0;
+            var phaseBytes = new long[Phases.Length];
+            long aiTicks = 0, aiBytes = 0;
             var total = Stopwatch.StartNew();
             var cpu0 = Process.GetCurrentProcess().TotalProcessorTime;
             var block = Stopwatch.StartNew();
@@ -45,9 +46,10 @@ public class Perf(ITestOutputHelper output)
             while (g.Status == GameStatus.Playing && g.Day < days)
             {
                 if (g.ActCompletePending) g.ContinueAfterAct();
-                long t0 = Stopwatch.GetTimestamp();
+                long t0 = Stopwatch.GetTimestamp(), b0 = GC.GetAllocatedBytesForCurrentThread();
                 ai.Think();
                 aiTicks += Stopwatch.GetTimestamp() - t0;
+                aiBytes += GC.GetAllocatedBytesForCurrentThread() - b0;
                 // One hour of StepOnce, phase by phase.
                 for (int k = 0; k < 60 / Defs.Tick && g.Status == GameStatus.Playing && !g.ActCompletePending; k++)
                 {
@@ -62,9 +64,10 @@ public class Perf(ITestOutputHelper output)
                             if (g.Now < g.NextScheduleAt) { i = Array.IndexOf(Phases, "CheckGoals"); continue; }
                             g.NextScheduleAt = g.Now + 2;
                         }
-                        long a = Stopwatch.GetTimestamp();
+                        long a = Stopwatch.GetTimestamp(), ab = GC.GetAllocatedBytesForCurrentThread();
                         f();
                         phaseTicks[i] += Stopwatch.GetTimestamp() - a;
+                        phaseBytes[i] += GC.GetAllocatedBytesForCurrentThread() - ab;
                     }
                 }
                 g.Events.Clear();
@@ -81,9 +84,10 @@ public class Perf(ITestOutputHelper output)
             output.WriteLine($"seed {seed} {diff}: {g.Status} day {g.Day}, {ms / Math.Max(1, g.Day):0.0} ms/day wall ({ms / 1000:0.0} s), " +
                              $"{cpu / Math.Max(1, g.Day):0.0} ms/day CPU, staff {g.Staff.Count}");
             double f2ms = 1000.0 / Stopwatch.Frequency;
-            output.WriteLine($"    {"AutoPlayer.Think",-16} {aiTicks * f2ms,8:0} ms");
+            // Allocations don't depend on the machine's load: a steady guide to waste.
+            output.WriteLine($"    {"AutoPlayer.Think",-16} {aiTicks * f2ms,8:0} ms {aiBytes / 1e6,9:0.0} MB allocated");
             foreach (var i in Enumerable.Range(0, Phases.Length).OrderByDescending(i => phaseTicks[i]))
-                output.WriteLine($"    {Phases[i],-16} {phaseTicks[i] * f2ms,8:0} ms");
+                output.WriteLine($"    {Phases[i],-16} {phaseTicks[i] * f2ms,8:0} ms {phaseBytes[i] / 1e6,9:0.0} MB allocated");
         }
     }
 
