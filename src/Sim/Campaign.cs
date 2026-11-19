@@ -493,6 +493,8 @@ public static class Campaign
     /// <summary>The act whose completion breaks SHARK and wins the main campaign.</summary>
     public const int EnigmaFinale = 11;
     public static readonly int ActionThisDay = Array.FindIndex(Acts, a => a.Title == "Action This Day");
+    /// <summary>From U-110 on, some naval traffic is Offizier: enciphered twice.</summary>
+    public static readonly int OffizierFrom = Array.FindIndex(Acts, a => a.Title == "U-110");
 
     public const string TunnyEpilogue =
         "On 1 June 1944 the improved Colossus Mark 2 started work. On 5 June, as the invasion fleet waited for the weather, " +

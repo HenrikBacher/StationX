@@ -532,7 +532,7 @@ public sealed partial class GameState
                 if (Researched.Contains(ResearchId.Hollerith)) t *= 0.7;
                 break;
             case StationType.HandCipher:
-                t *= net.Difficulty;
+                t *= m.Offizier ? Defs.OffizierMult : net.Difficulty;
                 break;
             case StationType.Zygalski:
                 if (Researched.Contains(ResearchId.Cillies)) t *= 0.6;
@@ -624,6 +624,7 @@ public sealed partial class GameState
                 double p = 0.55 + 0.12 * (op?.Skill ?? 2) + ((op?.Specialties.Contains(st.Type) ?? false) ? 0.15 : 0) + ((op?.Has(Trait.Meticulous) ?? false) ? 0.1 : 0);
                 if ((op?.Energy ?? 1) < 0.3) p -= 0.1;
                 if (!Rng.Chance(p)) { Requeue(st, m); return; }
+                if (m.Offizier) Stats.OffizierRead++;
                 m.Next = StationType.Translation;
                 break;
             }
@@ -688,6 +689,16 @@ public sealed partial class GameState
                 else { Requeue(st, m); return; }
                 break;
             case StationType.Typex:
+                // Under the naval key, an Offizier message is still gibberish: the inner layer is unpicked by hand.
+                if (net.Naval && !m.Offizier && Campaign.OffizierFrom >= 0 && ActIndex >= Campaign.OffizierFrom && HasStation(StationType.HandCipher)
+                    && new Random(Mix(Seed, m.Id, 0x0FF1)).NextDouble() < Defs.OffizierShare)
+                {
+                    m.Offizier = true;
+                    m.Next = StationType.HandCipher;
+                    break;
+                }
+                m.Next = StationType.Translation;
+                break;
             case StationType.TunnyMachine:
                 m.Next = StationType.Translation;
                 break;

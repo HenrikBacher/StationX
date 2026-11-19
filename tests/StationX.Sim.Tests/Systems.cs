@@ -1752,3 +1752,37 @@ public class BanburyPuzzleTests
         }
     }
 }
+
+public class OffizierTests(ITestOutputHelper output)
+{
+    [Fact]
+    public void SomeNavalTrafficGoesBackForItsInnerLayer()
+    {
+        var g = GameState.NewGame(31);
+        g.DebugSkipToAct(Campaign.OffizierFrom);
+        int offizier = 0, naval = 0;
+        for (int id = 1; id <= 400; id++)
+        {
+            var m = new Message { Id = id, Net = Net.Dolphin };
+            naval++;
+            if (new System.Random(GameState.Mix(g.Seed, m.Id, 0x0FF1)).NextDouble() < Defs.OffizierShare) offizier++;
+        }
+        // About a fifth, decided by a stable per-message dice
+        Assert.InRange(offizier / (double)naval, 0.14, 0.26);
+    }
+
+    [Fact]
+    public void OffizierMessagesAreReadAndDelivered()
+    {
+        var g = GameState.NewGame(31);
+        var ai = new AutoPlayer(g);
+        for (int h = 0; h < 24 * 200 && g.Status == GameStatus.Playing && (g.ActIndex < Campaign.OffizierFrom || g.Stats.OffizierRead == 0); h++)
+        {
+            ai.Think();
+            g.Advance(60);
+            if (g.ActCompletePending) g.ContinueAfterAct();
+        }
+        output.WriteLine($"act {g.ActIndex}, day {g.Day}, offizier read {g.Stats.OffizierRead}");
+        Assert.True(g.Stats.OffizierRead > 0);
+    }
+}

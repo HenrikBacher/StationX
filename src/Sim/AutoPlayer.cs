@@ -43,7 +43,8 @@ public sealed class AutoPlayer
         return t switch
         {
             StationType.Registration => a >= 9 ? 4 : a >= 5 ? 3 : a >= 1 ? 2 : 1,
-            StationType.HandCipher => a >= 5 ? 1 : a >= 1 ? 2 : 1,
+            // Offizier traffic (the tip) needs a second desk once it appears
+            StationType.HandCipher => Campaign.OffizierFrom >= 0 && a >= Campaign.OffizierFrom ? 2 : a >= 5 ? 1 : a >= 1 ? 2 : 1,
             StationType.Translation => a >= 9 ? 5 : a >= 5 ? 4 : a >= 2 ? 2 : 1,
             StationType.Dispatch => a >= 5 ? 2 : 1,
             StationType.Index => a >= Defs.IndexFromAct ? Math.Min(Have(StationType.Translation), Have(StationType.Index) + (UnindexedTranslation().Any() ? 1 : 0)) : 0,

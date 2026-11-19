@@ -524,6 +524,7 @@ public partial class Hud
                 StationType.Crib => $"Writing a {nd.Name} crib for {S.DateOf(m.Day):d MMMM}",
                 StationType.Zygalski => $"Searching for the {nd.Name} key of {S.DateOf(m.Day):d MMMM}",
                 StationType.Banburismus => $"Ruling out wheel orders for {nd.Name}",
+                StationType.HandCipher when m.Offizier => $"Unpicking the Offizier layer of a {nd.Name} message",
                 _ => $"{nd.Name} message from {S.DateOf(m.Day):d MMMM}",
             };
             _inspBox.AddChild(UiTheme.Label(what, 13, UiTheme.Accent));
