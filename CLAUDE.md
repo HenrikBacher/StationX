@@ -35,7 +35,7 @@ state, so the work can be resumed on any machine.
 
 ## Current work (2026-11-19)
 
-Last release **v0.25.0**. Untagged on `main` since: teleprinter jams, faster CI, Node 24 actions, overhaul parts 1–4, bad visits cut the grant.
+Last release **v0.25.0**. Untagged on `main` since: teleprinter jams, faster CI, Node 24 actions, overhaul parts 1–5, bad visits cut the grant.
 
 ### Graphics overhaul: period realism, CC0 assets allowed
 
@@ -58,7 +58,9 @@ settings. Materials are mapped in `Textures.Pbr` (folder, tiles per repeat, tone
 4. Roofs: `Park3D.Roof` + `Mesh3.Roof` (hipped slate Mansion, felt gables with battens on huts from `asphalt_02`,
    flat concrete on brick blocks). Faded by camera size (`RoofsFrom`..`RoofsFull`), alpha-blended only while fading;
    while roofed all walls stand (no cutaway). Snow settles on them. **Done.**
-5. Atmosphere and weathering: haze, soot and dirt at wall bases, moss.
+5. Atmosphere and weathering: depth fog as aerial haze (`FogMode.Depth` from 115, the camera is 120 back; thicker in
+   fog/snow/rain), grime decals up the foot of outside walls (`Park3D.Grime`), a bare drip line around buildings in
+   `PaintGround`. **Done** (moss not done).
 6. Model detail: Mansion bays and gables, hut doors, steps, stove pipes. Also: unbuilt plots are flat brown rectangles
    (make them surveyed sites), and the static water tank on the lawn is a plain black box.
 

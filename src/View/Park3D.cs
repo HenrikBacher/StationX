@@ -308,6 +308,20 @@ public partial class Park3D : Node3D
                     earth = Mathf.Max(earth, t * 1.3f);
                 }
 
+                // Drip line: under the eaves rain off the roof keeps the grass down to bare, dark earth.
+                foreach (var z in g.Zones)
+                {
+                    if (!z.Unlocked) continue;
+                    float ox = Mathf.Max(z.X + 0.5f - fx, fx - (z.X + z.W - 0.5f)), oy = Mathf.Max(z.Y + 0.5f - fy, fy - (z.Y + z.H - 0.5f));
+                    float outside = Mathf.Max(ox, oy);
+                    if (outside < 0.15f || outside > 0.75f) continue;
+                    float band = 0.38f + 0.2f * Blob(fx * 3, fy * 3, 1, 67);
+                    if (outside > band) continue;
+                    float t = Mathf.Clamp((band - outside) / 0.15f, 0, 1) * 0.75f;
+                    c = c.Lerp(Gfx.Mud.Darkened(0.15f), t);
+                    earth = Mathf.Max(earth, t);
+                }
+
                 if (PathAt(g, fx, fy))
                 {
                     c = Gfx.Gravel.Darkened(noise * 0.12f);
@@ -405,6 +419,7 @@ public partial class Park3D : Node3D
             WallRun(Sided(side, side, true), z, side, ax, ay, bx, by, BackWall, wall, cap, true);
             WallRun(Sided(side, side, false), z, side, ax, ay, bx, by, FrontWall, wall, cap, false);
         }
+        foreach (var (side, ax, ay, bx, by) in sides) Grime(side, ax, ay, bx, by, z.Brick);
         var corners = new[] { (x0, y0, 0, 3), (x1, y0, 0, 1), (x1, y1, 2, 1), (x0, y1, 2, 3) };
         foreach (var (cx, cy, a, b) in corners)
             foreach (bool tall in new[] { true, false })
@@ -633,6 +648,54 @@ public partial class Park3D : Node3D
         foreach (float px in new[] { z.DoorX - 0.15f, z.DoorX + 1.15f })
             Mesh3.Box(_buildings, new Vector3(0.18f, 0.5f, 0.18f), new Vector3(px, 0.25f, pz), stone);
         Mesh3.Box(_buildings, new Vector3(1.6f, 0.06f, 0.6f), new Vector3(z.DoorX + 0.5f, 0.03f, pz), stone);
+    }
+
+    static ImageTexture? _grimeTex;
+
+    /// <summary>
+    /// Rain splash-back and soot up the foot of each outside wall, in uneven streaks: a decal projected onto the
+    /// wall's outer face (and only that: surfaces facing other ways are faded out).
+    /// </summary>
+    void Grime(int side, float ax, float ay, float bx, float by, bool brick)
+    {
+        if (_grimeTex == null)
+        {
+            const int W = 128, H = 32;
+            var img = Image.CreateEmpty(W, H, false, Image.Format.Rgba8);
+            for (int x = 0; x < W; x++)
+            {
+                float streak = 0.55f + 0.45f * Blob(x * 0.35f, 0, 1, 61) + 0.25f * (Gfx.Rand01(x, 0, 62) - 0.5f);
+                for (int y = 0; y < H; y++)
+                {
+                    float up = y / (H - 1f);   // 0 at the ground
+                    float a = Mathf.Pow(Mathf.Clamp(1 - up / Mathf.Clamp(streak, 0.25f, 1f), 0, 1), 1.6f);
+                    a *= 0.85f + 0.15f * Gfx.Rand01(x, y, 63);
+                    img.SetPixel(x, y, new Color(0.16f, 0.13f, 0.1f, a));
+                }
+            }
+            img.GenerateMipmaps();
+            _grimeTex = ImageTexture.CreateFromImage(img);
+        }
+        bool alongX = side is 0 or 2;
+        float len = alongX ? Mathf.Abs(bx - ax) : Mathf.Abs(by - ay);
+        // Outward normal of this side: 0 N (-z), 1 E (+x), 2 S (+z), 3 W (-x).
+        var outward = side switch { 0 => Vector3.Forward, 1 => Vector3.Right, 2 => Vector3.Back, _ => Vector3.Left };
+        var mid = new Vector3((ax + bx) / 2, 0, (ay + by) / 2) + outward * (WallThick / 2);
+        float h = brick ? 0.55f : 0.45f;
+        var d = new Decal
+        {
+            Size = new Vector3(len + WallThick, 0.4f, h),
+            TextureAlbedo = _grimeTex,
+            AlbedoMix = 1,
+            Modulate = new Color(1, 1, 1, brick ? 0.6f : 0.75f),
+            NormalFade = 0.4f,
+            UpperFade = 0.05f,
+            LowerFade = 0.05f,
+        };
+        // The decal projects along its -Y: point that into the wall. Its Z runs up the wall, X along it.
+        d.Basis = new Basis(outward.Cross(Vector3.Up), outward, Vector3.Up);
+        d.Position = mid + Vector3.Up * (h / 2);
+        _buildings.AddChild(d);
     }
 
     /// <summary>Hipped slate on the Mansion, low felt gables on the huts, flat concrete on the brick blocks.</summary>

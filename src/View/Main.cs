@@ -101,6 +101,17 @@ public partial class Main : Node3D
                 AdjustmentEnabled = true,
                 AdjustmentSaturation = 0.82f,
                 AdjustmentContrast = 1.06f,
+                // Aerial haze: the camera looks down from 120 units away, so ground further up the screen is
+                // further off. Fog by depth from just behind the middle of the view: none at the bottom, a little
+                // at the top, more the further out the camera zooms.
+                FogEnabled = true,
+                FogMode = Godot.Environment.FogModeEnum.Depth,
+                FogDepthBegin = 115,
+                FogDepthEnd = 175,
+                FogDepthCurve = 1.2f,
+                FogDensity = 0.36f,
+                FogSkyAffect = 0,
+                FogSunScatter = 0,
             },
         };
         AddChild(_env);
@@ -177,7 +188,7 @@ public partial class Main : Node3D
             // It tests the UI and the game, not the looks: draw the world cheaply. On a machine without a GPU (CI) every
             // frame is rendered in software, and the full-quality world made the run take minutes.
             var e = _env.Environment;
-            e.SsaoEnabled = e.SsilEnabled = e.GlowEnabled = false;
+            e.SsaoEnabled = e.SsilEnabled = e.GlowEnabled = e.FogEnabled = false;
             e.AmbientLightSource = Godot.Environment.AmbientSource.Color;
             e.ReflectedLightSource = Godot.Environment.ReflectionSource.Disabled;
             _sun.ShadowEnabled = false;
@@ -537,6 +548,11 @@ public partial class Main : Node3D
         env.AdjustmentContrast = 1.06f - 0.22f * haze;
         env.AdjustmentSaturation = 0.82f - 0.3f * haze;
         env.AdjustmentBrightness = 1f + 0.08f * haze * (1 - night);
+        // The haze takes the sky's colour, and closes in on foggy, snowy and wet days.
+        env.FogLightColor = env.AmbientLightColor.Lerp(new Color("d8dce0"), 0.4f * (1 - night)) * Mathf.Lerp(0.95f, 0.3f, night);
+        env.FogLightEnergy = 1;
+        env.FogDensity = 0.36f + 0.36f * haze;
+        env.FogDepthBegin = 115 - 22 * haze;
         _weather.Sync(w, Rig.Target, State.RaidOn && night > 0.3f);
         if (State.RaidOn != _wasRaid)
         {
