@@ -205,3 +205,24 @@ public class StandingProbe
         }
     }
 }
+
+public class BuiltProbe
+{
+    readonly Xunit.Abstractions.ITestOutputHelper o;
+    public BuiltProbe(Xunit.Abstractions.ITestOutputHelper o) => this.o = o;
+    [Fact]
+    public void Probe()
+    {
+        if (Environment.GetEnvironmentVariable("BUILT") != "1") return;
+        var g = GameState.NewGame(3, Difficulty.Normal);
+        var ai = new AutoPlayer(g);
+        while (g.Status == GameStatus.Playing && g.Day < 40)
+        {
+            if (g.ActCompletePending) g.ContinueAfterAct();
+            ai.Think(); g.Advance(60); g.Events.Clear();
+        }
+        o.WriteLine($"day {g.Day} act {g.ActIndex} builds {ai.Builds} fails {ai.BuildFails}");
+        foreach (var grp in g.Stations.GroupBy(s => s.Type)) o.WriteLine($"{grp.Key}: {grp.Count()} in {string.Join(",", grp.Select(s => g.Grid.ZoneAt(s.X, s.Y)?.Id))}");
+        o.WriteLine($"sixta logged {string.Join(",", g.SixtaLogged.Select(kv => kv.Key + "=" + kv.Value))}");
+    }
+}

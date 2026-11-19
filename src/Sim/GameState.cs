@@ -166,6 +166,9 @@ public sealed partial class GameState
         int cutoff = Day - 7;
         foreach (var k in Keys.Keys.ToList())
             if (int.Parse(k[(k.IndexOf(':') + 1)..]) < cutoff) Keys.Remove(k);
+        foreach (var d in new[] { SixtaLogged, SixtaRouted })
+            foreach (var k in d.Keys.ToList())
+                if (int.Parse(k[(k.IndexOf(':') + 1)..]) < cutoff) d.Remove(k);
     }
 
     // ------------------------------------------------------------- movement
@@ -538,6 +541,7 @@ public sealed partial class GameState
             case StationType.Crib:
                 if (Gardened(m.Net, m.Day)) t *= 0.5;
                 else if (Stale(m.Net, m.Day)) t *= Defs.StaleCribMult;
+                if (Analysed(m.Net, m.Day)) t *= Defs.SixtaCribMult;
                 break;
             case StationType.Translation:
                 if (Researched.Contains(ResearchId.Hut3Reporting)) t *= 0.6;
@@ -560,6 +564,7 @@ public sealed partial class GameState
         if (m.Banbury) t *= 0.35;
         if (Researched.Contains(ResearchId.DiagonalBoard)) t *= 0.5;
         if (m.Rerun) t *= 0.5;
+        if (Analysed(m.Net, m.Day)) t *= Defs.SixtaBombeMult;
         if (!HasStation(StationType.Checking)) t *= 1.25;
         if (Stale(m.Net, m.Day) && !Gardened(m.Net, m.Day)) t *= Defs.StaleBombeMult;
         return t;
@@ -605,6 +610,11 @@ public sealed partial class GameState
                 }
                 m.Next = net.Family == Family.Hand ? StationType.HandCipher
                     : KeyBroken(m.Net, m.Day) ? Defs.DecryptStep(m.Net) : null;
+                if (m.Next == null && WantsAnalysis(m)) { m.Next = StationType.TrafficAnalysis; Bump(SixtaRouted, m); }
+                break;
+            case StationType.TrafficAnalysis:
+                LogExternals(m);
+                m.Next = KeyBroken(m.Net, m.Day) ? Defs.DecryptStep(m.Net) : null;
                 break;
             case StationType.HandCipher:
             {
@@ -845,6 +855,11 @@ public sealed partial class GameState
 
     void AssignCarriers()
     {
+        // Messages bound for a traffic-analysis desk that's since been removed go back to waiting for the key.
+        if (!HasStation(StationType.TrafficAnalysis))
+            foreach (var m in Messages.Values)
+                if (m.Next == StationType.TrafficAnalysis && m.Loc == Loc.Output && !m.Reserved)
+                    m.Next = KeyBroken(m.Net, m.Day) ? Defs.DecryptStep(m.Net) : null;
         var waiting = Messages.Values
             .Where(m => m.Next == null && m.Loc == Loc.Output && !m.Carrier && m.HoldUntil < 0)
             .GroupBy(m => (m.Net, m.Day));

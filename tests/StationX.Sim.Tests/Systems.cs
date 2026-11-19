@@ -1607,3 +1607,24 @@ public class CalendarTests
         Assert.Equal(g.Date, g.DateOf(g.Day));
     }
 }
+
+public class SixtaTests
+{
+    [Fact]
+    public void TrafficAnalysisSpeedsTheDaysCribs()
+    {
+        var g = TestUtil.BombeLine(12, checking: true);
+        Station? ta = null;
+        foreach (var (x, y) in new[] { (26, 3), (28, 3), (26, 5), (21, 3), (4, 3), (12, 3) })
+            if ((ta = g.Place(StationType.TrafficAnalysis, x, y, 0, free: true)) != null) break;
+        Assert.NotNull(ta);
+        g.AddScripted(Net.Red, 6, 4, 0, 0, "t", "t", "t");
+        TestUtil.Run(g, 1.0);
+        Assert.True(ta!.Processed >= Defs.SixtaNeeded, $"logged {ta.Processed}");
+        Assert.Contains(g.SixtaLogged, kv => kv.Value >= Defs.SixtaNeeded);
+        TestUtil.Run(g, 1.5);
+        Assert.True(Stats.Get(g.Stats.Delivered, Net.Red) > 0, "traffic still gets through");
+        // No more than needed go to the analysts each day.
+        Assert.All(g.SixtaRouted.Values, v => Assert.True(v <= Defs.SixtaNeeded));
+    }
+}

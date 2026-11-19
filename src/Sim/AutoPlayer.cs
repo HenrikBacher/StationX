@@ -47,6 +47,8 @@ public sealed class AutoPlayer
             StationType.Dispatch => a >= 5 ? 2 : 1,
             StationType.Index => a >= Defs.IndexFromAct ? Math.Min(Have(StationType.Translation), Have(StationType.Index) + (UnindexedTranslation().Any() ? 1 : 0)) : 0,
             StationType.Typex => a >= 5 ? 2 : a >= 2 ? 1 : 0,
+            // What the traffic-analysis tip teaches: one desk beside the crib desks once there are Bombes.
+            StationType.TrafficAnalysis => a >= Defs.SixtaFromAct && Have(StationType.Crib) > 0 ? 1 : 0,
             StationType.Zygalski => a is 2 or 3 ? 1 : 0,
             StationType.Crib => a >= 7 ? 2 : a >= 3 ? 1 : 0,
             StationType.Bombe => a >= 10 ? 4 : a >= 9 ? 3 : a >= 5 ? 2 : a >= 3 ? 1 : 0,
@@ -113,7 +115,7 @@ public sealed class AutoPlayer
     {
         StationType.Registration, StationType.HandCipher, StationType.Translation,
         StationType.Typex, StationType.Zygalski, StationType.Crib, StationType.Bombe,
-        StationType.Banburismus, StationType.Bombe4, StationType.Dispatch, StationType.Index,
+        StationType.Banburismus, StationType.Bombe4, StationType.Dispatch, StationType.Index, StationType.TrafficAnalysis,
         StationType.Checking, StationType.Canteen, StationType.CommonRoom, StationType.Rounders,
         StationType.OutstationLink, StationType.Testery, StationType.TunnyMachine, StationType.Colossus,
     };
@@ -242,7 +244,7 @@ public sealed class AutoPlayer
         var want = new Dictionary<Role, int>
         {
             // Messengers do the running, so clerks only need to cover the registration and despatch desks.
-            [Role.Clerk] = Need(Have(StationType.Registration) + Have(StationType.Dispatch) + Have(StationType.Index) + (g.ActIndex < 1 ? 1 : 0)),
+            [Role.Clerk] = Need(Have(StationType.Registration) + Have(StationType.Dispatch) + Have(StationType.Index) + Have(StationType.TrafficAnalysis) + (g.ActIndex < 1 ? 1 : 0)),
             [Role.Messenger] = g.ActIndex < 1 ? 0 : Need(g.Grid.Zones.Count(z => z.Unlocked) + g.ActIndex / 3),
             [Role.Cryptanalyst] = Need(Math.Max(Have(StationType.HandCipher), Want(StationType.HandCipher)) + Have(StationType.Crib) + Have(StationType.Zygalski) + Have(StationType.Banburismus) + Have(StationType.Testery)),
             [Role.Wren] = Need(Have(StationType.Bombe) + Have(StationType.Bombe4) + Have(StationType.Typex) + Have(StationType.Checking)

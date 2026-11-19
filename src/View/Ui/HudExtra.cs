@@ -202,6 +202,8 @@ public partial class Hud
                 "A machine is badly worn (the orange lamp). Service it from its panel while it's idle: an hour now saves five hours of breakdown later.");
             yield return ("stale", S.ActiveNets.Any(n => S.Stale(n, S.Day)),
                 "The Germans have changed a habit and our cribs for one network are poor for a few days (see the key panel). Its Bombe runs take longer: give it more Bombe time or take fewer of its requests.");
+            yield return ("sixta", S.ActIndex >= Defs.SixtaFromAct && S.Stations.Any(s => s.Type == StationType.Crib) && !S.Stations.Any(s => s.Type == StationType.TrafficAnalysis),
+                "Hut 6's traffic analysts read what's outside a message: callsigns, frequencies, who sends to whom. A traffic-analysis desk (Build, B) by the crib desks logs two of each network's messages a day, and that key's cribs and Bombe runs go quicker.");
             yield return ("priorities", S.KeysQueueing,
                 "Keys are queueing for the Bombes. On the Enigma keys card, put the network with the most pressing request First; a network you have no requests for can go on Hold, leaving the Bombes to the others.");
             yield return ("neglect", S.NeglectedMinistries().Any(),

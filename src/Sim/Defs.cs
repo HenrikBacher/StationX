@@ -12,7 +12,7 @@ public enum StationType
     Bombe, Bombe4, Typex, Translation, Dispatch,
     Canteen, CommonRoom, Rounders, Checking, Tube, OutstationLink,
     Testery, Colossus, TunnyMachine,
-    Stove, SickBay, Index,
+    Stove, SickBay, Index, TrafficAnalysis,
 }
 
 public enum Family { Hand, Enigma, Lorenz }
@@ -119,6 +119,11 @@ public static partial class Defs
     // ---- Hut 3 ----
     /// <summary>From "Their Finest Hour": machine-cipher decrypts are indexed after translation, before despatch.</summary>
     public const int IndexFromAct = 5;
+    /// <summary>Traffic analysis (later SIXTA) from the Victory act, when the Bombes arrive.</summary>
+    public const int SixtaFromAct = 3;
+    /// <summary>Messages of a network's day to log before its externals give a crib hint; and the hint's effect.</summary>
+    public const int SixtaNeeded = 2;
+    public const double SixtaCribMult = 0.6, SixtaBombeMult = 0.85;
 
     // ---- Layout ----
     /// <summary>Paper passes straight across to a next-step desk this close (Manhattan, between working tiles, same hut).</summary>
@@ -146,7 +151,8 @@ public static partial class Defs
     public static StationType[] FlowNeighbours(StationType t) => t switch
     {
         StationType.Inbox => new[] { StationType.Registration },
-        StationType.Registration => new[] { StationType.Inbox, StationType.HandCipher, StationType.Crib, StationType.Typex },
+        StationType.Registration => new[] { StationType.Inbox, StationType.HandCipher, StationType.Crib, StationType.Typex, StationType.TrafficAnalysis },
+        StationType.TrafficAnalysis => new[] { StationType.Registration, StationType.Crib },
         StationType.HandCipher => new[] { StationType.Registration, StationType.Translation },
         StationType.Crib => new[] { StationType.Registration, StationType.Zygalski, StationType.Banburismus, StationType.Bombe, StationType.Bombe4 },
         StationType.Zygalski or StationType.Banburismus => new[] { StationType.Crib, StationType.Bombe, StationType.Bombe4 },
@@ -340,6 +346,9 @@ public static partial class Defs
         [StationType.Index] = new(StationType.Index, "Card index",
             "Hut 3's Index: every unit, officer, place and callsign in the decrypts on a card, so each new message is read against everything already known. From the Battle of Britain, Enigma and Tunny decrypts are indexed before they go out.",
             120, 2, 1, Role.Clerk, 7, 8, null, Defs.IndexFromAct),
+        [StationType.TrafficAnalysis] = new(StationType.TrafficAnalysis, "Traffic analysis",
+            "Hut 6's traffic analysts (later SIXTA) log each message's externals: callsigns, frequencies, routing. Two of a network's messages logged in a day tell the crib desk who is sending what, so that key's cribs come faster and its Bombe runs shorter.",
+            140, 2, 1, Role.Clerk, 12, 6, null, Defs.SixtaFromAct),
         [StationType.Translation] = new(StationType.Translation, "Translation desk",
             "Turns German service jargon into intelligence that Whitehall can act on.",
             150, 2, 1, Role.Linguist, 50, 6, null, 0),
@@ -443,18 +452,18 @@ public static partial class Defs
     {
         ["mansion"] = new("Headquarters. Any desk work can go here, but no machines: those went into the huts.",
             new[] { StationType.Inbox, StationType.Registration, StationType.HandCipher, StationType.Crib, StationType.Zygalski, StationType.Banburismus,
-                    StationType.Translation, StationType.Dispatch, StationType.CommonRoom, StationType.Testery, StationType.Index }),
+                    StationType.Translation, StationType.Dispatch, StationType.CommonRoom, StationType.Testery, StationType.Index, StationType.TrafficAnalysis }),
         ["hut1"] = new("A small hut beside the Mansion. The first Bombe, 'Victory', was installed here in March 1940.",
             new[] { StationType.Bombe, StationType.Checking }),
         ["hut6"] = new("Army and Luftwaffe Enigma: cribs, Zygalski sheets, and the Typex machines of the decoding room.",
-            new[] { StationType.Inbox, StationType.Registration, StationType.Crib, StationType.Zygalski, StationType.Typex }),
+            new[] { StationType.Inbox, StationType.Registration, StationType.Crib, StationType.Zygalski, StationType.Typex, StationType.TrafficAnalysis }),
         ["hut11"] = new("The Bombe hut, built for the machines that followed Victory and run by the Wrens. Hot, loud and smelling of oil.",
             new[] { StationType.Bombe, StationType.Bombe4, StationType.Checking, StationType.OutstationLink }),
         ["hut3"] = new("Intelligence from Hut 6: translation, emendation and despatch to the commands. No machines.",
             new[] { StationType.Registration, StationType.Translation, StationType.Index, StationType.Dispatch, StationType.CommonRoom }),
         ["hut8"] = new("Naval Enigma: cribs, Banburismus, the naval decoding room's Typex machines, and naval translation.",
             new[] { StationType.Inbox, StationType.Registration, StationType.Crib, StationType.Banburismus, StationType.Typex,
-                    StationType.Translation, StationType.Index, StationType.Dispatch }),
+                    StationType.Translation, StationType.Index, StationType.Dispatch, StationType.TrafficAnalysis }),
         ["blockf"] = new("The Testery and the Newmanry: Tunny by hand and by Colossus.",
             new[] { StationType.Inbox, StationType.Registration, StationType.Testery, StationType.Colossus, StationType.TunnyMachine,
                     StationType.Translation, StationType.Index, StationType.Dispatch }),

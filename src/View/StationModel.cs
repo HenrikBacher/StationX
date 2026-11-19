@@ -69,6 +69,7 @@ public partial class StationModel : Node3D
             case StationType.Colossus: Colossus(); break;
             case StationType.TunnyMachine: TunnyMachine(); break;
             case StationType.Index: CardIndex(); break;
+            case StationType.TrafficAnalysis: Desk(); TrafficAnalysis(); break;
         }
         if (!Defs.IsRest(Type)) BuildPiles();
     }
@@ -388,6 +389,34 @@ public partial class StationModel : Node3D
         Mesh3.Cyl(this, 0.012f, 0.012f, 0.28f, new Vector3(x, DeskTop + 0.17f, z), Gfx.Brass.Darkened(0.3f));
         Mesh3.Cyl(this, 0.04f, 0.12f, 0.09f, new Vector3(x, DeskTop + 0.31f, z + 0.03f), new Color("2f5a3a"));
         Mesh3.Sphere(this, 0.03f, new Vector3(x, DeskTop + 0.27f, z + 0.03f), Gfx.LampGlow with { A = 1 });
+    }
+
+    /// <summary>Log sheets, a callsign chart pinned on a board, and coloured pencils for drawing the network diagrams.</summary>
+    void TrafficAnalysis()
+    {
+        // Upright board at the back with a network diagram: callsign cards joined by coloured threads
+        float back = -H / 2 + 0.1f;
+        Mesh3.BoxAt(this, -0.8f, DeskTop, back - 0.03f, 1.6f, 0.62f, 0.03f, new Color("8a7a5c"));
+        Mesh3.BoxAt(this, -0.76f, DeskTop + 0.04f, back, 1.52f, 0.54f, 0.01f, new Color("d9cfb4"));
+        var nodes = new[] { (-0.55f, 0.42f), (-0.15f, 0.5f), (0.3f, 0.4f), (0.6f, 0.48f), (-0.35f, 0.18f), (0.1f, 0.14f), (0.5f, 0.2f) };
+        var colors = new[] { new Color("a3392b"), new Color("3d6b9a"), new Color("4f7a3a") };
+        int ci = 0;
+        foreach (var (a, b) in new[] { (0, 1), (1, 2), (2, 3), (1, 5), (4, 5), (5, 6), (2, 6), (0, 4) })
+        {
+            var p = new Vector3(nodes[a].Item1, DeskTop + nodes[a].Item2, back + 0.015f);
+            var q = new Vector3(nodes[b].Item1, DeskTop + nodes[b].Item2, back + 0.015f);
+            var mid = (p + q) / 2;
+            var thread = Mesh3.Box(this, new Vector3(p.DistanceTo(q), 0.008f, 0.004f), mid, colors[ci++ % 3]);
+            thread.RotationDegrees = new Vector3(0, 0, Mathf.RadToDeg(Mathf.Atan2(q.Y - p.Y, q.X - p.X)));
+        }
+        foreach (var (x, y) in nodes)
+            Mesh3.Box(this, new Vector3(0.12f, 0.07f, 0.006f), new Vector3(x, DeskTop + y, back + 0.02f), Gfx.Paper);
+        // Log sheets and pencils on the desk
+        Paper(-0.35f, 0.08f, 0.32f, 0.4f, 3);
+        Paper(0.1f, 0.1f, 0.32f, 0.4f, -5);
+        for (int i = 0; i < 3; i++)
+            Mesh3.Box(this, new Vector3(0.14f, 0.012f, 0.012f), new Vector3(0.5f + i * 0.04f, DeskTop + 0.01f, 0.12f + i * 0.03f), colors[i]).RotationDegrees = new Vector3(0, 25 + i * 10, 0);
+        Lamp(W / 2 - 0.3f, -H / 2 + 0.3f);
     }
 
     void Registration()
