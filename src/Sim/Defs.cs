@@ -102,6 +102,10 @@ public static partial class Defs
     /// <summary>Minutes paper waits for a messenger or clerk who is about (not at a desk) before a cryptanalyst, linguist or Wren carries it.</summary>
     public const double SpecialistsCarryAfter = 10;
     public const int DetourTiles = 6;
+    /// <summary>Game minutes between people getting up from the same table at the end of a watch (by seat).</summary>
+    public const double LeaveStagger = 4;
+    /// <summary>A break on a dry day draws people to a rounders pitch as if it were this many tiles nearer, up to this far.</summary>
+    public const int RoundersPull = 12, RoundersRange = 20;
     /// <summary>With no canteen or common room anywhere in the Park, people catch their breath where they stand, slowly.</summary>
     public const double EnergyRecoverNowhere = 1.0 / 1500;
     public const int LoafRange = 10;

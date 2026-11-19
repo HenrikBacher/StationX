@@ -126,6 +126,8 @@ public sealed class Staff
 
     /// <summary>Minutes on duty with nothing to do.</summary>
     public double IdleMinutes { get; set; }
+    /// <summary>Minutes spent getting up from a shared table at the end of a watch (they leave one by one).</summary>
+    public double LeaveWait { get; set; }
     /// <summary>Minutes spent waiting for someone standing in the way to move.</summary>
     public double WaitedFor { get; set; }
     public double X { get; set; }

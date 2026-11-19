@@ -121,6 +121,10 @@ public sealed partial class GameState
                         StartLeave(s);
                         break;
                     case TaskKind.Rest:
+                        // Everyone at a table shares its tile: they get up one at a time, in seat order, rather than
+                        // walking out as one body.
+                        if (s.Path.Count == 0 && s.LeaveWait < s.Task.Seat * Defs.LeaveStagger) { s.LeaveWait += dt; break; }
+                        s.LeaveWait = 0;
                         s.Task = null;
                         StartLeave(s);
                         break;
@@ -128,6 +132,7 @@ public sealed partial class GameState
                 }
                 continue;
             }
+            s.LeaveWait = 0;
             s.IdleMinutes = s.Task == null ? s.IdleMinutes + dt : 0;
             if (s.Task == null && s.Tired) StartBreak(s, false);
             else if (s.Task == null && s.Path.Count == 0 && s.IdleMinutes >= Defs.LoafAfter && s.HeadOf == null && !s.Arriving(Now)) StartBreak(s, true);
@@ -204,6 +209,12 @@ public sealed partial class GameState
                 score += 4;
             }
             if (s.Morale < 0.5 && st.Type != StationType.Canteen) score -= 20;
+            // On a dry day a proper break is worth a walk to the rounders pitch, if it isn't too far.
+            if (!loafing && st.Type == StationType.Rounders)
+            {
+                if (score > Defs.RoundersRange) continue;
+                score -= Defs.RoundersPull;
+            }
             // Company draws people in; a rival at the table keeps them away.
             score -= 2 * Math.Min(RestingAt(st.Id), Defs.RestCompanyMax);
             if (RivalRestingAt(s, st.Id)) score += 30;
