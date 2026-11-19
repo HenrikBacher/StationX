@@ -160,7 +160,7 @@ public static class Mesh3
     public static MeshInstance3D Sphere(Node3D parent, float r, Vector3 center, Color c)
     {
         if (!Spheres.TryGetValue(r, out var mesh))
-            Spheres[r] = mesh = new SphereMesh { Radius = r, Height = r * 2, RadialSegments = 14, Rings = 7 };
+            Spheres[r] = mesh = new SphereMesh { Radius = r, Height = r * 2, RadialSegments = 22, Rings = 11 };
         var mi = new MeshInstance3D { Mesh = mesh, Position = center, MaterialOverride = Mat(c) };
         parent.AddChild(mi);
         return mi;

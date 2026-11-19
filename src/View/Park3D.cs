@@ -298,6 +298,16 @@ public partial class Park3D : Node3D
         var cap = z.Brick ? Gfx.StoneDressing : Gfx.Creosote.Darkened(0.2f);
         float x0 = z.X + 0.5f, x1 = z.X + z.W - 0.5f, y0 = z.Y + 0.5f, y1 = z.Y + z.H - 0.5f;
 
+        // The floor: a high-resolution repeating texture over the coarse painted ground.
+        var floorSurface = mansion ? Surface.Parquet : z.Brick ? Surface.QuarryTile : Surface.Floorboards;
+        _buildings.AddChild(new MeshInstance3D
+        {
+            Mesh = new PlaneMesh { Size = new Vector2(x1 - x0, y1 - y0) },
+            Position = new Vector3((x0 + x1) / 2, 0.008f, (y0 + y1) / 2),
+            MaterialOverride = Textures.Mat(floorSurface, Colors.White, floorSurface == Surface.Floorboards ? 0.5f : 1f),
+            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+        });
+
         var plinth = Textures.Mat(mansion ? Surface.Stone : Surface.Brick, mansion ? Colors.White : new Color("a09080"));
         // A plinth rim just outside the walls
         float pw = 0.14f, ph = 0.1f;

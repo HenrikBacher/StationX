@@ -4,7 +4,7 @@ using Godot;
 
 namespace StationX.View;
 
-public enum Surface { Brick, Weatherboard, Concrete, Felt, Stone, Lino, Hessian, Matchboard, Plaster }
+public enum Surface { Brick, Weatherboard, Concrete, Felt, Stone, Lino, Hessian, Matchboard, Plaster, Parquet, Floorboards, QuarryTile }
 
 /// <summary>
 /// Procedural, slightly grimy textures for the buildings. Each is mapped in world space (triplanar),
@@ -136,6 +136,44 @@ public static class Textures
                 else if (xx == 15) c = c.Lightened(0.06f);       // bead catching light
                 c = c.Darkened(Smooth(x * 3 % N, y, 8, 82) * 0.04f);
                 return Grime(c, x, y, 0.12f);
+            }
+            case Surface.Parquet:
+            {
+                // Oak blocks laid in basket weave: 32 px squares of four blocks, alternating direction.
+                int bx = x / 32, by = y / 32, lx = x % 32, ly = y % 32;
+                bool across = (bx + by) % 2 == 0;
+                int plank = across ? ly / 8 : lx / 8, along = across ? lx : ly, side = across ? ly % 8 : lx % 8;
+                float tone = Noise(bx * 4 + plank, by, 101);
+                var c = new Color("7a5235").Lerp(new Color("946642"), tone).Darkened(Noise(bx, by * 4 + plank, 102) * 0.08f);
+                float grain = Smooth(across ? (along * 6) % N : x, across ? y : (along * 6) % N, 4, 103);
+                c = c.Lightened((grain - 0.5f) * 0.1f);
+                if (side == 0) c = c.Darkened(0.3f);                       // seams between blocks
+                if (lx == 0 || ly == 0) c = c.Darkened(0.35f);
+                // Polish worn dull in places
+                c = c.Lerp(new Color("6a5440"), Smooth(x, y, 32, 104) * 0.25f);
+                return c;
+            }
+            case Surface.Floorboards:
+            {
+                // Deal boards about 12 cm wide running one way, butt joints staggered, scuffed along the walkways.
+                int board = y / 16, yy = y % 16;
+                int joint = (int)(Noise(board, 0, 111) * N);
+                var c = new Color("8e7252").Lerp(new Color("7a6044"), Noise(board, (x + joint) / N, 112));
+                c = c.Lightened((Smooth((x * 3) % N, y, 4, 113) - 0.5f) * 0.12f);
+                if (yy == 0) c = c.Darkened(0.4f);
+                else if (yy == 1) c = c.Darkened(0.12f);
+                if ((x + joint) % N == 0) c = c.Darkened(0.4f);
+                if ((x + joint) % N is 6 or 122 && yy == 8) c = new Color("2e2a26");   // nail heads
+                return Grime(c, x, y, 0.18f);
+            }
+            case Surface.QuarryTile:
+            {
+                // Red quarry tiles, 25 cm, in grey grout.
+                int lx = x % 32, ly = y % 32;
+                if (lx < 2 || ly < 2) return Grime(new Color("7d776c"), x, y, 0.3f);
+                var c = new Color("74463a").Lerp(new Color("5f3a30"), Noise(x / 32, y / 32, 121)).Lerp(new Color("5a4a40"), 0.2f);
+                c = c.Lightened((Noise(x, y, 122) - 0.5f) * 0.06f);
+                return Grime(c, x, y, 0.3f);
             }
             case Surface.Plaster:
             {

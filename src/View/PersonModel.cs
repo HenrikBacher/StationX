@@ -40,7 +40,7 @@ public partial class PersonModel : Node3D
     {
         var m = new MeshInstance3D
         {
-            Mesh = new CapsuleMesh { Radius = r, Height = len + 2 * r, RadialSegments = 10, Rings = 3 },
+            Mesh = new CapsuleMesh { Radius = r, Height = len + 2 * r, RadialSegments = 16, Rings = 5 },
             Position = centre,
             Scale = new Vector3(1, 1, squashZ),
             MaterialOverride = Mesh3.Mat(c),
