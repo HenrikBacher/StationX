@@ -12,7 +12,8 @@ public partial class Hud
     VBoxContainer _alertBox = null!;
     string _alertSig = "";
 
-    sealed record Alert(string Text, Color Color, Action Go);
+    sealed record Alert(string Text, Color Color, Action Go, bool Pulse = false);
+    readonly List<Button> _pulsing = new();
 
     void BuildAlerts(VBoxContainer col)
     {
@@ -31,7 +32,7 @@ public partial class Hud
 
         foreach (var f in S.Contracts.Where(c => c.Flash && c.State == ContractState.Offered))
             list.Add(new Alert($"MOST IMMEDIATE from the {Defs.IssuerNames[f.Issuer]}: answer within {Hours(Math.Max(0, f.OfferExpires - S.Now))}",
-                Gfx.Bad, () => OpenPanel("requests")));
+                Gfx.Bad, () => ShowFlash(f), Pulse: true));
         foreach (var st in S.Stations.Where(s => s.Wears && s.IsDown(S.Now) && !s.Servicing))
             Station(st, $"{st.Def.Name} #{st.Id} broken down", Gfx.Bad);
         if (S.Operations.Count(o => o.AwaitingUse) is int dec and > 0)
@@ -69,9 +70,13 @@ public partial class Hud
     void RefreshAlerts()
     {
         var alerts = CurrentAlerts();
+        // Unanswered MOST IMMEDIATE requests throb, so they can't sit unnoticed in the list.
+        float throb = 0.55f + 0.45f * Mathf.Abs(Mathf.Sin((float)Time.GetTicksMsec() / 1000f * 3.2f));
+        foreach (var b in _pulsing) if (IsInstanceValid(b)) b.Modulate = new Color(1, 1, 1, throb);
         string sig = string.Join("|", alerts.Select(a => a.Text));
         if (sig == _alertSig) return;
         _alertSig = sig;
+        _pulsing.Clear();
         Clear(_alertBox);
         _alertBox.GetParent<Control>().Visible = alerts.Count > 0;
         if (alerts.Count == 0) return;
@@ -85,6 +90,13 @@ public partial class Hud
             b.AddThemeFontSizeOverride("font_size", 12);
             var go = a.Go;
             b.Pressed += () => go();
+            if (a.Pulse)
+            {
+                b.Text = "▶ " + a.Text;
+                b.AddThemeFontOverride("font", Fonts.BodyBold);
+                b.AddThemeFontSizeOverride("font_size", 13);
+                _pulsing.Add(b);
+            }
             _alertBox.AddChild(b);
         }
         if (alerts.Count > 6) _alertBox.AddChild(UiTheme.Label($"…and {alerts.Count - 6} more", 11, UiTheme.TextDim));

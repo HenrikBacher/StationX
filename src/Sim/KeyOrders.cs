@@ -23,6 +23,9 @@ public sealed partial class GameState
     }
 
     /// <summary>Lower goes first: a First network's key attempt, then the rest of its traffic, then everything else.</summary>
+    /// <summary>0 for paper of a request the player has put first, 1 otherwise.</summary>
+    int Prio(Message m) => ContractById(m.ContractId) is { State: ContractState.Active, Priority: true } ? 0 : 1;
+
     int Rank(Message m) => KeyOrderOf(m.Net) != KeyOrder.First ? 2 : m.Carrier ? 0 : 1;
 
     /// <summary>True when two or more key attempts are queueing for crib desks or Bombes.</summary>

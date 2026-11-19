@@ -351,6 +351,10 @@ public partial class Hud
             case "save": ShowSaves(true); break;
             case "load": ShowSaves(false); break;
             case "newgame": ShowNewGame(); break;
+            case "flash":
+                S.DebugFlash();
+                if (S.Contracts.LastOrDefault(c => c.Flash && c.State == ContractState.Offered) is { } fc) ShowFlash(fc);
+                break;
             case "dilemma" when S.Dilemmas.Count > 0: ShowDilemma(S.Dilemmas[0]); break;
             case "dilemma": S.RaiseDilemma(S.DebugDilemma()); ShowDilemma(S.Dilemmas[0]); break;
             case "end": ShowEnd(true); break;
@@ -543,6 +547,43 @@ public partial class Hud
     }
 
     // ---------------------------------------------------------------- dilemmas
+
+    /// <summary>Flash requests already put in front of the player (each is shown once, as a telegram).</summary>
+    readonly HashSet<int> _flashShown = new();
+
+    /// <summary>
+    /// A MOST IMMEDIATE request: the game stops on a telegram so it can't be missed. Accepting puts it first in
+    /// every tray; "Later" leaves it in the requests (and pulsing in Needs attention) until the offer lapses.
+    /// </summary>
+    public void ShowFlash(Contract c)
+    {
+        _flashShown.Add(c.Id);
+        Sound.Play("flash", 0.9f, 0);
+        var v = Paper(620);
+        v.AddChild(Letterhead());
+        v.AddChild(new HSeparator());
+        v.AddChild(Ink($"{S.Date:d MMMM yyyy}, {(int)S.MinuteOfDay / 60:00}:{(int)S.MinuteOfDay % 60:00}", 13));
+        v.AddChild(Ink("MOST IMMEDIATE", 30, Fonts.Heading, UiTheme.Stamp));
+        v.AddChild(Ink($"From the {Defs.IssuerNames[c.Issuer]}: {c.Title}", 17, Fonts.BodyBold));
+        v.AddChild(Ink(c.Flavour, 15));
+        v.AddChild(Ink($"{c.Quantity} messages within {Hours(c.Days * Defs.MinutesPerDay)} · £{c.Reward:N0} · reputation +{c.Rep}. " +
+                       $"Answer within {Hours(Math.Max(0, c.OfferExpires - S.Now))}: ignoring it costs {Defs.FlashIgnoredRep:0} reputation, declining {Defs.FlashIgnoredRep / 2:0}.", 13));
+        var nd = Defs.NetOf(c.Net);
+        if (nd.Family == Family.Enigma && !S.KeyBroken(c.Net, S.Day))
+            v.AddChild(Ink($"Today's {nd.Name} key isn't broken yet: the decrypts will wait for it.", 12, Fonts.Body, UiTheme.Stamp));
+        int id = c.Id;
+        foreach (var (label, act) in new (string, Action)[]
+                 {
+                     ("Accept, and put it first in every tray", () => { S.Accept(id); S.SetPriority(id, true); }),
+                     ($"Decline (reputation −{Defs.FlashIgnoredRep / 2:0})", () => S.Decline(id)),
+                     ("Decide later (it waits in Requests)", () => { }),
+                 })
+        {
+            var b = PaperButton(label, () => { CloseModal(); act(); _sideSig = ""; });
+            b.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+            v.AddChild(b);
+        }
+    }
 
     public void ShowDilemma(Dilemma d)
     {

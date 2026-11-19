@@ -390,6 +390,17 @@ public sealed partial class GameState
         var c = ContractById(contractId);
         if (c == null || c.State != ContractState.Offered) return false;
         Activate(c);
+        // A MOST IMMEDIATE request goes to the top of every in-tray at once.
+        if (c.Flash) c.Priority = true;
+        return true;
+    }
+
+    /// <summary>Puts a request's paper first in every in-tray and out-tray (or back in its turn).</summary>
+    public bool SetPriority(int contractId, bool on)
+    {
+        var c = ContractById(contractId);
+        if (c == null || c.State != ContractState.Active) return false;
+        c.Priority = on;
         return true;
     }
 
@@ -526,6 +537,9 @@ public sealed partial class GameState
     };
 
     /// <summary>Now and then an urgent request lands that has to be dealt with within hours.</summary>
+    /// <summary>Raises a flash request now, for screenshots.</summary>
+    public void DebugFlash() { NextFlashAt = Now; MaybeFlash(); }
+
     void MaybeFlash()
     {
         if (ActIndex < Defs.FlashFromAct) return;

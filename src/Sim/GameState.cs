@@ -450,14 +450,14 @@ public sealed partial class GameState
     int MostUrgent(List<int> tray)
     {
         int best = tray[0];
-        (int, double) bestKey = (int.MaxValue, double.MaxValue);
+        (int, int, double) bestKey = (int.MaxValue, int.MaxValue, double.MaxValue);
         foreach (var id in tray)
         {
             if (!Messages.TryGetValue(id, out var m)) continue;
             // Networks put First come first; then only live requests set the order: work for a request already
             // missed or met waits until the rest is done.
             double due = ContractById(m.ContractId) is { State: ContractState.Active } c ? WorkDue(c) : double.MaxValue;
-            var key = (Rank(m), due);
+            var key = (Prio(m), Rank(m), due);
             if (key.CompareTo(bestKey) < 0) { bestKey = key; best = id; }
         }
         return best;

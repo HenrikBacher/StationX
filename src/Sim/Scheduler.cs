@@ -78,7 +78,8 @@ public sealed partial class GameState
         // 3. Messages sitting in out-trays that need carrying onwards.
         var waiting = Messages.Values
             .Where(m => m.Loc == Loc.Output && m.Next != null && !m.Reserved)
-            .OrderBy(Rank)
+            .OrderBy(Prio)
+            .ThenBy(Rank)
             .ThenBy(m => ContractById(m.ContractId) is { } c ? WorkDue(c) : double.MaxValue)
             .ThenBy(m => m.Id)
             .ToList();
@@ -112,6 +113,7 @@ public sealed partial class GameState
             var batch = src.Output
                 .Select(id => Messages[id])
                 .Where(x => !x.Reserved && x.Next == m.Next)
+                .OrderBy(x => x.Id == m.Id ? 0 : 1).ThenBy(Prio)
                 .Take(Math.Min(Defs.CarryBatch, dest.FreeInput))
                 .Select(x => x.Id)
                 .ToList();
@@ -193,7 +195,7 @@ public sealed partial class GameState
             if (best == null || st.Input.Count < best.Input.Count) best = st;
         }
         if (best == null) return false;
-        var batch = src.Output.Where(id => !Messages[id].Reserved && Messages[id].Next == next)
+        var batch = src.Output.Where(id => !Messages[id].Reserved && Messages[id].Next == next).OrderBy(id => Prio(Messages[id]))
                               .Take(Math.Min(Defs.CarryBatch, best.FreeInput)).ToList();
         foreach (var id in batch)
         {

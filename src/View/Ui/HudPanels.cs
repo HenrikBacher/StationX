@@ -60,7 +60,7 @@ public partial class Hud
             "build" => $"{S.Funds / 50}|{S.ActIndex}|{string.Join(",", S.Researched)}|{S.IndicatorChanged}",
             "staff" => string.Join(",", S.Staff.Select(s => $"{s.Id}{s.Task?.Kind}{s.Leaving}{s.Away}{s.Shift}{(int)(s.Energy * 5)}{(int)(s.Morale * 5)}{s.FarBillet}{s.IsSick(S.Now)}{s.Arriving(S.Now)}{s.HeadOf}")) + $"|{S.Billets}{S.Funds >= Defs.BilletCost}{S.AllHands}{S.CanCallAllHands() == null}|{(int)S.Stores}{S.StoresOnOrder}{S.StandingOrder}{S.CanOrderStores() == null}|" +
                        string.Join(",", S.Candidates.Select(c => c.Id)) + $"|{S.Funds / 25}",
-            "requests" => string.Join(",", S.Contracts.Select(c => $"{c.Id}{c.State}{c.Delivered}{c.Spawned}{c.MilestonesChecked}{(int)((c.State == ContractState.Offered ? c.OfferExpires : c.Due) - S.Now) / 60}")) +
+            "requests" => string.Join(",", S.Contracts.Select(c => $"{c.Id}{c.State}{c.Priority}{c.Delivered}{c.Spawned}{c.MilestonesChecked}{(int)((c.State == ContractState.Offered ? c.OfferExpires : c.Due) - S.Now) / 60}")) +
                           $"|{string.Join(",", S.KeyBoardNets().Select(n => S.KeyRoute(n)))}",
             "research" => $"{S.Points}|{string.Join(",", S.Researched)}|{string.Join(",", S.ResearchAvailable)}",
             "huts" => $"{S.Funds / 100}|{S.OutstationBombes}|{S.CanBuyOutstation()}|" + string.Join(",", S.Grid.Zones.Select(z => $"{z.Available}{z.Unlocked}")),
@@ -351,6 +351,12 @@ public partial class Hud
             }
             else
                 v.AddChild(UiTheme.Label($"Due in {Hours(left)} · £{c.Reward:N0} on completion", 12, left < Defs.MinutesPerDay * 0.5 ? Gfx.Bad : UiTheme.Text));
+            var cid = c.Id;
+            var prioNote = UiTheme.Label(c.Priority ? "Put first: its paper is worked and carried before anything else." : "", 11, Gfx.Warn);
+            prioNote.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+            v.AddChild(Row(prioNote, UiTheme.Button(c.Priority ? "Back in turn" : "Put first", () => { S.SetPriority(cid, !c.Priority); _sideSig = ""; },
+                tooltip: c.Priority ? "Let this request's paper take its turn by deadline again."
+                                    : "Every desk, machine and runner handles this request's paper before anything else's.")));
         }
 
         _sideBox.AddChild(UiTheme.Caps($"Offered · {offers.Count}", 12, UiTheme.Accent));
@@ -388,7 +394,8 @@ public partial class Hud
     static void ContractHeader(Control v, Contract c)
     {
         bool urgent = c.Tag != null || c.Flash;
-        var issuer = UiTheme.Caps(Defs.IssuerNames[c.Issuer] + (urgent ? " · MOST IMMEDIATE" : ""), 11, urgent ? Gfx.Bad : UiTheme.TextDim);
+        var issuer = UiTheme.Caps(Defs.IssuerNames[c.Issuer] + (urgent ? " · MOST IMMEDIATE" : "") + (c.Priority && c.State == ContractState.Active ? " · FIRST" : ""), 11,
+            urgent || c.Priority ? Gfx.Bad : UiTheme.TextDim);
         v.AddChild(issuer);
         v.AddChild(UiTheme.Label(c.Title, 15, UiTheme.Text, Fonts.BodyBold));
     }

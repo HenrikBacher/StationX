@@ -251,6 +251,8 @@ public sealed class Contract
     public string? Tag { get; set; }
     /// <summary>A MOST IMMEDIATE request: hours, not days, and ignoring it is noticed.</summary>
     public bool Flash { get; set; }
+    /// <summary>Put first by the player: its paper is worked and carried before anything else's.</summary>
+    public bool Priority { get; set; }
     /// <summary>A standing order: PerDay decrypts every day, checked against a running total each 24 hours.</summary>
     public int PerDay { get; set; }
     public bool Standing => PerDay > 0;

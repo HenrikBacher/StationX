@@ -69,6 +69,18 @@ public partial class Sound : Node
         _clips["train"] = Train();
         _clips["aircraft"] = Aircraft();
         _clips["birds"] = Loop(11f, Birds);
+        // The teleprinter bell rung three times: the signal for a MOST IMMEDIATE message.
+        _clips["flash"] = Make(1.6f, (t, r) =>
+        {
+            float v = 0;
+            for (int k = 0; k < 3; k++)
+            {
+                float lt = t - k * 0.22f;
+                if (lt < 0) continue;
+                v += (Mathf.Sin(lt * Mathf.Tau * 1568) * 0.6f + Mathf.Sin(lt * Mathf.Tau * 2350) * 0.3f + Mathf.Sin(lt * Mathf.Tau * 3920) * 0.12f) * Env(lt, 0.25f);
+            }
+            return v * 0.35f;
+        });
         _clips["room"] = Loop(6f, RoomTone);
         _clips["teleprinter"] = Loop(3f, Teleprinter);
         _clips["hum"] = Loop(2f, BombeHum);

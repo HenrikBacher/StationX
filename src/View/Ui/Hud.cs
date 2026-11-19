@@ -66,6 +66,9 @@ public partial class Hud : CanvasLayer
     public override void _Process(double delta)
     {
         ApplyScale();
+        if (!ModalOpen && _main.Interactive && S.Status == GameStatus.Playing
+            && S.Contracts.FirstOrDefault(c => c.Flash && c.State == ContractState.Offered && !_flashShown.Contains(c.Id)) is { } flash)
+            ShowFlash(flash);
         if (!ModalOpen && _main.Interactive && S.Status == GameStatus.Playing && S.Dilemmas.Count > 0) ShowDilemma(S.Dilemmas[0]);
         _refresh -= delta;
         if (_refresh > 0) return;

@@ -76,6 +76,9 @@ Then (user requests, 2026-11-19):
   riders. `Riders.cs` draws the motorcycle (gate → building door, `--rider` screenshot flag); the gate's barrier and
   sentry (`Park3D.GateParts`, `SetBoom`) live outside the merged static meshes. Tests that need a teleprinter call
   `TestUtil.Teleprinter`.
+- Request priority: `Contract.Priority` (`SetPriority`, "Put first" on request cards) sorts ahead of everything in
+  `MostUrgent` and the carry queue (`Prio`); accepting a flash request sets it. Flash offers open a telegram sheet
+  (`Hud.ShowFlash`, once each, `--modal=flash`) and throb in Needs attention.
 - Music (`Music.cs`): public-domain US military band recordings (Elgar, Holst; CREDITS.md) as loose .ogg in
   `assets/music` (`.gdignore`, so not packed; `export.sh` copies them to `music/` beside the game, part of the base,
   not the patch). Re-encode new tracks with GStreamer (`vorbisenc quality=0.2`); no ffmpeg here. Ambience is all

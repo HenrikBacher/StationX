@@ -2268,3 +2268,36 @@ public class SecurityTests
         Assert.Equal(before, g.Stats.PapersFound);   // nothing left out, nothing found
     }
 }
+
+public class RequestPriorityTests
+{
+    [Fact]
+    public void PaperOfARequestPutFirstIsWorkedFirst()
+    {
+        var g = GameState.NewGame(5);
+        var reg = g.Place(StationType.Registration, 6, 3, 0, free: true)!;
+        var a = g.AddScripted(Net.Police, 4, 4, 0, 0, "a", "a", "a");
+        var b = g.AddScripted(Net.Police, 4, 4, 0, 0, "b", "b", "b");
+        foreach (var (id, c) in new[] { (900, a), (901, a), (902, b), (903, b) })
+        {
+            g.Messages[id] = new Message { Id = id, Net = Net.Police, ContractId = c.Id, Loc = Loc.Input, LocId = reg.Id };
+            reg.Input.Add(id);
+        }
+        int first = g.DebugMostUrgent(reg.Input);
+        Assert.True(g.SetPriority(b.Id, true));
+        Assert.Equal(b.Id, g.Messages[g.DebugMostUrgent(reg.Input)].ContractId);
+        Assert.True(g.SetPriority(b.Id, false));
+        Assert.Equal(first, g.DebugMostUrgent(reg.Input));
+    }
+
+    [Fact]
+    public void AcceptingAFlashRequestPutsItFirst()
+    {
+        var g = GameState.NewGame(7);
+        g.DebugSkipToAct(Defs.FlashFromAct);
+        g.DebugFlash();
+        var f = g.Contracts.Last(c => c.Flash && c.State == ContractState.Offered);
+        Assert.True(g.Accept(f.Id));
+        Assert.True(f.Priority);
+    }
+}
