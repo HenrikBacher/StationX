@@ -46,10 +46,17 @@ public partial class Hud : CanvasLayer
     void ApplyScale()
     {
         float s = Mathf.Clamp(Settings.UiScale, 0.75f, 1.75f);
+        // A small window shrinks the whole canvas with it (canvas_items stretch from 1600×900). Below about 0.8 the
+        // small print can't be read, so the HUD grows back to that size and the park gets less of the screen.
+        var visible = GetViewport().GetVisibleRect().Size;
+        float shrink = visible.X > 0 ? GetWindow().Size.X / visible.X : 1;
+        if (shrink > 0.1f && shrink < MinReadableScale) s *= MinReadableScale / shrink;
         Scale = new Vector2(s, s);
         _root.Position = Vector2.Zero;
-        _root.Size = GetViewport().GetVisibleRect().Size / s;
+        _root.Size = visible / s;
     }
+
+    const float MinReadableScale = 0.8f;
 
     public string? PanelId => _panel;
 

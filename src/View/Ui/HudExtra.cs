@@ -22,7 +22,7 @@ public partial class Hud
     {
         _sideBox.AddChild(UiTheme.Heading("Intelligence"));
         _sideBox.AddChild(UiTheme.Label("ULTRA is only useful while the Germans believe their ciphers are safe. Every decrypt that is acted on is a risk. " +
-                                        "Suspicion fades by itself, a few points a day.", 13, UiTheme.TextDim));
+                                        $"Suspicion fades by itself, a few points a day. At {(int)Defs.SuspicionLimit} a service tightens its procedures and its keys go dark for {Defs.LockdownDays + 1} days.", 13, UiTheme.TextDim));
 
         _sideBox.AddChild(UiTheme.Caps("German suspicion", 12, UiTheme.Accent));
         foreach (var sv in Enum.GetValues<Service>().Where(S.ServiceInPlay))
@@ -34,8 +34,11 @@ public partial class Hud
             var bar = new ProgressBar { MinValue = 0, MaxValue = Defs.SuspicionLimit, Value = v, ShowPercentage = false, CustomMinimumSize = new Vector2(150, 10), SizeFlagsVertical = Control.SizeFlags.ShrinkCenter };
             bar.AddThemeStyleboxOverride("fill", UiTheme.Box(v >= Defs.SuspicionWarn ? Gfx.Bad : v >= 40 ? Gfx.Warn : Gfx.Good, new Color(0, 0, 0, 0), 2, 0));
             bar.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-            var state = UiTheme.Label(locked ? $"locked {until - S.Day + 1}d" : $"{(int)v}", 12, locked ? Gfx.Bad : UiTheme.TextDim);
-            _sideBox.AddChild(Row(name, bar, state));
+            var state = UiTheme.Label(locked ? $"locked out, {until - S.Day + 1} d" : $"{(int)v}/{(int)Defs.SuspicionLimit}", 12, locked ? Gfx.Bad : UiTheme.TextDim);
+            var row = Row(name, bar, state);
+            row.TooltipText = locked ? $"The {Defs.ServiceNames[sv]} have tightened their procedures: their keys can't be broken for {until - S.Day + 1} more day(s)."
+                                     : $"{Defs.ServiceNames[sv]} suspicion {(int)v} of {(int)Defs.SuspicionLimit}. Acting on their decrypts raises it; cover stories, direction-finding and a cautious policy keep it down.";
+            _sideBox.AddChild(row);
         }
 
         if (S.ActIndex >= Defs.SecurityFromAct)
@@ -130,7 +133,8 @@ public partial class Hud
             return;
         }
         Chart("Decrypts delivered per day", hist, r => r.Delivered, Gfx.Good, "0");
-        Chart("Enigma keys broken per day", hist, r => r.KeysBroken, UiTheme.Accent, "0");
+        if (S.ActiveNets.Any(n => Defs.NetOf(n).Family == Family.Enigma) || hist.Any(r => r.KeysBroken > 0))
+            Chart("Enigma keys broken per day", hist, r => r.KeysBroken, UiTheme.Accent, "0");
         Chart("Messages in the huts at midnight", hist, r => r.Backlog, Gfx.Warn, "0");
         Chart("Funds", hist, r => r.Funds, UiTheme.Text, "£#,0");
         Chart("Reputation in Whitehall", hist, r => r.Reputation, UiTheme.Accent, "0", 0, 100);
@@ -164,7 +168,7 @@ public partial class Hud
             Min = min ?? Math.Min(0, values.Min()),
             Max = max ?? Math.Max(1, values.Max() * 1.1),
             Color = color,
-            CustomMinimumSize = new Vector2(0, 64),
+            CustomMinimumSize = new Vector2(0, 72),
             SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
         });
     }
@@ -205,6 +209,22 @@ public partial class Hud
     /// <summary>Every situational tip: id (shown once per id), when it applies, and its text.</summary>
     IEnumerable<(string id, bool when, string text)> Tips()
     {
+        yield return ("research", S.Researched.Count == 0 && S.ResearchAvailable.Any(r => !S.Researched.Contains(r) && S.Points >= Defs.Research[r].Cost),
+            "Every decrypt delivered earns breakthroughs, and you have enough for a new method. Spend them in Research (T).");
+        yield return ("hutopen", S.Grid.Zones.Any(z => z.Available && !z.Unlocked),
+            "The Treasury has authorised a new hut. Open it from Huts (G), or click its foundations, and its desks and machines can go in.");
+        yield return ("watches", S.WatchesAvailable && S.Staff.Any(s => s.Shift == Shift.Office && !s.Leaving && !s.Arriving(S.Now)),
+            "The Park now works three watches round the clock: day 08–16, evening 16–24, night 00–08. Anyone left on long days (07–22) tires and grows unhappy. " +
+            "Staff (H) → Balance watches spreads everyone over the three; a person's own panel sets their watch.");
+        yield return ("index", S.ActIndex >= Defs.IndexFromAct && !S.Stations.Any(s => s.Type == StationType.Index),
+            "Enigma and Tunny decrypts now go through Hut 3's card index between translation and despatch: every unit, officer and place on a card, so each message is read against all we know. " +
+            "Until there is a card index (Hut 3, Hut 8 or the Mansion, worked by a clerk) they wait. Put one beside each translation desk so the paper is passed across.");
+        yield return ("storesopen", S.SuppliesActive && !S.StoresLow && !S.StandingOrder,
+            "Every message now uses dockets and worksheets at registration, and the stores run down. Staff (H) shows what's left: order more before they run out " +
+            "(the lorry takes most of a day), or set up a standing order.");
+        yield return ("operation", S.CurrentOp != null,
+            "A great operation starts on a fixed day, whatever the Park does. Its readiness, under the objectives, counts the act's 'before' objectives, how unsuspecting the Germans still are, " +
+            "and a decision a few days before. Hover it for the figures. Keep suspicion low and deliver the objectives in time.");
         yield return ("vetting", S.Staff.Any(s => s.Arriving(S.Now)),
             "New recruits are vetted and put on a train: they take most of a day to report. Hire ahead of need, not when the pile is already on the desk.");
         yield return ("raid", S.RaidOn,
@@ -278,7 +298,8 @@ public partial class Hud
         bool Has(StationType t) => S.Stations.Any(s => s.Type == t);
         int Count(Role r) => S.Staff.Count(s => s.Role == r);
         if (!S.Contracts.Any(c => c.State is ContractState.Active or ContractState.Completed))
-            return ("accept", "Open Requests (Q) and accept one. Traffic only flows once a ministry has asked for it.");
+            return ("accept", "Open Requests (Q) and accept one: the Y-station sends nothing until a ministry has asked for it. " +
+                              "The first rider takes a while, so build the desks in your objectives (top right) meanwhile.");
         if (!Has(StationType.Registration))
             return ("reg", "Dispatch riders bring the intercepts up the drive, and need a desk to hand them to. Open Build (B) and place a registration desk in the Mansion: every message is logged there first.");
         if (!Has(StationType.HandCipher))
@@ -287,8 +308,6 @@ public partial class Hud
             return ("trans", "Decrypts are in German. A translation desk, worked by a linguist, turns them into English.");
         if (!Has(StationType.Dispatch))
             return ("disp", "Finished translations leave by the despatch box. Without one, nothing reaches Whitehall.");
-        if (S.ActIndex >= Defs.IndexFromAct && !Has(StationType.Index))
-            return ("index", "Machine-cipher decrypts now go through Hut 3's Index before despatch: a card for every unit, officer and place, so each message is read against all we know. Build a card index (Hut 3, Hut 8 or the Mansion), worked by a clerk.");
         if (Count(Role.Clerk) < 2)
             return ("clerks", "Clerks register paper and carry it between desks. Hire another from Staff (H).");
         if (S.ActIndex >= 1 && Count(Role.Messenger) == 0 && S.Candidates.Any(c => c.Role == Role.Messenger))
@@ -297,10 +316,12 @@ public partial class Hud
             return ("ling", "Hire a linguist for the translation desk.");
         if (S.Stations.Any(s => s.Def.Operator != null && s.Input.Count > 5 && s.OperatorId == null))
             return ("idle", "A desk has a pile of paper and nobody to work it: the ! marks it. Hire someone of that role, or pin a person to it from the desk's panel.");
+        if (!Has(StationType.Canteen))
+            return ("tea", "Desk work tires people, and standing about is no rest. Build a canteen table (B) so they can take a tea break and come back fresh: " +
+                           "nobody lasts a whole day without one.");
         if (S.Stats.DeliveredTotal == 0)
-            return ("wait", "Good. Let it run: press 3 for top speed. Press F to see where paper flows and where it is held up.");
-        if (!Has(StationType.Canteen) && S.AverageEnergy < 0.6)
-            return ("tea", "People are tiring, and standing about is no rest. A canteen table lets them take a tea break and come back fresh: nobody lasts a whole watch without one.");
+            return ("wait", "Good. Each message goes registration → hand-cipher desk → translation → despatch box, and is delivered when it leaves. " +
+                            "Let it run: press 3 for top speed, and F to see where paper flows and where it is held up.");
         if (S.Day >= 2 && Rig_Quarter() == 0)
             return ("rotate", "You can turn the view with the comma and full-stop keys (or the ⟲ ⟳ buttons) to see behind tall walls.");
         return null;
@@ -313,6 +334,12 @@ public partial class Hud
         var h = Settings.Hints && !ModalOpen ? NextHint() : null;
         if (h is { } hint && _hintsDone.Contains(hint.id)) h = null;
         _hint.Visible = h != null;
+        // Centred over the park, but clear of an open side panel and the right-hand column when the screen is narrow.
+        float w = _root.Size.X, left = w / 2 - 250, right = w / 2 + 250;
+        float minLeft = _side.Visible ? 536 : 136, maxRight = w - 344;
+        if (left < minLeft) { left = minLeft; right = Math.Max(left + 300, Math.Min(left + 500, maxRight)); }
+        _hint.OffsetLeft = left - w / 2;
+        _hint.OffsetRight = right - w / 2;
         if (h is { } x && x.id != _hintId)
         {
             _hintId = x.id;
@@ -507,11 +534,11 @@ public partial class Hud
         v.AddChild(Ink("Game", 13, Fonts.BodyBold, UiTheme.Stamp));
         v.AddChild(Choice(new[]
         {
-            (GameMode.Campaign, "Campaign", "From the first police ciphers in 1939 to SHARK in December 1942, with Tunny and Colossus to follow."),
+            (GameMode.Campaign, "Campaign", "Seven chapters, from the first police ciphers in 1939 through SHARK, Tunny and Colossus to D-Day and VE Day in 1945."),
             (GameMode.FreePlay, "Free play", "No objectives and no closure: requests keep coming, and the war moves on every ten days."),
         }, _ngMode, m => _ngMode = m));
         v.AddChild(Ink(_ngMode == GameMode.Campaign
-            ? "Five chapters of the war as Bletchley saw it, from the police ciphers of 1939 to the breaking of SHARK in 1942. A sixth, Tunny and Colossus, follows if you want it."
+            ? "The war as Bletchley saw it, in seven chapters: the police ciphers of 1939, the Polish gift, the Battle of Britain, DOLPHIN, SHARK, Tunny and Colossus, and the Second Front to victory in Europe in May 1945."
             : "A sandbox. Pick where to start; everything earlier is already built and researched.", 13, Fonts.Body));
 
         v.AddChild(Ink("Difficulty", 13, Fonts.BodyBold, UiTheme.Stamp));
@@ -642,7 +669,9 @@ public partial class LineChart : Control
 
     public override void _Draw()
     {
-        var size = Size;
+        // The plot leaves a strip at the bottom for the date, so the line never runs through it.
+        var full = Size;
+        var size = new Vector2(full.X, full.Y - 12);
         DrawRect(new Rect2(Vector2.Zero, size), new Color(0, 0, 0, 0.2f));
         for (int k = 1; k < 4; k++)
             DrawLine(new Vector2(0, size.Y * k / 4), new Vector2(size.X, size.Y * k / 4), new Color(1, 1, 1, 0.05f));
@@ -659,6 +688,7 @@ public partial class LineChart : Control
         DrawPolyline(pts, Color, 2, true);
         DrawCircle(pts[^1], 3, Color);
         var font = Fonts.Body;
-        DrawString(font, new Vector2(2, size.Y - 3), $"day {FirstDay + 1}", HorizontalAlignment.Left, -1, 10, new Color(1, 1, 1, 0.4f));
+        DrawString(font, new Vector2(0, full.Y - 1), $"day {FirstDay + 1}", HorizontalAlignment.Left, -1, 10, new Color(1, 1, 1, 0.4f));
+        DrawString(font, new Vector2(0, full.Y - 1), $"day {FirstDay + Values.Length}", HorizontalAlignment.Right, full.X, 10, new Color(1, 1, 1, 0.4f));
     }
 }

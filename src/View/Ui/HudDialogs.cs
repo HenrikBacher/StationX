@@ -106,7 +106,8 @@ public partial class Hud
         var controls = Ink(
             "Mouse: click to select · right-drag to pan · wheel to zoom\n" +
             "Keys: WASD pan · , . turn the view · Space pause · 1 2 3 speed · R rotate while building · M move · F flow view · Esc menu\n" +
-            "B build · H staff · Q requests · T research · G huts · I intelligence · K statistics · F5 quicksave · F8 quickload", 12, Fonts.Body, UiTheme.PaperInk with { A = 0.75f });
+            "B build · H staff · Q requests · T research · G huts · I intelligence · Y Y-stations · N intercepts · O war map · K statistics\n" +
+            "F1 handbook (how each kind of traffic goes through the Park) · F5 quicksave · F8 quickload", 12, Fonts.Body, UiTheme.PaperInk with { A = 0.75f });
         v.AddChild(controls);
         var row = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center };
         row.AddThemeConstantOverride("separation", 12);
