@@ -390,7 +390,7 @@ public partial class Main : Node3D
 
         SyncStations(running ? dt : 0);
         SyncPeople(dt);
-        _riders.Sync(State, running ? dt : 0, Speed);
+        _riders.Sync(State, running ? dt : 0, Speed, _park);
         PanKeys(dt);
         UpdateHover();
         UpdateGhost();

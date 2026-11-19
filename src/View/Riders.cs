@@ -27,8 +27,14 @@ public partial class Riders : Node3D
     readonly List<Ride> _rides = new();
     readonly HashSet<int> _seen = new();
 
-    public void Sync(GameState s, float dt, int gameSpeed)
+    public void Sync(GameState s, float dt, int gameSpeed, Park3D? park = null)
     {
+        // The sentry lifts the pole for a rider near the gate, and lowers it once the drive is clear.
+        if (park != null && dt > 0)
+        {
+            bool near = _rides.Any(r => r.Bike.Position.X < 3.2f && Mathf.Abs(r.Bike.Position.Z - (Grid.Gate.y + 0.5f)) < 2.5f);
+            park.SetBoom(Mathf.MoveToward(park.BoomOpen, near ? 1 : 0, dt * 1.5f * Mathf.Sqrt(Math.Max(1, gameSpeed))));
+        }
         foreach (var d in s.RiderDrops)
         {
             if (!_seen.Add(d.Id)) continue;

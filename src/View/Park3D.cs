@@ -24,6 +24,10 @@ public partial class Park3D : Node3D
     public Water Lake { get; private set; } = null!;
     public Countryside Fields { get; private set; } = null!;
     Node3D _buildings = null!;
+    /// <summary>The gate's moving parts, kept out of the merged static meshes: the barrier pole and the sentry.</summary>
+    Node3D? _gate;
+    Node3D? _boom, _sentryArm;
+    float _boomOpen;
     public readonly List<OmniLight3D> Lamps = new();
     string _sig = "";
     int _quarter;
@@ -1122,6 +1126,69 @@ public partial class Park3D : Node3D
     }
 
     /// <summary>A plot that's only been surveyed: pegs round the footprint, string between them, a ranging pole.</summary>
+    /// <summary>
+    /// The barrier pole across the gate, pivoting on a post by the north pier with a counterweight, and the sentry
+    /// standing at his box. Built outside <see cref="_buildings"/> so they can move.
+    /// </summary>
+    void GateParts()
+    {
+        _gate?.QueueFree();
+        _gate = new Node3D { Name = "Gate" };
+        AddChild(_gate);
+        float gy = Grid.Gate.y;
+
+        // Pivot post and the pole: red and white bands, counterweight behind the pivot, a rest post on the far side.
+        Mesh3.Box(_gate, new Vector3(0.12f, 0.75f, 0.12f), new Vector3(0.75f, 0.375f, gy - 0.62f), Gfx.Cream);
+        Mesh3.Box(_gate, new Vector3(0.08f, 0.62f, 0.08f), new Vector3(0.75f, 0.31f, gy + 1.68f), Gfx.Cream);
+        _boom = new Node3D { Position = new Vector3(0.75f, 0.72f, gy - 0.62f) };
+        _gate.AddChild(_boom);
+        for (int k = 0; k < 6; k++)
+            Mesh3.Box(_boom, new Vector3(0.06f, 0.06f, 0.4f), new Vector3(0, 0, 0.2f + k * 0.4f), k % 2 == 0 ? Gfx.Cream : Gfx.PostRed);
+        Mesh3.Box(_boom, new Vector3(0.1f, 0.1f, 0.22f), new Vector3(0, 0, -0.18f), new Color("3a3a36"));
+        SetBoom(_boomOpen);
+
+        // The sentry: battledress, webbing, steel helmet, rifle slung; facing the road, by his box.
+        var guard = new Node3D { Position = new Vector3(1.4f, 0, gy - 1.05f), RotationDegrees = new Vector3(0, 180, 0) };
+        _gate.AddChild(guard);
+        var serge = new Color("6a6446");
+        var webbing = new Color("b9ae86");
+        var boots = new Color("1d1a17");
+        var skin = new Color("d9b08c");
+        foreach (float z in new[] { -0.06f, 0.06f })
+        {
+            Mesh3.Box(guard, new Vector3(0.09f, 0.42f, 0.09f), new Vector3(0, 0.25f, z), serge);          // legs
+            Mesh3.Box(guard, new Vector3(0.12f, 0.06f, 0.09f), new Vector3(0.02f, 0.03f, z), boots);      // boots
+            Mesh3.Box(guard, new Vector3(0.08f, 0.08f, 0.09f), new Vector3(0, 0.08f, z), webbing);       // anklets
+        }
+        Mesh3.Box(guard, new Vector3(0.16f, 0.3f, 0.26f), new Vector3(0, 0.6f, 0), serge);                 // blouse
+        Mesh3.Box(guard, new Vector3(0.17f, 0.05f, 0.27f), new Vector3(0, 0.49f, 0), webbing);            // belt
+        Mesh3.Box(guard, new Vector3(0.17f, 0.3f, 0.04f), new Vector3(0.0f, 0.62f, 0), webbing).RotationDegrees = new Vector3(40, 0, 0); // cross-strap
+        Mesh3.Box(guard, new Vector3(0.08f, 0.1f, 0.12f), new Vector3(0.09f, 0.55f, 0.06f), webbing);     // pouch
+        Mesh3.Sphere(guard, 0.07f, new Vector3(0, 0.83f, 0), skin);
+        Mesh3.Dome(guard, 0.1f, new Vector3(0, 0.86f, 0), new Color("4b4a36"));
+        Mesh3.Cyl(guard, 0.115f, 0.115f, 0.012f, new Vector3(0, 0.865f, 0), new Color("4b4a36"), 14);   // the brim
+        // Left arm down, rifle slung on the left shoulder.
+        Mesh3.Box(guard, new Vector3(0.07f, 0.3f, 0.07f), new Vector3(0, 0.58f, -0.16f), serge);
+        var rifle = Mesh3.Box(guard, new Vector3(0.03f, 0.72f, 0.04f), new Vector3(-0.08f, 0.62f, -0.1f), new Color("4a3424"));
+        rifle.RotationDegrees = new Vector3(0, 0, 12);
+        // Right arm: hangs by his side, raised to wave a rider through while the pole is up.
+        _sentryArm = new Node3D { Position = new Vector3(0, 0.72f, 0.16f) };
+        guard.AddChild(_sentryArm);
+        Mesh3.Box(_sentryArm, new Vector3(0.07f, 0.3f, 0.07f), new Vector3(0, -0.14f, 0), serge);
+        Mesh3.Sphere(_sentryArm, 0.035f, new Vector3(0, -0.3f, 0), skin);
+        SetBoom(_boomOpen);
+    }
+
+    /// <summary>Raises the barrier (0 down, 1 up) and the sentry's arm with it.</summary>
+    public void SetBoom(float open)
+    {
+        _boomOpen = Mathf.Clamp(open, 0, 1);
+        if (_boom != null && IsInstanceValid(_boom)) _boom.RotationDegrees = new Vector3(-80 * _boomOpen, 0, 0);
+        if (_sentryArm != null && IsInstanceValid(_sentryArm)) _sentryArm.RotationDegrees = new Vector3(-150 * Mathf.Clamp(_boomOpen * 1.5f, 0, 1), 0, 0);
+    }
+
+    public float BoomOpen => _boomOpen;
+
     void SurveyLines(Zone z)
     {
         float x0 = z.X + 0.5f, x1 = z.X + z.W - 0.5f, y0 = z.Y + 0.5f, y1 = z.Y + z.H - 0.5f;
@@ -1178,8 +1245,7 @@ public partial class Park3D : Node3D
             Mesh3.Box(_buildings, new Vector3(0.4f, 1.0f, 0.4f), new Vector3(0.2f, 0.5f, gy), brick);
             Mesh3.Box(_buildings, new Vector3(0.48f, 0.08f, 0.48f), new Vector3(0.2f, 1.04f, gy), Gfx.StoneDressing);
         }
-        for (int k = 0; k < 6; k++)
-            Mesh3.Box(_buildings, new Vector3(0.06f, 0.06f, 0.42f), new Vector3(0.7f, 0.7f, Grid.Gate.y - 0.5f + k * 0.42f), k % 2 == 0 ? Gfx.Cream : Gfx.PostRed);
+        GateParts();
         var box = new Vector3(1.4f, 0, Grid.Gate.y - 1.6f);
         Mesh3.Box(_buildings, new Vector3(0.6f, 1.1f, 0.6f), box + new Vector3(0, 0.55f, 0), Textures.Mat(Surface.Weatherboard, new Color("9fa58a")));
         Mesh3.Prism(_buildings, new Vector3(0.75f, 0.3f, 0.75f), box + new Vector3(0, 1.25f, 0), Textures.Mat(Surface.Felt, Colors.White));

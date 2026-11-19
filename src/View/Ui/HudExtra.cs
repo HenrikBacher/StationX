@@ -302,7 +302,7 @@ public partial class Hud
         if (!Has(StationType.Canteen) && S.AverageEnergy < 0.6)
             return ("tea", "People are tiring, and standing about is no rest. A canteen table lets them take a tea break and come back fresh: nobody lasts a whole watch without one.");
         if (S.Day >= 2 && Rig_Quarter() == 0)
-            return ("rotate", "You can turn the view with , and . (or the ⟲ ⟳ buttons) to see behind tall walls.");
+            return ("rotate", "You can turn the view with the comma and full-stop keys (or the ⟲ ⟳ buttons) to see behind tall walls.");
         return null;
     }
 
