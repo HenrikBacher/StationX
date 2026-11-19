@@ -587,6 +587,8 @@ public sealed partial class GameState
         return true;
     }
 
+    Predicate<Contract>? _finishedWith;
+
     void TickContracts()
     {
         // Offers
@@ -684,7 +686,7 @@ public sealed partial class GameState
                     break;
             }
         }
-        Contracts.RemoveAll(c => c.State == ContractState.Expired ||
+        Contracts.RemoveAll(_finishedWith ??= c => c.State == ContractState.Expired ||
                                  (c.State is ContractState.Completed or ContractState.Failed && Now - c.Due > 2 * Defs.MinutesPerDay));
 
         // A scripted request that fails comes back: the war doesn't wait, and the act needs it.

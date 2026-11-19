@@ -840,10 +840,14 @@ public sealed partial class GameState
 
     static readonly List<Net> NetOrder = Defs.Nets.Keys.ToList();
 
-    bool InPlay(Net n) =>
-        n == Net.Shark   // from The Blackout on, SHARK's silence is the story, requests or not
-        || Act.Pool.Any(p => p.Net == n)
-        || Act.Goals.Any(g => g.Net == n)
-        || Contracts.Any(c => c.Net == n && (c.State == ContractState.Offered || c.State == ContractState.Active))
-        || Messages.Values.Any(m => m.Net == n);
+    bool InPlay(Net n)
+    {
+        if (n == Net.Shark) return true;   // from The Blackout on, SHARK's silence is the story, requests or not
+        // Loops, not LINQ: the Y service asks this for every network every few minutes.
+        foreach (var p in Act.Pool) if (p.Net == n) return true;
+        foreach (var g in Act.Goals) if (g.Net == n) return true;
+        foreach (var c in Contracts) if (c.Net == n && (c.State == ContractState.Offered || c.State == ContractState.Active)) return true;
+        foreach (var m in Messages.Values) if (m.Net == n) return true;
+        return false;
+    }
 }

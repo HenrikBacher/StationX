@@ -41,7 +41,7 @@ public sealed partial class GameState
     {
         double hour = MinuteOfDay / 60;
         bool night = hour >= 20 || hour < 6;
-        var cold = ColdZones();
+        var cold = ColdZoneList();
         // The tea tables open this tick: nothing in the loop below opens, closes, builds or removes one.
         _openRests.Clear();
         foreach (var st in Stations)
@@ -95,7 +95,7 @@ public sealed partial class GameState
 
             if (drain > 0)
             {
-                if (IsCold(s, cold))
+                if (cold != null && Grid.ZoneAt((int)s.X, (int)s.Y) is { } zone && cold.Contains(zone))
                 {
                     s.Chilled = true;
                     drain *= Defs.ColdDrainMult;
@@ -235,7 +235,7 @@ public sealed partial class GameState
             {
                 if (loafing) continue;
                 // Anyone sitting there for want of work, or already fresh, gives up their seat to the tired.
-                loafer = Staff.FirstOrDefault(x => x.Task is { Kind: TaskKind.Rest } t && t.Dest == st.Id && (t.Loafing || x.Energy >= Defs.BreakUntil));
+                loafer = WouldGiveUpSeat(st.Id);
                 if (loafer == null) continue;
                 score += 4;
             }
@@ -253,11 +253,30 @@ public sealed partial class GameState
         }
         if (best == null || !SendTo(s, best.UseTile)) return;
         if (bump != null) { bump.Task = null; bump.Path.Clear(); }
-        var used = Staff.Where(x => x.Task is { Kind: TaskKind.Rest } t && t.Dest == best.Id).Select(x => x.Task!.Seat).ToHashSet();
-        int seat = 0;
-        while (used.Contains(seat)) seat++;
+        int seat = FreeSeat(best.Id);
         s.Task = new StaffTask { Kind = TaskKind.Rest, Dest = best.Id, Seat = seat, Loafing = loafing };
         if (s.Path.Count == 0) OnArrive(s);
+    }
+
+    // Lambdas capturing a loop's variable cost an allocation on every pass of the loop, so these are loops of their own.
+
+    /// <summary>The first at a table sitting there for want of work, or already fresh.</summary>
+    Staff? WouldGiveUpSeat(int stationId)
+    {
+        foreach (var x in Staff)
+            if (x.Task is { Kind: TaskKind.Rest } t && t.Dest == stationId && (t.Loafing || x.Energy >= Defs.BreakUntil)) return x;
+        return null;
+    }
+
+    /// <summary>The lowest seat number nobody at the table has taken.</summary>
+    int FreeSeat(int stationId)
+    {
+        var used = new HashSet<int>();
+        foreach (var x in Staff)
+            if (x.Task is { Kind: TaskKind.Rest } t && t.Dest == stationId) used.Add(t.Seat);
+        int seat = 0;
+        while (used.Contains(seat)) seat++;
+        return seat;
     }
 
     /// <summary>People due a break with no seat free anywhere: they stand about, getting no rest.</summary>
@@ -340,6 +359,20 @@ public sealed partial class GameState
     /// <summary>True if this person is standing in one of the cold zones.</summary>
     public bool IsCold(Staff s, HashSet<string>? cold) =>
         cold != null && Grid.ZoneAt((int)s.X, (int)s.Y) is { } zone && cold.Contains(zone.Id);
+
+    readonly List<Zone> _coldZones = new();
+
+    /// <summary>As <see cref="ColdZones"/>, as the zones themselves in a list kept for reuse: this runs every tick.</summary>
+    List<Zone>? ColdZoneList()
+    {
+        if (!Winter) return null;
+        _coldZones.Clear();
+        foreach (var z in Grid.Zones)
+            if (z.Unlocked && !Defs.Heated(z.Id)) _coldZones.Add(z);
+        foreach (var st in Stations)
+            if (st.Type == StationType.Stove && !st.PendingRemoval && Grid.ZoneAt(st.X, st.Y) is { } z) _coldZones.Remove(z);
+        return _coldZones;
+    }
 
     /// <summary>Open timber huts with no stove, while it's winter; null in summer.</summary>
     public HashSet<string>? ColdZones()

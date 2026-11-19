@@ -27,55 +27,70 @@ public sealed partial class GameState
             if (st.Input.Count == 0 && st.Current == null) continue;
             if (st.IsMachine && st.Current != null) continue;
             if (st.IsDown(Now)) continue;
-            // The nearest who can actually get there: someone cut off from it mustn't block everyone else.
-            Staff? who = null;
-            var cantReach = new HashSet<int>();
-            for (int tries = 0; tries < 4 && who == null; tries++)
-            {
-                var cand = FindIdle(st.UseTile, s => s.Pinned == st.Id && !cantReach.Contains(s.Id))
-                           ?? FindIdle(st.UseTile, s => s.Role == role.Value && s.Pinned == null && MayWorkAt(s, st.UseTile) && !cantReach.Contains(s.Id));
-                if (cand == null) break;
-                if (SendTo(cand, st.UseTile)) who = cand;
-                else cantReach.Add(cand.Id);
-            }
-            if (who == null) continue;
-            who.Task = new StaffTask { Kind = TaskKind.Operate, Dest = st.Id };
-            st.OperatorId = who.Id;
-            st.OperatorPresent = who.Path.Count == 0;
+            FindOperator(st, role.Value);
         }
 
         // 2. Runners holding messages with nowhere to go.
         foreach (var s in Staff)
-        {
-            if (s.Task is not { Kind: TaskKind.Carry, Phase: 1, Dest: -1 } t) continue;
-            var next = Messages[t.Msgs[0]].Next;
-            Station? dest = next is StationType n ? BestDestination(n, s.TilePos, t.Msgs.Count) : null;
-            if (dest != null && !MayWorkAt(s, dest.UseTile)) dest = null;
-            if (dest != null && SendTo(s, dest.UseTile))
-            {
-                t.Dest = dest.Id;
-                dest.ReservedInputs += t.Msgs.Count;
-                if (s.Path.Count == 0) OnArrive(s);
-                continue;
-            }
-            // Someone posted to a building puts paper bound elsewhere down in a tray there, for a runner to take on.
-            if (next == null || t.Msgs.Any(id => Messages[id].Next != next) || s.Posted != null)
-            {
-                // Put them down in the nearest tray to wait.
-                var tray = Stations.Where(x => x.Def.Operator != null && MayWorkAt(s, x.UseTile))
-                    .OrderBy(x => Manhattan(x.UseTile, s.TilePos)).FirstOrDefault();
-                if (tray != null && SendTo(s, tray.UseTile))
-                {
-                    t.Phase = 2;
-                    t.Dest = tray.Id;
-                    if (s.Path.Count == 0) OnArrive(s);
-                }
-            }
-        }
+            if (s.Task is { Kind: TaskKind.Carry, Phase: 1, Dest: -1 } t) Redirect(s, t);
 
         SettleIdle();
+        CarryWaiting();
+    }
 
-        // 3. Messages sitting in out-trays that need carrying onwards.
+    // The steps below are methods of their own, not inline in the loops above, because their lambdas capture the loop
+    // variable: inline, C# allocates the captured variables for every pass of the loop, wanted or not.
+
+    void FindOperator(Station st, Role role)
+    {
+        // The nearest who can actually get there: someone cut off from it mustn't block everyone else.
+        Staff? who = null;
+        var cantReach = new HashSet<int>();
+        for (int tries = 0; tries < 4 && who == null; tries++)
+        {
+            var cand = FindIdle(st.UseTile, s => s.Pinned == st.Id && !cantReach.Contains(s.Id))
+                       ?? FindIdle(st.UseTile, s => s.Role == role && s.Pinned == null && MayWorkAt(s, st.UseTile) && !cantReach.Contains(s.Id));
+            if (cand == null) break;
+            if (SendTo(cand, st.UseTile)) who = cand;
+            else cantReach.Add(cand.Id);
+        }
+        if (who == null) return;
+        who.Task = new StaffTask { Kind = TaskKind.Operate, Dest = st.Id };
+        st.OperatorId = who.Id;
+        st.OperatorPresent = who.Path.Count == 0;
+    }
+
+    /// <summary>A runner holding messages with nowhere to go.</summary>
+    void Redirect(Staff s, StaffTask t)
+    {
+        var next = Messages[t.Msgs[0]].Next;
+        Station? dest = next is StationType n ? BestDestination(n, s.TilePos, t.Msgs.Count) : null;
+        if (dest != null && !MayWorkAt(s, dest.UseTile)) dest = null;
+        if (dest != null && SendTo(s, dest.UseTile))
+        {
+            t.Dest = dest.Id;
+            dest.ReservedInputs += t.Msgs.Count;
+            if (s.Path.Count == 0) OnArrive(s);
+            return;
+        }
+        // Someone posted to a building puts paper bound elsewhere down in a tray there, for a runner to take on.
+        if (next == null || t.Msgs.Any(id => Messages[id].Next != next) || s.Posted != null)
+        {
+            // Put them down in the nearest tray to wait.
+            var tray = Stations.Where(x => x.Def.Operator != null && MayWorkAt(s, x.UseTile))
+                .OrderBy(x => Manhattan(x.UseTile, s.TilePos)).FirstOrDefault();
+            if (tray != null && SendTo(s, tray.UseTile))
+            {
+                t.Phase = 2;
+                t.Dest = tray.Id;
+                if (s.Path.Count == 0) OnArrive(s);
+            }
+        }
+    }
+
+    /// <summary>Messages sitting in out-trays that need carrying onwards.</summary>
+    void CarryWaiting()
+    {
         var waiting = Messages.Values
             .Where(m => m.Loc == Loc.Output && m.Next != null && !m.Reserved)
             .OrderBy(Prio)

@@ -35,7 +35,19 @@ public sealed partial class GameState
     /// <summary>A change of frequencies due today, per network.</summary>
     public Dictionary<Net, double> FreqChangeAt { get; set; } = new();
 
-    public static YStationDef YStationOf(Net net) => Defs.YStations.First(y => y.Nets.Contains(net));
+    /// <summary>Each network's station (the first that lists it), built once: this is asked every tick.</summary>
+    static readonly Dictionary<Net, YStationDef> YStationByNet = MapYStations();
+
+    static Dictionary<Net, YStationDef> MapYStations()
+    {
+        var map = new Dictionary<Net, YStationDef>();
+        foreach (var y in Defs.YStations)
+            foreach (var n in y.Nets) map.TryAdd(n, y);
+        return map;
+    }
+
+    public static YStationDef YStationOf(Net net) =>
+        YStationByNet.TryGetValue(net, out var y) ? y : Defs.YStations.First(y => y.Nets.Contains(net));
 
     public int CoverOf(Net n) => Cover.GetValueOrDefault(n);
     public int SpareSets => Math.Max(0, ReceiverSets - Cover.Values.Sum());
@@ -73,8 +85,15 @@ public sealed partial class GameState
     /// <summary>A working teleprinter in the Park that takes this network (or, failing that, any working one).</summary>
     public Station? TeleprinterFor(Net n)
     {
-        var up = Stations.Where(s => s.Type == StationType.Inbox && !s.PendingRemoval && !s.IsDown(Now)).ToList();
-        return up.Where(s => s.ReceivesNet(n)).OrderBy(s => s.Output.Count).FirstOrDefault() ?? up.OrderBy(s => s.Output.Count).FirstOrDefault();
+        // The least busy (the first of equals), without LINQ: this runs for every request every tick.
+        Station? taking = null, any = null;
+        foreach (var s in Stations)
+        {
+            if (s.Type != StationType.Inbox || s.PendingRemoval || s.IsDown(Now)) continue;
+            if (any == null || s.Output.Count < any.Output.Count) any = s;
+            if (s.ReceivesNet(n) && (taking == null || s.Output.Count < taking.Output.Count)) taking = s;
+        }
+        return taking ?? any;
     }
 
     /// <summary>
@@ -84,9 +103,14 @@ public sealed partial class GameState
     public bool LineWorking(Net n) => Lines.Contains(YStationOf(n).Id) && TeleprinterFor(n) != null;
 
     /// <summary>The registration desk a dispatch rider hands a bundle to: the least loaded one.</summary>
-    public Station? RiderDesk() =>
-        Stations.Where(s => s.Type == StationType.Registration && !s.PendingRemoval && !s.Obsolete && !s.IsDown(Now))
-                .OrderBy(s => s.Input.Count).FirstOrDefault();
+    public Station? RiderDesk()
+    {
+        Station? best = null;
+        foreach (var s in Stations)
+            if (s.Type == StationType.Registration && !s.PendingRemoval && !s.Obsolete && !s.IsDown(Now) && (best == null || s.Input.Count < best.Input.Count))
+                best = s;
+        return best;
+    }
 
     /// <summary>Riders seen arriving lately, for the view to draw (not saved).</summary>
     [System.Text.Json.Serialization.JsonIgnore]
