@@ -131,6 +131,10 @@ public sealed partial class GameState
     /// </summary>
     void SettleIdle()
     {
+        // Stations' working tiles, marked once: sending people off below moves nobody's furniture.
+        Array.Clear(_useTiles);
+        foreach (var st in Stations)
+            if (Grid.InBounds(st.UseTile.x, st.UseTile.y)) _useTiles[st.UseTile.y * Grid.Width + st.UseTile.x] = true;
         foreach (var s in Staff)
         {
             if (!s.Idle || s.Path.Count > 0 || s.HeadOf != null || !OnDuty(s) || s.Arriving(Now)) continue;
@@ -143,8 +147,11 @@ public sealed partial class GameState
         }
     }
 
+    readonly bool[] _useTiles = new bool[Grid.Width * Grid.Height];
+
     bool IsUseTile((int x, int y) tile)
     {
+        if (Grid.InBounds(tile.x, tile.y)) return _useTiles[tile.y * Grid.Width + tile.x];
         foreach (var st in Stations) if (st.UseTile == tile) return true;
         return false;
     }

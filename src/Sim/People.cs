@@ -42,7 +42,11 @@ public sealed partial class GameState
         double hour = MinuteOfDay / 60;
         bool night = hour >= 20 || hour < 6;
         var cold = ColdZones();
-        bool anyRest = Stations.Any(RestOpen);
+        // The tea tables open this tick: nothing in the loop below opens, closes, builds or removes one.
+        _openRests.Clear();
+        foreach (var st in Stations)
+            if (RestOpen(st)) _openRests.Add((st, st.UseTile, Grid.ZoneAt(st.UseTile.x, st.UseTile.y)));
+        bool anyRest = _openRests.Count > 0;
         for (int i = Staff.Count - 1; i >= 0; i--)
         {
             var s = Staff[i];
@@ -190,6 +194,7 @@ public sealed partial class GameState
         s.Rival is int rid && StaffById(rid) is { Task: { Kind: TaskKind.Rest } rt } && rt.Dest == stationId;
 
     readonly Dictionary<int, int> _seatsTaken = new(), _restingAt = new();
+    readonly List<(Station st, (int x, int y) use, Zone? zone)> _openRests = new();
 
     /// <summary>Seats taken (by anyone on a break there, sitting or still on the way) and people sitting, per rest station.</summary>
     void CountRests()
@@ -217,12 +222,13 @@ public sealed partial class GameState
         // Who sits where, counted once for every table rather than once per table (this runs for everyone idle, every tick).
         bool counted = false;
         var rival = s.Rival is int rid ? StaffById(rid) : null;
-        foreach (var st in Stations)
+        var here = s.TilePos;
+        var hereZone = loafing ? Grid.ZoneAt(here.x, here.y) : null;
+        foreach (var (st, use, zone) in _openRests)
         {
-            if (!RestOpen(st)) continue;
-            int score = Manhattan(st.UseTile, s.TilePos);
+            int score = Manhattan(use, here);
             // The idle only sit down in their own building, close by, so they're quickly back when work comes.
-            if (loafing && (score > Defs.LoafRange || Grid.ZoneAt(st.UseTile.x, st.UseTile.y) != Grid.ZoneAt(s.TilePos.x, s.TilePos.y))) continue;
+            if (loafing && (score > Defs.LoafRange || zone != hereZone)) continue;
             if (!counted) { CountRests(); counted = true; }
             Staff? loafer = null;
             if (_seatsTaken.GetValueOrDefault(st.Id) >= st.Def.Seats)
