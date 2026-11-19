@@ -84,8 +84,9 @@ public static class Campaign
             Briefing =
                 "War was declared this morning. The Government Code and Cypher School is now at its war station at Bletchley Park, " +
                 "and you are running the floor.\n\n" +
-                "The teleprinter and the despatch box are already in the Mansion. The Y-stations are taking down German police " +
-                "messages in a hand cipher that we can read, given time.\n\n" +
+                "The despatch box is already in the Mansion. The Y-station at Denmark Hill is taking down German police messages " +
+                "in a hand cipher that we can read, given time, and its dispatch riders will bring them up the drive to the " +
+                "registration desk.\n\n" +
                 "Set up a registration desk, a hand-cipher desk and a translation desk. Then accept a request from the War Office " +
                 "and get the traffic moving.",
             Goals = new[]
@@ -670,7 +671,6 @@ public sealed partial class GameState
             Difficulty = difficulty, Mode = mode, Funds = Defs.Difficulties[difficulty].StartFunds, Billets = Defs.StartBillets,
         };
         Array.Fill(g.Grid.Occupant, -1);
-        g.Place(StationType.Inbox, 3, 3, 0, free: true);
         g.Place(StationType.Dispatch, 16, 3, 0, free: true);
         foreach (var (role, x, y) in new[] { (Role.Clerk, 7, 6), (Role.Clerk, 8, 7), (Role.Cryptanalyst, 10, 6), (Role.Linguist, 11, 7) })
         {

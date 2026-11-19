@@ -22,6 +22,7 @@ public partial class Main : Node3D
     public CameraRig Rig = null!;
     public Hud Hud = null!;
     Park3D _park = null!;
+    Riders _riders = null!;
     Node3D _stationRoot = null!, _peopleRoot = null!;
     DirectionalLight3D _sun = null!;
     WeatherFx _weather = null!;
@@ -138,6 +139,8 @@ public partial class Main : Node3D
 
         _park = new Park3D { Name = "Park" };
         AddChild(_park);
+        _riders = new Riders { Name = "Riders" };
+        AddChild(_riders);
         _stationRoot = new Node3D { Name = "Stations" };
         _peopleRoot = new Node3D { Name = "People" };
         AddChild(_stationRoot);
@@ -281,6 +284,7 @@ public partial class Main : Node3D
             if (args.TryGetValue("quarter", out var q)) { Rig.SetQuarter(int.Parse(q)); _park.SetView(Rig.Quarter); }
             if (args.ContainsKey("flows")) ShowFlows = true;
             if (args.TryGetValue("modal", out var modal)) Hud.ShowNamed(modal);
+            if (args.ContainsKey("rider") && State.Stations.FirstOrDefault(s => s.Type == StationType.Registration) is { } reg) State.DebugRider(reg.Id);
             _shotFrames = 30;
             if (args.TryGetValue("film", out var fm)) _film = int.Parse(fm);
             if (args.TryGetValue("every", out var ev)) _filmEvery = int.Parse(ev);
@@ -386,6 +390,7 @@ public partial class Main : Node3D
 
         SyncStations(running ? dt : 0);
         SyncPeople(dt);
+        _riders.Sync(State, running ? dt : 0, Speed);
         PanKeys(dt);
         UpdateHover();
         UpdateGhost();

@@ -249,6 +249,8 @@ public partial class Hud
             $"A network has fewer than {Defs.SetsWanted} receiver sets at its Y-station: its traffic comes in hours late and garbled. In Y-stations (Y), move a set over from a network with no requests, or buy another. The Y Board allots one more each chapter.");
         yield return ("riders", S.ActIndex >= 2 && S.Lines.Count == 0 && S.Funds >= Defs.LineCost * 2,
             "Dispatch riders bring each Y-station's traffic in a bundle every two hours, and decrypts go stale on the road. A teleprinter line (Y-stations, Y) brings it in minutes: lay one from the station with the busiest networks first.");
+        yield return ("noteleprinter", S.Lines.Count > 0 && !S.Stations.Any(x => x.Type == StationType.Inbox),
+            "A teleprinter line has been laid, but there is no teleprinter in the Park to print it: the riders still bring its traffic. Build a teleprinter (B).");
         yield return ("freqchange", S.Stats.FreqChanges > 0,
             "A network has changed its frequencies and gone quiet until its Y-station finds it again. Spare receiver sets search the band: keep one or two unallocated in Y-stations (Y) and the next search is much quicker.");
         yield return ("df", S.MaxSuspicion > 30 && Enum.GetValues<Service>().Any(sv => S.CanBuyDf(sv) == null),
@@ -278,7 +280,7 @@ public partial class Hud
         if (!S.Contracts.Any(c => c.State is ContractState.Active or ContractState.Completed))
             return ("accept", "Open Requests (Q) and accept one. Traffic only flows once a ministry has asked for it.");
         if (!Has(StationType.Registration))
-            return ("reg", "Messages arrive at the teleprinter. Open Build (B) and place a registration desk in the Mansion: every message is logged there first.");
+            return ("reg", "Dispatch riders bring the intercepts up the drive, and need a desk to hand them to. Open Build (B) and place a registration desk in the Mansion: every message is logged there first.");
         if (!Has(StationType.HandCipher))
             return ("hand", "Place a hand-cipher desk. Your cryptanalysts work the police ciphers there with pencil and paper.");
         if (!Has(StationType.Translation))

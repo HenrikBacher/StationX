@@ -9,7 +9,7 @@ namespace StationX.View.Ui;
 public partial class Hud
 {
     string YSig() =>
-        $"{S.ReceiverSets}|{S.SpareSets}|{S.Funds / 50}|{S.ActIndex}|{string.Join(",", S.Lines)}|{string.Join(",", S.DirectionFinding)}|" +
+        $"{S.ReceiverSets}|{S.SpareSets}|{S.Funds / 50}|{S.ActIndex}|{string.Join(",", S.Lines)}|{S.Stations.Count(x => x.Type == StationType.Inbox)}|{string.Join(",", S.DirectionFinding)}|" +
         string.Join(",", S.CoveredNets().Select(n => $"{n}{S.CoverOf(n)}{S.Searching(n)}{(S.Searching(n) ? (int)((S.SearchUntil[n] - S.Now) / 60) : 0)}"));
 
     void YStationsPanel()
@@ -58,9 +58,10 @@ public partial class Hud
             var name = UiTheme.Label(y.Name, 13, UiTheme.Text);
             name.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
             string? why = S.CanLayLine(id);
+            bool printer = S.Stations.Any(x => x.Type == StationType.Inbox && !x.PendingRemoval);
             _sideBox.AddChild(Row(name, S.Lines.Contains(id)
-                ? UiTheme.Label("teleprinter line", 12, Gfx.Good)
-                : UiTheme.Button($"Lay a line (£{Defs.LineCost})", () => { S.LayLine(id); _sideSig = ""; }, why == null, tooltip: why ?? "The Post Office lays a teleprinter line from this station.")));
+                ? UiTheme.Label(printer ? "teleprinter line" : "line laid: build a teleprinter", 12, printer ? Gfx.Good : Gfx.Warn)
+                : UiTheme.Button($"Lay a line (£{Defs.LineCost})", () => { S.LayLine(id); _sideSig = ""; }, why == null, tooltip: why ?? "The Post Office lays a teleprinter line from this station. Its traffic prints on a teleprinter in the Park, so build one too.")));
         }
 
         var dfs = Defs.YStations.Where(y => y.Df is Service sv && S.ServiceInPlay(sv) && S.CanBuyDf(sv) != "Not available yet").ToList();

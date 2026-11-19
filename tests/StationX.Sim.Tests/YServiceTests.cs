@@ -43,6 +43,8 @@ public class YServiceTests
         Assert.True(g.CoverGarble(Net.Police) < 1, "an extra set copies cleaner");
         g.Funds = 5000;
         Assert.True(g.LayLine("denmarkhill"));
+        Assert.True(g.TransitMinutes(Net.Police, sent) >= Defs.RideMinutes, "a line needs a teleprinter at the Park end");
+        TestUtil.Teleprinter(g);
         Assert.Equal(Defs.LineMinutes, g.TransitMinutes(Net.Police, sent));
         Assert.False(g.LayLine("denmarkhill"));
     }
@@ -51,6 +53,7 @@ public class YServiceTests
     public void AFrequencyChangeStopsTheTrafficUntilFound()
     {
         var g = Started();
+        g.Place(StationType.Registration, 6, 3, 0, free: true);
         var c = g.Contracts.First(c => c.State == ContractState.Offered && c.Net == Net.Police);
         Assert.True(g.Accept(c.Id));
         g.FreqChangeAt[Net.Police] = g.Now + 1;

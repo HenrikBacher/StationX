@@ -7,6 +7,9 @@ namespace StationX.Sim;
 /// <summary>A listening station and the German networks it takes down.</summary>
 public sealed record YStationDef(string Id, string Name, Net[] Nets, Service? Df, int DfFromAct);
 
+/// <summary>A dispatch rider who has just brought a Y-station's bundle to a registration desk.</summary>
+public sealed record RiderDrop(int Id, double At, string YStation, int StationId);
+
 /// <summary>
 /// The Y service: the listening stations that take down German traffic for the Park.
 /// Receiver sets are shared out across the networks (the Y Board's "cover"): a network with fewer sets than it needs
@@ -62,9 +65,43 @@ public sealed partial class GameState
         double share = CoverShare(n);
         double late = share >= 1 ? 0 : share >= 0.5 ? Defs.ThinCoverDelay : Defs.NoCoverDelay;
         double caught = sentAt + late;
-        if (Lines.Contains(YStationOf(n).Id)) return late + Defs.LineMinutes;
+        if (LineWorking(n)) return late + Defs.LineMinutes;
         double leaves = Math.Ceiling(caught / Defs.RiderEvery) * Defs.RiderEvery;
         return leaves + Defs.RideMinutes - sentAt;
+    }
+
+    /// <summary>A working teleprinter in the Park that takes this network (or, failing that, any working one).</summary>
+    public Station? TeleprinterFor(Net n)
+    {
+        var up = Stations.Where(s => s.Type == StationType.Inbox && !s.PendingRemoval && !s.IsDown(Now)).ToList();
+        return up.Where(s => s.ReceivesNet(n)).OrderBy(s => s.Output.Count).FirstOrDefault() ?? up.OrderBy(s => s.Output.Count).FirstOrDefault();
+    }
+
+    /// <summary>
+    /// The network's Y-station has a teleprinter line and a teleprinter in the Park can print it. A line with no
+    /// teleprinter at the far end (none built, or all jammed) is no use: the station sends by rider as before.
+    /// </summary>
+    public bool LineWorking(Net n) => Lines.Contains(YStationOf(n).Id) && TeleprinterFor(n) != null;
+
+    /// <summary>The registration desk a dispatch rider hands a bundle to: the least loaded one.</summary>
+    public Station? RiderDesk() =>
+        Stations.Where(s => s.Type == StationType.Registration && !s.PendingRemoval && !s.Obsolete && !s.IsDown(Now))
+                .OrderBy(s => s.Input.Count).FirstOrDefault();
+
+    /// <summary>Riders seen arriving lately, for the view to draw (not saved).</summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public List<RiderDrop> RiderDrops { get; } = new();
+
+    /// <summary>Sends a rider to a desk, for screenshots.</summary>
+    public void DebugRider(int stationId) => RiderDrops.Add(new RiderDrop(NextId++, Now, "denmarkhill", stationId));
+
+    void RiderArrived(Net n, Station desk)
+    {
+        string y = YStationOf(n).Id;
+        RiderDrops.RemoveAll(d => d.At < Now - 3 * 60);
+        // One rider per station and desk per bundle.
+        if (RiderDrops.Any(d => d.YStation == y && d.StationId == desk.Id && d.At > Now - 30)) return;
+        RiderDrops.Add(new RiderDrop(NextId++, Now, y, desk.Id));
     }
 
     public bool Searching(Net n) => SearchUntil.TryGetValue(n, out var t) && Now < t;
@@ -108,7 +145,9 @@ public sealed partial class GameState
         Funds -= Defs.LineCost;
         Lines.Add(station);
         var y = Defs.YStations.First(s => s.Id == station);
-        Emit(EventKind.Good, $"The Post Office has laid a teleprinter line from {y.Name}. Its traffic now arrives within minutes, not in the riders' bundles.");
+        Emit(EventKind.Good, Stations.Any(s => s.Type == StationType.Inbox)
+            ? $"The Post Office has laid a teleprinter line from {y.Name}. Its traffic now prints on the Park's teleprinters within minutes, not in the riders' bundles."
+            : $"The Post Office has laid a teleprinter line from {y.Name}. Build a teleprinter (B) to receive it: until then the riders still come.");
         return true;
     }
 

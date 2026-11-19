@@ -427,7 +427,7 @@ public static partial class Defs
     public static readonly Dictionary<StationType, StationDef> Stations = new()
     {
         [StationType.Inbox] = new(StationType.Inbox, "Teleprinter",
-            "Intercepts arrive from the Y-stations at Chatham, Cheadle and Beaumanor.",
+            "Prints the traffic of Y-stations with a teleprinter line (Y-stations, Y). Without one, dispatch riders bring it to registration.",
             250, 1, 1, null, 0, 0, null, 0),
         [StationType.Registration] = new(StationType.Registration, "Registration desk",
             "Logs callsigns and frequencies, works out which key net each message belongs to, and spots garbled intercepts.",

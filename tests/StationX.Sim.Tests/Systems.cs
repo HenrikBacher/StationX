@@ -11,7 +11,12 @@ static class TestUtil
     {
         foreach (var y in Defs.YStations) g.Lines.Add(y.Id);
         g.ReceiverSets = 40;
+        Teleprinter(g);
     }
+
+    /// <summary>The Park starts without a teleprinter; tests that need one put it where it used to stand.</summary>
+    public static Station Teleprinter(GameState g) =>
+        g.Stations.FirstOrDefault(s => s.Type == StationType.Inbox) ?? g.Place(StationType.Inbox, 3, 3, 0, free: true)!;
 
     public static void Run(GameState g, double days)
     {
@@ -273,7 +278,7 @@ public class PeopleTests
         var b = g.Place(StationType.Registration, 12, 3, 0, free: true)!;
         var clerk = g.Staff.First(s => s.Role == Role.Clerk);
         Assert.True(g.Pin(clerk.Id, b.Id));
-        Assert.False(g.Pin(clerk.Id, g.Stations.First(s => s.Type == StationType.Inbox).Id));
+        Assert.False(g.Pin(clerk.Id, TestUtil.Teleprinter(g).Id));
         g.Staff.RemoveAll(s => s.Role == Role.Clerk && s != clerk);
         g.Place(StationType.HandCipher, 8, 6, 0, free: true);
         g.AddScripted(Net.Police, 4, 4, 0, 0, "t", "t", "t");
@@ -2051,17 +2056,41 @@ public class KeyBoardTests
 public class TeleprinterTests
 {
     [Fact]
-    public void AJammedTeleprinterHoldsTrafficUntilMended()
+    public void AJammedTeleprinterSendsTheTrafficByRider()
     {
         var g = GameState.NewGame(7);
+        var tp = TestUtil.Teleprinter(g);
+        var reg = g.Place(StationType.Registration, 6, 3, 0, free: true)!;
+        g.Lines.Add("denmarkhill");
+        g.Advance(1);
+        var c = g.Contracts.First(k => k.State == ContractState.Offered && k.Net == Net.Police);
+        Assert.True(g.Accept(c.Id));
+        Assert.True(g.LineWorking(Net.Police));
+        tp.DownUntil = g.Now + 40 * 60;
+        Assert.False(g.LineWorking(Net.Police), "a line with a dead teleprinter at the end is no use");
+        Assert.True(g.TransitMinutes(Net.Police, g.Now) >= Defs.RideMinutes);
+        g.Advance(24 * 60);
+        Assert.True(c.Spawned > 0, "the riders bring it instead");
+        Assert.Empty(tp.Output);
+        Assert.Contains(g.Messages.Values, m => m.ContractId == c.Id && (m.LocId == reg.Id || m.Loc != Loc.Output));
+    }
+
+    [Fact]
+    public void WithoutALineRidersBringTheTrafficToRegistration()
+    {
+        var g = GameState.NewGame(7);
+        Assert.DoesNotContain(g.Stations, s => s.Type == StationType.Inbox);
         g.Advance(1);
         var c = g.Contracts.First(k => k.State == ContractState.Offered);
         Assert.True(g.Accept(c.Id));
-        foreach (var tp in g.Stations.Where(s => s.Type == StationType.Inbox)) tp.DownUntil = g.Now + 6 * 60;
-        g.Advance(5 * 60);
-        Assert.Equal(0, c.Spawned);                         // nothing gets through a dead line
-        g.Advance(10 * 60);
-        Assert.True(c.Spawned > 0, "traffic arrives once the GPO engineers have been");
+        g.Advance(4 * 60);
+        Assert.Equal(0, c.Spawned);                         // no desk to hand it to: it waits at the Y-station
+        var reg = g.Place(StationType.Registration, 6, 3, 0, free: true)!;
+        g.Advance(4 * 60);
+        Assert.True(c.Spawned > 0);
+        Assert.Contains(g.Messages.Values, m => m.ContractId == c.Id);
+        Assert.NotEmpty(g.RiderDrops);
+        Assert.Equal(reg.Id, g.RiderDrops[0].StationId);
     }
 
     [Fact]
@@ -2069,7 +2098,8 @@ public class TeleprinterTests
     {
         var g = GameState.NewGame(7);
         Assert.True(Defs.WearLife(StationType.Inbox) > 0);
-        var tp = g.Stations.First(s => s.Type == StationType.Inbox);
+        var tp = TestUtil.Teleprinter(g);
+        g.Lines.Add("denmarkhill");
         Assert.True(tp.Wears);
         g.Advance(1);
         var c = g.Contracts.First(k => k.State == ContractState.Offered);

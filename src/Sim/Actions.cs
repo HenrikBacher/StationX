@@ -590,7 +590,6 @@ public sealed partial class GameState
 
         MaybeFlash();
 
-        Station? inbox = null;
         List<Contract>? retries = null;
         foreach (var c in Contracts)
         {
@@ -611,23 +610,30 @@ public sealed partial class GameState
                            c.SpawnTimes[c.Spawned] + (c.Flash ? 0 : TransitMinutes(c.Net, c.SpawnTimes[c.Spawned])) <= Now)
                     {
                         double sent = Math.Min(c.SpawnTimes[c.Spawned], Now);
-                        // The teleprinters this network is routed to; if none, any teleprinter, so nothing is lost.
-                        // A jammed teleprinter takes nothing: its traffic waits at the Y-station until a line is free.
-                        inbox = Stations.Where(s => s.Type == StationType.Inbox && !s.PendingRemoval && !s.IsDown(Now) && s.ReceivesNet(c.Net))
-                                    .OrderBy(s => s.Output.Count).FirstOrDefault()
-                                ?? Stations.Where(s => s.Type == StationType.Inbox && !s.PendingRemoval && !s.IsDown(Now)).OrderBy(s => s.Output.Count).FirstOrDefault();
-                        if (inbox == null) break;
+                        // Over a teleprinter line the traffic prints on a teleprinter; otherwise a dispatch rider hands the
+                        // bundle to a registration desk. Nothing is lost: it waits at the Y-station until there is one.
+                        bool line = LineWorking(c.Net);
+                        var desk = line ? TeleprinterFor(c.Net) : RiderDesk();
+                        if (desk == null) break;
                         double hour = sent % Defs.MinutesPerDay / 60;
                         var m = new Message
                         {
                             Id = NextId++, Net = c.Net, ContractId = c.Id, Day = (int)Math.Floor(sent / Defs.MinutesPerDay), Created = sent, Since = Now,
-                            Loc = Loc.Output, LocId = inbox.Id,
+                            Loc = line ? Loc.Output : Loc.Input, LocId = desk.Id,
                             Garbled = ActIndex >= 1 && Rng.Chance(Defs.GarbledChance * (hour < 6 || hour >= 20 ? 1.6 : 1) * WeatherGarble * CoverGarble(c.Net)),
                         };
                         Messages[m.Id] = m;
-                        inbox.Output.Add(m.Id);
                         c.Spawned++;
-                        TeleprinterWear(inbox);
+                        if (line)
+                        {
+                            desk.Output.Add(m.Id);
+                            TeleprinterWear(desk);
+                        }
+                        else
+                        {
+                            desk.Input.Add(m.Id);
+                            RiderArrived(c.Net, desk);
+                        }
                     }
                     if (c.Standing) CheckMilestones(c);
                     if (c.Delivered >= c.Quantity)

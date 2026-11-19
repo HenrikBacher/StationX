@@ -511,7 +511,7 @@ public sealed partial class GameState
             _ => Rng.Pick(new[] { "a valve has blown", "the photocell has drifted" }),
         };
         Emit(EventKind.Bad, $"{st.Def.Name} #{st.Id} has broken down: {what}. {Cap(Defs.Fitters(st.Type))} will take about {Defs.RepairMinutesFor(st.Type) / 60:0} hours (£{Defs.RepairCostFor(st.Type)})." +
-            (st.Type == StationType.Inbox ? " Until then its traffic waits at the Y-station, unless another teleprinter can take it." : " Service machines before they wear out."));
+            (st.Type == StationType.Inbox ? " Until then its traffic comes by dispatch rider, unless another teleprinter can take it." : " Service machines before they wear out."));
     }
 
     /// <summary>Stations that work by themselves: the pneumatic tubes.</summary>
@@ -818,7 +818,8 @@ public sealed partial class GameState
             if (j.Done > Now) continue;
             RemoteJobs.RemoveAt(i);
             if (!Messages.TryGetValue(j.Msg, out var m)) continue;
-            var link = StationById(j.Link) ?? Stations.FirstOrDefault(s => s.Type == StationType.Inbox);
+            var link = StationById(j.Link) ?? Stations.FirstOrDefault(s => s.Type == StationType.OutstationLink && !s.PendingRemoval)
+                                           ?? Stations.FirstOrDefault(s => s.Type == StationType.Inbox && !s.PendingRemoval);
             if (link == null) continue;
             BombeStop(m);
             m.Loc = Loc.Output;

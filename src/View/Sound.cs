@@ -48,6 +48,15 @@ public partial class Sound : Node
             float ph = Mathf.Tau * 640 * t;
             return (Mathf.Sin(ph) * 0.6f + Mathf.Sin(ph * 2) * 0.15f) * env * 0.3f;
         });
+        // A single-cylinder army motorcycle going by: the thump of each firing, a rasp of exhaust, up and away.
+        _clips["motorbike"] = Make(3.2f, (t, r) =>
+        {
+            float rpm = 16 + 10 * Mathf.Clamp(t / 1.2f, 0, 1);
+            float ph = t * rpm % 1f;
+            float thump = Mathf.Exp(-ph * 9) * Mathf.Sin(ph * Mathf.Tau * 2.2f);
+            float env = Mathf.Clamp(t / 0.5f, 0, 1) * Mathf.Clamp((3.2f - t) / 1.6f, 0, 1);
+            return (thump * 0.8f + Noise(r) * Mathf.Exp(-ph * 14) * 0.35f + Mathf.Sin(t * Mathf.Tau * rpm * 3) * 0.12f) * env * 0.5f;
+        });
         _clips["room"] = Loop(6f, RoomTone);
         _clips["teleprinter"] = Loop(3f, Teleprinter);
         _clips["hum"] = Loop(2f, BombeHum);

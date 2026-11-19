@@ -155,6 +155,8 @@ public sealed class AutoPlayer
                 .OrderByDescending(y => y.Nets.Sum(Busy)).FirstOrDefault(y => y.Nets.Sum(Busy) > 0);
             if (station != null) g.LayLine(station.Id);
         }
+        // A line needs a teleprinter in the Park to print on.
+        if (g.Lines.Count > 0 && Have(StationType.Inbox) == 0 && g.Funds >= Defs.Station(StationType.Inbox).Cost) TryBuild(StationType.Inbox);
         if (!saving && g.MaxSuspicion > 30 && g.Funds > Defs.DfCost + 900)
         {
             var sv = Enum.GetValues<Service>().Where(x => g.CanBuyDf(x) == null).OrderByDescending(g.SuspicionOf).FirstOrDefault();
