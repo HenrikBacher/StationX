@@ -59,26 +59,6 @@ void fragment() {
 }";
 
     static Shader? _shader;
-    static readonly System.Collections.Generic.Dictionary<string, Vector3> Means = new();
-
-    /// <summary>A photo's average colour in linear light (what the shader samples), from a sparse grid of its pixels.</summary>
-    static Vector3 Mean(string dir, Texture2D t)
-    {
-        if (Means.TryGetValue(dir, out var m)) return m;
-        var img = t.GetImage();
-        if (img.IsCompressed()) img.Decompress();
-        var sum = Vector3.Zero;
-        int n = 0;
-        for (int y = 0; y < img.GetHeight(); y += 7)
-            for (int x = 0; x < img.GetWidth(); x += 7)
-            {
-                var c = img.GetPixel(x, y).SrgbToLinear();
-                sum += new Vector3(c.R, c.G, c.B);
-                n++;
-            }
-        return Means[dir] = sum / n;
-    }
-
     static Texture2D? Load(string dir, string map)
     {
         string path = $"res://assets/textures/{dir}/{map}.jpg";
@@ -96,7 +76,7 @@ void fragment() {
             {
                 if (Load(dir, map) is not { } t) return null;
                 m.SetShaderParameter($"{key}_{suffix}", t);
-                if (suffix == "a") m.SetShaderParameter($"{key}_mean", Mean(dir, t));
+                if (suffix == "a") m.SetShaderParameter($"{key}_mean", Textures.LinearMean(dir, t));
             }
         m.SetShaderParameter("paint", paint);
         m.SetShaderParameter("mask", mask);
