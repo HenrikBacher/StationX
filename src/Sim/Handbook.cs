@@ -30,7 +30,7 @@ public static class Handbook
         new("Enigma: breaking the day's key",
             "The keys change at midnight. One message a day per network goes to the cryptanalysts: a crib becomes a menu, a Bombe finds the settings, " +
             "a checking machine confirms them. Before the indicator change of May 1940, Zygalski sheets can do it instead.",
-            new[] { Net.Red, Net.LightBlue, Net.Chaffinch },
+            new[] { Net.Red, Net.LightBlue, Net.Brown, Net.Chaffinch },
             new[]
             {
                 new[] { S(StationType.Registration), Opt(StationType.TrafficAnalysis, "speeds the crib and Bombe"), S(StationType.Crib), S(StationType.Bombe), Opt(StationType.Checking, "without it, Bombe runs take longer") },
@@ -38,7 +38,7 @@ public static class Handbook
             }),
         new("Enigma: reading the messages",
             "Once the day's key is broken, every message on that network is set up on a Typex and read straight off, until midnight.",
-            new[] { Net.Red, Net.LightBlue, Net.Chaffinch, Net.Dolphin, Net.Shark },
+            new[] { Net.Red, Net.LightBlue, Net.Brown, Net.Chaffinch, Net.Dolphin, Net.Shark },
             new[]
             {
                 new[] { S(StationType.Inbox), S(StationType.Registration), S(StationType.Typex), S(StationType.Translation), Opt(StationType.Index, "in later chapters"), S(StationType.Dispatch) },

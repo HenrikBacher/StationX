@@ -17,7 +17,7 @@ public enum StationType
 
 public enum Family { Hand, Enigma, Lorenz }
 
-public enum Net { Police, Abwehr, Red, LightBlue, Chaffinch, Dolphin, Shark, Tunny }
+public enum Net { Police, Abwehr, Red, LightBlue, Chaffinch, Dolphin, Shark, Tunny, Brown }
 
 public enum Issuer { WarOffice, AirMinistry, Admiralty, SIS }
 
@@ -415,6 +415,7 @@ public static partial class Defs
         [Net.Abwehr] = new(Net.Abwehr, "Abwehr", "German military intelligence hand cipher", Family.Hand, false, false, 1.4, false, Issuer.SIS, 2, 60, Service.Security),
         [Net.Red] = new(Net.Red, "RED", "Luftwaffe general key", Family.Enigma, false, false, 1.0, true, Issuer.AirMinistry, 1, 35, Service.Luftwaffe),
         [Net.LightBlue] = new(Net.LightBlue, "LIGHT BLUE", "Luftwaffe operational key", Family.Enigma, false, false, 1.1, false, Issuer.AirMinistry, 1, 38, Service.Luftwaffe),
+        [Net.Brown] = new(Net.Brown, "BROWN", "Luftwaffe beam-navigation key (KG 100)", Family.Enigma, false, false, 1.25, false, Issuer.AirMinistry, 2, 42, Service.Luftwaffe),
         [Net.Chaffinch] = new(Net.Chaffinch, "CHAFFINCH", "Afrika Korps army key", Family.Enigma, false, false, 1.3, false, Issuer.WarOffice, 2, 45, Service.Heer),
         [Net.Dolphin] = new(Net.Dolphin, "DOLPHIN", "Kriegsmarine home waters key", Family.Enigma, true, false, 3.0, false, Issuer.Admiralty, 2, 55, Service.Kriegsmarine),
         [Net.Shark] = new(Net.Shark, "SHARK", "U-boat Atlantic key, four wheels", Family.Enigma, true, true, 1.6, false, Issuer.Admiralty, 3, 80, Service.Kriegsmarine),

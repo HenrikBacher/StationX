@@ -402,11 +402,22 @@ public sealed partial class GameState
             OfferedAt = Now,
             OfferExpires = Now + Defs.OfferLifetimeDays * Defs.MinutesPerDay,
             Title = $"{qty} {net.Name} decrypts",
-            Flavour = Rng.Pick(Flavours[net.Issuer]),
+            Flavour = Rng.Pick(NetFlavours.TryGetValue(net.Id, out var nf) ? nf : Flavours[net.Issuer]),
             State = ContractState.Offered,
         };
         return c;
     }
+
+    /// <summary>Request texts for networks with their own story; the rest use their ministry's.</summary>
+    static readonly Dictionary<Net, string[]> NetFlavours = new()
+    {
+        [Net.Brown] = new[]
+        {
+            "Dr Jones at Air Intelligence needs tonight's beam settings in time to bend them.",
+            "No. 80 Wing must know where the X-Gerät beams cross before the bombers take off.",
+            "The decoy fires go where the beams point: the Air Ministry asks for KG 100's orders.",
+        },
+    };
 
     static readonly Dictionary<Issuer, string[]> Flavours = new()
     {

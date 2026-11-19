@@ -249,6 +249,15 @@ public static class WarOps
                 p.Add(new(OpKind.Convoy, "Axis convoy to Tripoli", "Central Mediterranean", 34.5, 15.5,
                     "Located by 'reconnaissance' and sunk by Malta's Blenheims: {n} thousand tons of supplies lost to Rommel.", "The convoy reached Tripoli: Rommel is resupplied."));
                 break;
+            case Net.Brown:
+                if (In(d, 1940, 9, 7, 1941, 5, 16))
+                {
+                    var (city, lat, lon) = In(d, 1940, 11, 10, 1940, 11, 15) ? ("Coventry", 52.4, -1.5)
+                        : r.Next(5) switch { 0 => ("London", 51.5, -0.1), 1 => ("Bristol", 51.45, -2.6), 2 => ("Liverpool", 53.4, -3.0), 3 => ("Plymouth", 50.4, -4.1), _ => ("Glasgow", 55.86, -4.25) };
+                    p.Add(new(OpKind.Raid, $"The beams on {city}", city, lat, lon,
+                        "The beams were bent and the decoy fires lit: the bombs fell on open fields.", $"The pathfinders followed the beam to {city}."));
+                }
+                break;
             case Net.Chaffinch:
                 if (d >= new DateOnly(1941, 2, 12))
                     p.Add(new(OpKind.Desert, "Rommel's fuel", "Benghazi", 32.1, 20.1,

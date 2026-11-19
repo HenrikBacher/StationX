@@ -86,6 +86,7 @@ public static class Gfx
         Net.Red => new Color("c0504a"),
         Net.LightBlue => new Color("6fa3c9"),
         Net.Chaffinch => new Color("c9a14a"),
+        Net.Brown => new Color("9a6a44"),
         Net.Dolphin => new Color("4f8c84"),
         Net.Shark => new Color("3d5a80"),
         _ => Colors.White,

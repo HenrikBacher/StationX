@@ -264,6 +264,7 @@ public static class Campaign
             {
                 new ContractTemplate(Net.LightBlue, 4, 7, 3, 4, 1),
                 new ContractTemplate(Net.Red, 4, 7, 3, 4, 1),
+                new ContractTemplate(Net.Brown, 3, 6, 3, 4, 0.8),
             },
             OfferEveryHours = 14,
             OnStart = g => g.AddScripted(Net.Red, 16, 4, 1500, 10, "bob", "Luftwaffe raid orders for London",
@@ -294,6 +295,7 @@ public static class Campaign
                 new ContractTemplate(Net.Dolphin, 6, 10, 3, 5, 3),
                 new ContractTemplate(Net.Red, 5, 8, 3, 4, 1),
                 new ContractTemplate(Net.LightBlue, 5, 8, 3, 4, 1),
+                new ContractTemplate(Net.Brown, 4, 7, 3, 4, 0.8),
             },
             OnStart = g =>
             {

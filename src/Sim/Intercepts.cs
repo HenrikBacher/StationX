@@ -131,12 +131,12 @@ public static class Intercepts
 
     static string Discriminant(Net net) => net switch
     {
-        Net.Red => "RED", Net.LightBlue => "BLU", Net.Chaffinch => "FIN", Net.Abwehr => "ABW", _ => "XYZ",
+        Net.Red => "RED", Net.LightBlue => "BLU", Net.Chaffinch => "FIN", Net.Brown => "BRN", Net.Abwehr => "ABW", _ => "XYZ",
     } switch { var s => new string(s.Select(c => (char)('A' + (c - 'A' + 7) % 26)).ToArray()) };   // a fixed letter group per key
 
     static string StationFor(Net net) => net switch
     {
-        Net.Red or Net.LightBlue => "RAF CHICKSANDS",
+        Net.Red or Net.LightBlue or Net.Brown => "RAF CHICKSANDS",
         Net.Chaffinch => "WAR OFFICE Y, BEAUMANOR",
         Net.Dolphin or Net.Shark => "ADMIRALTY Y, SCARBOROUGH",
         Net.Abwehr => "R.S.S. ARKLEY",
@@ -245,6 +245,12 @@ public static class Intercepts
             P("AN FLIEGERFUEHRER AFRIKA VON ZEHNTES FLIEGERKORPS", "To: Fliegerführer Afrika. From: X Fliegerkorps."),
             P("AN ZEHNTES FLIEGERKORPS VON FLIEGERFUEHRER AFRIKA", "To: X Fliegerkorps. From: Fliegerführer Afrika."),
             P("AN JG ZWO SIEBEN VON FLIEGERFUEHRER AFRIKA", "To: JG 27. From: Fliegerführer Afrika."),
+        }),
+        Net.Brown => Pick(r, new[]
+        {
+            P("AN KG EINS NULL NULL VON LN VERSUCHSREGIMENT", "To: KG 100. From: Air Signals Experimental Regiment."),
+            P("AN X GERAET SENDER CHERBOURG VON KG EINS NULL NULL", "To: X-Gerät transmitter, Cherbourg. From: KG 100."),
+            P("AN LUFTFLOTTE DREI VON KG EINS NULL NULL", "To: Luftflotte 3. From: KG 100."),
         }),
         Net.Chaffinch => Pick(r, new[]
         {
@@ -373,6 +379,21 @@ public static class Intercepts
                 if (In(d, 1942, 7, 1, 1942, 11, 4))
                     Now(P($"JAGDSCHUTZ UEBER EL ALAMEIN AB {t.de}", $"Fighter cover over El Alamein from {t.en}."),
                         P($"MARSEILLE {Digits(a % 9 + 1)} ABSCHUESSE", $"Marseille: {a % 9 + 1} victories."));
+                break;
+            }
+            case Net.Brown:
+            {
+                var sender = Pick(r, new[] { P("ANTON", "ANTON"), P("BRUNO", "BRUNO"), P("CAESAR", "CAESAR"), P("WOTAN", "WOTAN") });
+                var city = Pick(r, new[] { P("LONDON", "London"), P("COVENTRY", "Coventry"), P("BIRMINGHAM", "Birmingham"), P("LIVERPOOL", "Liverpool"), P("BRISTOL", "Bristol"), P("PLYMOUTH", "Plymouth"), P("GLASGOW", "Glasgow") });
+                Add(P($"SENDER {sender.de} RICHTSTRAHL {Digits(a * 9 % 360)} GRAD {Digits(b)} MINUTEN AB {t.de}", $"Transmitter {sender.en}: beam bearing {a * 9 % 360} degrees {b} minutes, from {t.en}."),
+                    P($"KREUZSTRAHL VORSIGNAL {Digits(c)} KILOMETER VOR ZIEL", $"Cross-beam: advance signal {c} km before the target."),
+                    P($"KG EINS NULL NULL {Digits(b)} MASCHINEN EINSATZBEREIT", $"KG 100: {b} aircraft serviceable."),
+                    P($"STOERUNG DES STRAHLS FESTGESTELLT FREQUENZWECHSEL AUF {Digits(a + 60)} KOMMA {Digits(b % 10)}", $"Interference with the beam observed. Change frequency to {a + 60}.{b % 10}."));
+                if (In(d, 1940, 9, 7, 1941, 5, 16))
+                    Now(P($"X GERAET RICHTUNG {city.de} ZIELZEIT {t.de}", $"X-Gerät beams laid on {city.en}; time over target {t.en}."),
+                        P($"KG EINS NULL NULL ALS BELEUCHTER FUER ZIEL {city.de}", $"KG 100 to act as fire-raisers for {city.en}."));
+                if (In(d, 1940, 11, 9, 1940, 11, 15))
+                    Now(P("UNTERNEHMEN MONDSCHEINSONATE ZIEL KORN", "Operation MONDSCHEINSONATE (Moonlight Sonata). Target: KORN."));
                 break;
             }
             case Net.Chaffinch:
