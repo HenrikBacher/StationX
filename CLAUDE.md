@@ -35,7 +35,7 @@ state, so the work can be resumed on any machine.
 
 ## Current work (2026-11-19)
 
-Last release **v0.25.0**. Untagged on `main` since: teleprinter jams, faster CI, Node 24 actions, overhaul parts 1–5, bad visits cut the grant.
+Last release **v0.25.0**. Untagged on `main` since: teleprinter jams, faster CI, Node 24 actions, overhaul parts 1–5 and part of 6, bad visits cut the grant.
 
 ### Graphics overhaul: period realism, CC0 assets allowed
 
@@ -61,8 +61,9 @@ settings. Materials are mapped in `Textures.Pbr` (folder, tiles per repeat, tone
 5. Atmosphere and weathering: depth fog as aerial haze (`FogMode.Depth` from 115, the camera is 120 back; thicker in
    fog/snow/rain), grime decals up the foot of outside walls (`Park3D.Grime`), a bare drip line around buildings in
    `PaintGround`. **Done** (moss not done).
-6. Model detail: Mansion bays and gables, hut doors, steps, stove pipes. Also: unbuilt plots are flat brown rectangles
-   (make them surveyed sites), and the static water tank on the lawn is a plain black box.
+6. Model detail. Done: surveyed plots (`SurveyLines`: grass, pegs, string, ranging pole), the sectional steel water
+   tank (`StaticWaterTank`), doorways with wall over a lintel and open ledged doors (`Doorway`). Still to do: Mansion
+   bays and gables, hut steps, stove pipes, the lake (a flat grey disc from far off).
 
 ### Core-gameplay ideas to alternate with the overhaul
 

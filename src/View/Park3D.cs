@@ -348,11 +348,25 @@ public partial class Park3D : Node3D
                 foreach (var z in g.Zones)
                 {
                     if (fx < z.X + 0.5f || fx > z.X + z.W - 0.5f || fy < z.Y + 0.5f || fy > z.Y + z.H - 0.5f) continue;
+                    if (!z.Unlocked && !z.Available)
+                    {
+                        // Only surveyed so far: grass, trampled where the surveyors walked the lines.
+                        float edge = Mathf.Min(Mathf.Min(fx - z.X - 0.5f, z.X + z.W - 0.5f - fx), Mathf.Min(fy - z.Y - 0.5f, z.Y + z.H - 0.5f - fy));
+                        if (edge < 0.35f)
+                        {
+                            float t = (0.35f - edge) / 0.35f * 0.5f * Blob(fx * 2, fy * 2, 1, 71);
+                            c = c.Lerp(Gfx.Mud.Lightened(0.1f), t);
+                            earth = Mathf.Max(earth, t);
+                            grass = 1 - earth;
+                        }
+                        continue;
+                    }
                     (gravel, earth, wet, grass) = (0f, 0f, 0f, 0f);
                     if (!z.Unlocked)
                     {
-                        c = (z.Available ? Gfx.Slab : Gfx.Mud.Darkened(0.1f)).Darkened(noise * 0.08f);
-                        if (z.Available && Blob(fx, fy, 1, 37) > 0.75f) c = c.Darkened(0.12f);
+                        // Authorised: topsoil stripped, the slab going down.
+                        c = Gfx.Slab.Darkened(noise * 0.08f);
+                        if (Blob(fx, fy, 1, 37) > 0.75f) c = c.Darkened(0.12f);
                         earth = 1;
                     }
                     else if (z.Id == "mansion")
@@ -543,6 +557,7 @@ public partial class Park3D : Node3D
         if (gapA is float ga && gapB is float gb) { spans.Add((from, ga)); spans.Add((gb, to)); }
         else spans.Add((from, to));
         var outward = side switch { 0 => new Vector3(0, 0, -1), 1 => new Vector3(1, 0, 0), 2 => new Vector3(0, 0, 1), _ => new Vector3(-1, 0, 0) };
+        if (windows && alongX && gapA is float da && gapB is float db) Doorway(parent, z, da, db, ay, height, wall, outward);
 
         foreach (var (s, e) in spans)
         {
@@ -824,6 +839,38 @@ public partial class Park3D : Node3D
             Mesh3.Box(far, new Vector3(0.6f, 0.4f, 0.4f), new Vector3(x0 + 4 + k * 7, BackWall + 0.38f, y1), Textures.Mat(Surface.Concrete, new Color("a0a8a0")));
     }
 
+    /// <summary>
+    /// The doorway in a full-height wall: wall over the door on a lintel, a frame, and the door itself standing open
+    /// outwards (ledged and braced boards painted green on the huts, oak on the Mansion and the blocks).
+    /// </summary>
+    void Doorway(Node3D parent, Zone z, float a, float b, float wallZ, float height, Material wall, Vector3 outward)
+    {
+        const float head = 1.08f, post = 0.06f;
+        float w = b - a, mid = (a + b) / 2;
+        if (height > head + 0.05f)
+            Mesh3.Box(parent, new Vector3(w, height - head, WallThick), new Vector3(mid, (head + height) / 2, wallZ), wall);
+        var frame = z.Brick ? Gfx.StoneDressing : new Color("d7cfb8");
+        Mesh3.Box(parent, new Vector3(w + 0.14f, 0.08f, WallThick + 0.05f), new Vector3(mid, head + 0.04f, wallZ), frame);
+        foreach (float x in new[] { a + post / 2, b - post / 2 })
+            Mesh3.Box(parent, new Vector3(post, head, WallThick + 0.03f), new Vector3(x, head / 2, wallZ), frame);
+
+        // The leaf, hinged at one jamb on the outer face and swung out a little past square.
+        var paint = z.Brick ? Gfx.Oak : new Color("3d4a3a");
+        float leafW = w - 2 * post, leafH = head - 0.04f;
+        var hinge = new Vector3(a + post, 0, wallZ) + outward * (WallThick / 2 + 0.02f);
+        float yaw = outward.Z < 0 ? Mathf.DegToRad(105) : -Mathf.DegToRad(105);
+        var dir = new Vector3(Mathf.Cos(yaw), 0, -Mathf.Sin(yaw));
+        var leaf = new Node3D { Position = hinge + dir * (leafW / 2), Rotation = new Vector3(0, yaw, 0) };
+        parent.AddChild(leaf);
+        Mesh3.Box(leaf, new Vector3(leafW, leafH, 0.04f), new Vector3(0, leafH / 2 + 0.02f, 0), paint);
+        // Ledges and a brace on the back, a knob on the front.
+        foreach (float y in new[] { 0.18f, leafH / 2, leafH - 0.15f })
+            Mesh3.Box(leaf, new Vector3(leafW - 0.04f, 0.06f, 0.025f), new Vector3(0, y, -0.03f), paint.Darkened(0.15f));
+        var brace = Mesh3.Box(leaf, new Vector3(0.05f, Mathf.Sqrt(leafW * leafW + leafH * leafH) * 0.42f, 0.02f), new Vector3(0, leafH * 0.34f, -0.03f), paint.Darkened(0.15f));
+        brace.Rotation = new Vector3(0, 0, Mathf.Atan2(leafW, leafH * 0.5f));
+        Mesh3.Sphere(leaf, 0.025f, new Vector3(leafW / 2 - 0.09f, 0.5f, 0.035f), Gfx.Brass);
+    }
+
     void DoorDetails(Zone z)
     {
         var (ox, oy) = z.OutsideDoor;
@@ -885,6 +932,7 @@ public partial class Park3D : Node3D
             foreach (var (px, py) in new[] { (z.X + 0.3f, z.Y + 0.3f), (z.X + z.W - 0.3f, z.Y + 0.3f), (z.X + 0.3f, z.Y + z.H - 0.3f), (z.X + z.W - 0.3f, z.Y + z.H - 0.3f) })
                 Mesh3.Box(_buildings, new Vector3(0.05f, 0.4f, 0.05f), new Vector3(px, 0.2f, py), Gfx.Oak);
         }
+        if (!z.Available) SurveyLines(z);
         Mesh3.BoxAt(_buildings, cx - 1.1f, 0, cy + 0.9f, 0.08f, 0.9f, 0.08f, Gfx.OakDark);
         Mesh3.BoxAt(_buildings, cx + 1.02f, 0, cy + 0.9f, 0.08f, 0.9f, 0.08f, Gfx.OakDark);
         Mesh3.BoxAt(_buildings, cx - 1.25f, 0.55f, cy + 0.85f, 2.5f, 0.6f, 0.06f, new Color("cfc6ad"));
@@ -894,6 +942,31 @@ public partial class Park3D : Node3D
         l.OutlineSize = 14;
         l.OutlineModulate = Gfx.Cream;
         l.NoDepthTest = true;
+    }
+
+    /// <summary>A plot that's only been surveyed: pegs round the footprint, string between them, a ranging pole.</summary>
+    void SurveyLines(Zone z)
+    {
+        float x0 = z.X + 0.5f, x1 = z.X + z.W - 0.5f, y0 = z.Y + 0.5f, y1 = z.Y + z.H - 0.5f;
+        var peg = Gfx.Oak.Lightened(0.15f);
+        var paint = new Color("d9d4c4");
+        void Peg(float x, float y, float h)
+        {
+            Mesh3.Box(_buildings, new Vector3(0.05f, h, 0.05f), new Vector3(x, h / 2, y), peg);
+            Mesh3.Box(_buildings, new Vector3(0.055f, 0.05f, 0.055f), new Vector3(x, h - 0.025f, y), paint);
+        }
+        // Profile boards at the corners, pegs every couple of tiles along the sides.
+        foreach (var (x, y) in new[] { (x0, y0), (x1, y0), (x1, y1), (x0, y1) }) Peg(x, y, 0.3f);
+        for (float x = x0 + 2; x < x1 - 0.5f; x += 2) { Peg(x, y0, 0.2f); Peg(x, y1, 0.2f); }
+        for (float y = y0 + 2; y < y1 - 0.5f; y += 2) { Peg(x0, y, 0.2f); Peg(x1, y, 0.2f); }
+        const float sh = 0.17f, st = 0.012f;
+        Mesh3.Box(_buildings, new Vector3(x1 - x0, st, st), new Vector3((x0 + x1) / 2, sh, y0), paint);
+        Mesh3.Box(_buildings, new Vector3(x1 - x0, st, st), new Vector3((x0 + x1) / 2, sh, y1), paint);
+        Mesh3.Box(_buildings, new Vector3(st, st, y1 - y0), new Vector3(x0, sh, (y0 + y1) / 2), paint);
+        Mesh3.Box(_buildings, new Vector3(st, st, y1 - y0), new Vector3(x1, sh, (y0 + y1) / 2), paint);
+        // A red-and-white ranging pole left standing in the far corner.
+        for (int k = 0; k < 4; k++)
+            Mesh3.Cyl(_buildings, 0.025f, 0.025f, 0.25f, new Vector3(x1 - 0.3f, 0.125f + k * 0.25f, y0 + 0.3f), k % 2 == 0 ? new Color("a8322a") : paint, 6);
     }
 
     // ------------------------------------------------------------- grounds
@@ -964,9 +1037,47 @@ public partial class Park3D : Node3D
         };
         _buildings.AddChild(mound);
         Mesh3.Box(_buildings, new Vector3(0.5f, 0.45f, 0.06f), new Vector3(18.5f, 0.22f, 22.42f), new Color("1d1b18"));
-        Mesh3.Box(_buildings, new Vector3(1.8f, 0.5f, 1.2f), new Vector3(30.5f, 0.25f, 10.5f), Textures.Mat(Surface.Concrete, new Color("6a7470")));
-        Mesh3.Box(_buildings, new Vector3(1.6f, 0.02f, 1.0f), new Vector3(30.5f, 0.48f, 10.5f), Gfx.Water.Darkened(0.3f));
-        var label = Mesh3.Text(_buildings, "S.W.S.", new Vector3(30.5f, 0.3f, 11.12f), 24, Gfx.Cream, Fonts.BodyBold, billboard: false);
+        StaticWaterTank(new Vector3(30.5f, 0, 10.5f));
+    }
+
+    /// <summary>
+    /// A static water supply for the fire pumps: a sectional tank of pressed-steel panels bolted together at their
+    /// flanges, open at the top and brim-full, stencilled S.W.S.
+    /// </summary>
+    void StaticWaterTank(Vector3 at)
+    {
+        const float w = 1.8f, d = 1.2f, h = 0.55f, panel = 0.3f, t = 0.03f;
+        var steel = Mesh3.Mat(new Color("4e5a52"));
+        var flange = Mesh3.Mat(new Color("434d46"));
+        foreach (var (size, off) in new[]
+                 {
+                     (new Vector3(w, h, t), new Vector3(0, 0, -d / 2)), (new Vector3(w, h, t), new Vector3(0, 0, d / 2)),
+                     (new Vector3(t, h, d), new Vector3(-w / 2, 0, 0)), (new Vector3(t, h, d), new Vector3(w / 2, 0, 0)),
+                 })
+            Mesh3.Box(_buildings, size, at + off + Vector3.Up * (h / 2), steel);
+        // Flanges standing proud of the outside at every panel joint, and a horizontal one at mid-height.
+        for (float x = -w / 2 + panel; x < w / 2 - 0.01f; x += panel)
+            foreach (float s in new[] { -1f, 1f })
+                Mesh3.Box(_buildings, new Vector3(0.025f, h, 0.04f), at + new Vector3(x, h / 2, s * (d / 2 + 0.02f)), flange);
+        for (float z = -d / 2 + panel; z < d / 2 - 0.01f; z += panel)
+            foreach (float s in new[] { -1f, 1f })
+                Mesh3.Box(_buildings, new Vector3(0.04f, h, 0.025f), at + new Vector3(s * (w / 2 + 0.02f), h / 2, z), flange);
+        Mesh3.Box(_buildings, new Vector3(w + 0.06f, 0.025f, 0.04f), at + new Vector3(0, h / 2, -d / 2 - 0.02f), flange);
+        Mesh3.Box(_buildings, new Vector3(w + 0.06f, 0.025f, 0.04f), at + new Vector3(0, h / 2, d / 2 + 0.02f), flange);
+        // Top rim
+        Mesh3.Box(_buildings, new Vector3(w + 0.08f, 0.03f, 0.06f), at + new Vector3(0, h, -d / 2), flange);
+        Mesh3.Box(_buildings, new Vector3(w + 0.08f, 0.03f, 0.06f), at + new Vector3(0, h, d / 2), flange);
+        Mesh3.Box(_buildings, new Vector3(0.06f, 0.03f, d), at + new Vector3(-w / 2, h, 0), flange);
+        Mesh3.Box(_buildings, new Vector3(0.06f, 0.03f, d), at + new Vector3(w / 2, h, 0), flange);
+        // The water: dark and still, showing the sky.
+        _buildings.AddChild(new MeshInstance3D
+        {
+            Mesh = new PlaneMesh { Size = new Vector2(w - t, d - t) },
+            Position = at + Vector3.Up * (h - 0.06f),
+            MaterialOverride = new StandardMaterial3D { AlbedoColor = new Color("1c2422"), Roughness = 0.04f, MetallicSpecular = 0.6f },
+            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+        });
+        var label = Mesh3.Text(_buildings, "S.W.S.", at + new Vector3(0, 0.3f, d / 2 + 0.045f), 24, Gfx.Cream, Fonts.BodyBold, billboard: false);
         label.PixelSize = 0.005f;
     }
 
