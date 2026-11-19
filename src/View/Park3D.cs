@@ -96,6 +96,8 @@ public partial class Park3D : Node3D
             {
                 var tile = g.Get(x, y);
                 float a = tile switch { Tile.Lawn or Tile.Tree => 1f, Tile.Path => 0.55f, _ => 0f };
+                // A plot not yet built on is open ground (grass, or the slab going down), not indoors.
+                if (g.ZoneAt(x, y) is { Unlocked: false }) a = 0.9f;
                 bool lakeTile = tile == Tile.Water;
                 for (int j = 0; j < px; j++)
                     for (int i = 0; i < px; i++)
