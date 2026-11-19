@@ -12,7 +12,8 @@ state, so the work can be resumed on any machine.
 - UI self-test: `godot --path . -- --selftest` (~4 s on a GPU). It drives real input, renders the world cheaply, and uses
   its own `user://selftest-saves`.
 - Balance: `BALANCE=1 BALANCE_SEEDS=40 dotnet test tests/StationX.Sim.Tests --filter Balance --logger "console;verbosity=detailed"`
-  and read the `Easy/Normal/Hard: N/40 won` lines (~4 min).
+  and read the `Easy/Normal/Hard: N/40 won` lines (~2 min: the games run in parallel, server GC; `BALANCE_DIFF=Normal,Hard`
+  plays only those).
 - Screenshots: `godot --path . -- --shot=PATH --seed=7 --days=44 --hour=11 --weather=fine --zoom=2.6 --center=24,6`.
   Other flags: `--panel=NAME`, `--modal=NAME`, `--act=N`, `--place=Type@x,y;...`, `--lineup=x,y`, `--age=H`,
   `--inspect=Type`. Look at every visual change before committing.
@@ -35,7 +36,8 @@ state, so the work can be resumed on any machine.
 
 ## Current work (2026-11-19)
 
-Last release **v0.29.0** (idle tea breaks, patch updates); v0.28.0 had breaks, watches, collisions, the updater. Before that **v0.27.0**: cold handovers, the stranded-staff fix, intelligence freshness by service, security sweeps,
+Last release **v0.30.0** (the campaign to VE Day with great operations, Y-stations, the variety engine, update sheets);
+v0.29.0 had idle tea breaks and patch updates; v0.28.0 had breaks, watches, collisions, the updater. Before that **v0.27.0**: cold handovers, the stranded-staff fix, intelligence freshness by service, security sweeps,
 merged static building meshes (`Park3D.MergeStatic`; screenshots print draw calls). v0.26.0 had overhaul parts 1–5
 and most of 6, Stores, and bad visits cutting the grant. Untagged since: furniture wood, glazed windows (`Park3D.Window`: frame, glazing bars, sill, thin tape) and a detailed army lorry (`Park3D.Lorry`).
 Then (user requests, 2026-11-19):
@@ -119,5 +121,5 @@ overnight and far billets raise Abwehr/SD suspicion; a sweep (Intelligence panel
 everyone's energy, every 4 days. All five listed ideas are now done; new ones are welcome.
 
 
-Balance data (2026-11-19, with Stores and handovers): Easy 40, Normal 19, Hard 7 of 40 (after security). On Normal, games are lost in acts 7–9 (Claymore to Action This Day) when reputation hits 0;
+Balance data (2026-11-19, campaign to VE Day, day cap 320): Easy 40, Normal 23, Hard 0 of 40. Watches open in act 5. On Normal, games are lost in acts 7–9 (Claymore to Action This Day) when reputation hits 0;
 the early acts rarely decide a game.

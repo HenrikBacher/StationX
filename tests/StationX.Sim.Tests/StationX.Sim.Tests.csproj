@@ -4,6 +4,8 @@
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <!-- The balance report plays its games on every core at once; one shared collector would stall them all. -->
+    <ServerGarbageCollection>true</ServerGarbageCollection>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../../src/Sim/**/*.cs" Link="Sim/%(RecursiveDir)%(Filename)%(Extension)" />
