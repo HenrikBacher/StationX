@@ -194,6 +194,7 @@ public partial class PersonModel : Node3D
         }
         if (s.Notable != null)
             Mesh3.Sphere(_torso, 0.016f, new Vector3(-0.07f, 0.23f, 0.085f), Gfx.Brass);
+        bool leadingWren = s.Role == Role.Wren && s.Skill >= 3;
 
         // Arms: sleeve, forearm, hand.
         (_armL, _elbowL) = Arm(-1);
@@ -205,6 +206,8 @@ public partial class PersonModel : Node3D
             Capsule(sh, 0.034f, Upper - 0.03f, new Vector3(0, -Upper / 2, 0), sleeve.Darkened(0.04f));
             var el = Joint(sh, new Vector3(0, -Upper, 0));
             Capsule(el, 0.03f, Fore - 0.04f, new Vector3(0, -Fore / 2 + 0.01f, 0), sleeve.Darkened(0.06f));
+            if (leadingWren && side < 0)   // a Leading Wren's red anchor badge on the left sleeve
+                Mesh3.Box(sh, new Vector3(0.012f, 0.03f, 0.03f), new Vector3(-0.033f, -Upper * 0.35f, 0.0f), new Color("a3392b"));
             if (shirtSleeves)   // black sleeve garters above the elbow
                 Mesh3.Cyl(sh, 0.037f, 0.037f, 0.018f, new Vector3(0, -Upper * 0.7f, 0), new Color("1d1c1f"), 10);
             Mesh3.Sphere(el, 0.028f, new Vector3(0, -Fore - 0.005f, 0), skin);
@@ -251,7 +254,8 @@ public partial class PersonModel : Node3D
 
     void Hair(Staff s, Color hair)
     {
-        if (s.Role == Role.Wren)
+        // About half the Wrens work bareheaded indoors; the others keep their caps on.
+        if (s.Role == Role.Wren && Trait(s, 43) < 0.5f)
         {
             // Hair rolled up off the collar, under a navy cap with a tally band.
             var bun = Mesh3.Sphere(_head, 0.06f, new Vector3(0, -0.02f, -0.055f), hair);
@@ -261,13 +265,23 @@ public partial class PersonModel : Node3D
             Mesh3.Box(_head, new Vector3(0.025f, 0.014f, 0.004f), new Vector3(0, 0.05f, 0.072f), Gfx.Brass);
             return;
         }
-        if (s.Role == Role.Messenger)
+        if (s.Role == Role.Messenger && Trait(s, 44) < 0.6f)
         {
             var crop = Mesh3.Sphere(_head, 0.075f, new Vector3(0, 0.018f, -0.012f), hair);
             crop.Scale = new Vector3(0.95f, 1f, 1f);
             Mesh3.Cyl(_head, 0.078f, 0.078f, 0.04f, new Vector3(0, 0.07f, -0.005f), new Color("2b2a33"), 16);
             var peak = Mesh3.Box(_head, new Vector3(0.12f, 0.01f, 0.06f), new Vector3(0, 0.055f, 0.075f), new Color("16151a"));
             peak.Rotation = new Vector3(0.25f, 0, 0);
+            return;
+        }
+        if (s.Role == Role.Messenger)
+        {
+            // Capless: a schoolboy crop, some of them tousled
+            var mop = Mesh3.Sphere(_head, 0.077f, new Vector3(0, 0.022f, -0.01f), hair);
+            mop.Scale = new Vector3(1f, 0.95f, 1.02f);
+            if (Trait(s, 45) < 0.5f)
+                for (int k = 0; k < 4; k++)
+                    Mesh3.Sphere(_head, 0.022f, new Vector3(-0.03f + k * 0.02f, 0.075f, 0.03f), hair);
             return;
         }
         if (s.Female)
