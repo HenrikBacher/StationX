@@ -17,6 +17,8 @@ public sealed class Station
     public int ReservedInputs { get; set; }
     public int? OperatorId { get; set; }
     public bool OperatorPresent { get; set; }
+    /// <summary>When the desk was left with a message half done (game minutes), or -1.</summary>
+    public double LeftAt { get; set; } = -1;
     public int? Current { get; set; }
     public double WorkDone { get; set; }
     public double WorkTotal { get; set; }
@@ -266,6 +268,9 @@ public sealed class Stats
     public int LateDecrypts { get; set; }
     /// <summary>Typex runs that came out as gibberish because the wheels were set wrong.</summary>
     public int TypexSlips { get; set; }
+    /// <summary>Half-done messages picked up after sitting cold, and the desk-minutes of work lost re-reading them.</summary>
+    public int ColdHandovers { get; set; }
+    public double HandoverMinutesLost { get; set; }
     public int InspectionsPassed { get; set; }
     public int InspectionsFailed { get; set; }
     public int StandingAccepted { get; set; }

@@ -364,6 +364,7 @@ public sealed partial class GameState
             if (op == null) { ReleaseOperator(st); continue; }
             // Hand over mid-job only when exhausted; otherwise take the break between messages.
             if (op.Energy < Defs.Exhausted || (st.Current == null && op.Tired)) { ReleaseOperator(st); continue; }
+            if (st.LeftAt >= 0) TakeOver(st);
 
             if (st.Current == null)
             {
@@ -529,9 +530,27 @@ public sealed partial class GameState
                 if (op.Leaving) RemoveStaff(op);
             }
         }
+        if (st.Current != null && !st.IsMachine && st.OperatorPresent && st.LeftAt < 0) st.LeftAt = Now;
         st.OperatorId = null;
         st.OperatorPresent = false;
         st.IdleMinutes = 0;
+    }
+
+    /// <summary>For tests.</summary>
+    public void DebugTakeOver(Station st) => TakeOver(st);
+
+    /// <summary>Someone sits down at a desk left mid-message: the colder it went, the more must be read again.</summary>
+    void TakeOver(Station st)
+    {
+        double gap = Now - st.LeftAt;
+        st.LeftAt = -1;
+        if (st.Current == null || gap <= Defs.HandoverGrace) return;
+        double share = Defs.HandoverMaxLoss * Math.Min(1, (gap - Defs.HandoverGrace) / (Defs.HandoverColdBy - Defs.HandoverGrace));
+        double lost = st.WorkDone * share;
+        if (lost < 0.5) return;
+        st.WorkDone -= lost;
+        Stats.ColdHandovers++;
+        Stats.HandoverMinutesLost += lost;
     }
 
     public double Duration(Station st, Staff op, Message m)

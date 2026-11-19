@@ -415,6 +415,43 @@ public sealed partial class GameState
     }
 
     /// <summary>True if this person may work at, or carry within, the building at a tile.</summary>
+    /// <summary>
+    /// Anyone that new or moved furniture has boxed into a corner (or stood on) steps out to the nearest floor that
+    /// can be reached from the building's door. Otherwise they'd stand there for good, and the foreman would keep
+    /// picking them for work they can never walk to.
+    /// </summary>
+    void FreeStranded()
+    {
+        foreach (var z in Grid.Zones)
+        {
+            if (!z.Unlocked) continue;
+            bool[]? reach = null;
+            foreach (var s in Staff)
+            {
+                if (s.Away) continue;
+                var t = s.TilePos;
+                if (!z.InOuter(t.x, t.y)) continue;
+                reach ??= Pathfinder.Reachable(Grid, z.InsideDoor);
+                if (reach[t.y * Grid.Width + t.x]) continue;
+                (int x, int y)? best = null;
+                int bestD = int.MaxValue;
+                for (int y = z.Y; y < z.Y + z.H; y++)
+                    for (int x = z.X; x < z.X + z.W; x++)
+                    {
+                        if (!reach[y * Grid.Width + x] || !Grid.Walkable(x, y)) continue;
+                        int d = Math.Abs(x - t.x) + Math.Abs(y - t.y);
+                        if (d < bestD) { bestD = d; best = (x, y); }
+                    }
+                if (best is not { } b) continue;
+                (int, int)? dest = s.Path.Count > 0 ? s.Path[^1] : null;
+                s.X = b.x + 0.5;
+                s.Y = b.y + 0.5;
+                s.Path.Clear();
+                if (dest is { } goal) SendTo(s, goal);   // carry on to wherever they were going
+            }
+        }
+    }
+
     public bool MayWorkAt(Staff s, (int x, int y) tile) => s.Posted == null || Grid.ZoneAt(tile.x, tile.y)?.Id == s.Posted;
 
     /// <summary>Routes a network to a teleprinter, or stops routing it there. All on, or all off, means "everything".</summary>

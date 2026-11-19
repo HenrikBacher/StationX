@@ -27,10 +27,18 @@ public sealed partial class GameState
             if (st.Input.Count == 0 && st.Current == null) continue;
             if (st.IsMachine && st.Current != null) continue;
             if (st.IsDown(Now)) continue;
-            var who = FindIdle(st.UseTile, s => s.Pinned == st.Id)
-                      ?? FindIdle(st.UseTile, s => s.Role == role.Value && s.Pinned == null && MayWorkAt(s, st.UseTile));
+            // The nearest who can actually get there: someone cut off from it mustn't block everyone else.
+            Staff? who = null;
+            var cantReach = new HashSet<int>();
+            for (int tries = 0; tries < 4 && who == null; tries++)
+            {
+                var cand = FindIdle(st.UseTile, s => s.Pinned == st.Id && !cantReach.Contains(s.Id))
+                           ?? FindIdle(st.UseTile, s => s.Role == role.Value && s.Pinned == null && MayWorkAt(s, st.UseTile) && !cantReach.Contains(s.Id));
+                if (cand == null) break;
+                if (SendTo(cand, st.UseTile)) who = cand;
+                else cantReach.Add(cand.Id);
+            }
             if (who == null) continue;
-            if (!SendTo(who, st.UseTile)) continue;
             who.Task = new StaffTask { Kind = TaskKind.Operate, Dest = st.Id };
             st.OperatorId = who.Id;
             st.OperatorPresent = who.Path.Count == 0;

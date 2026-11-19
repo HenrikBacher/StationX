@@ -1976,3 +1976,59 @@ public class SuppliesTests
         Assert.NotNull(g.CanOrderStores());
     }
 }
+
+public class HandoverTests
+{
+    [Fact]
+    public void ADeskLeftColdLosesPartOfTheWorkDone()
+    {
+        var g = TestUtil.BombeLine(12, checking: true);
+        var st = g.Stations.First(s => s.Type == StationType.Typex);
+        var m = new Message { Id = 9999, Net = Net.Red, Day = g.Day, Created = g.Now, Next = StationType.Typex, Loc = Loc.Processing, LocId = st.Id };
+        g.Messages[m.Id] = m;
+        st.Current = m.Id;
+        st.WorkTotal = 100;
+        st.WorkDone = 40;
+
+        // Picked up within the hour: nothing lost.
+        st.LeftAt = g.Now - 30;
+        g.DebugTakeOver(st);
+        Assert.Equal(40, st.WorkDone, 3);
+        Assert.Equal(-1, st.LeftAt);
+
+        // Left all night: half of it has to be done again.
+        st.LeftAt = g.Now - 9 * 60;
+        g.DebugTakeOver(st);
+        Assert.Equal(20, st.WorkDone, 3);
+        Assert.Equal(1, g.Stats.ColdHandovers);
+    }
+}
+
+public class StrandedTests
+{
+    [Fact]
+    public void SomeoneADeskIsPutDownOnStepsOutOfTheWay()
+    {
+        var g = TestUtil.BombeLine(12, checking: true);
+        var s = g.Staff.First(x => !x.Away && x.Task == null);
+        var mansion = g.Grid.Zone("mansion")!;
+        // An empty floor tile in the Mansion, reachable from its door.
+        var reach = Pathfinder.Reachable(g.Grid, mansion.InsideDoor);
+        var spot = Enumerable.Range(mansion.Y + 2, mansion.H - 4).SelectMany(y => Enumerable.Range(mansion.X + 2, mansion.W - 4).Select(x => (x, y)))
+            .First(t => g.Grid.Walkable(t.x, t.y) && reach[t.y * Grid.Width + t.x] && g.Place(StationType.Registration, t.x, t.y, 0, free: true) is { } st && Undo(g, st));
+        s.X = spot.x + 0.5; s.Y = spot.y + 0.5;
+        Assert.NotNull(g.Place(StationType.Registration, spot.x, spot.y, 0, free: true));
+        var t2 = s.TilePos;
+        Assert.True(g.Grid.Walkable(t2.x, t2.y), "stepped off the new desk");
+        Assert.True(Pathfinder.Reachable(g.Grid, mansion.InsideDoor)[t2.y * Grid.Width + t2.x], "and can walk out");
+    }
+
+    static bool Undo(GameState g, Station st)
+    {
+        // Only a trial placement: take it away again, keeping spots where the desk covers the tile itself.
+        bool covers = !g.Grid.Walkable(st.X, st.Y);
+        g.Stations.Remove(st);
+        g.Grid.RebuildOccupancy(g.Stations);
+        return covers;
+    }
+}

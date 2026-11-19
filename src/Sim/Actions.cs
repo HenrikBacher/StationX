@@ -125,6 +125,7 @@ public sealed partial class GameState
         var st = new Station { Id = NextId++, Type = t, X = x, Y = y, Rot = rot & 3 };
         Stations.Add(st);
         Grid.RebuildOccupancy(Stations);
+        FreeStranded();
         if (!free) Funds -= st.Def.Cost;
         return st;
     }
@@ -138,6 +139,7 @@ public sealed partial class GameState
         foreach (var s in Staff.Where(s => s.Task is { Kind: TaskKind.Rest } t && t.Dest == st.Id)) { s.Task = null; s.Path.Clear(); }
         st.X = x; st.Y = y; st.Rot = rot & 3;
         Grid.RebuildOccupancy(Stations);
+        FreeStranded();
         Funds -= Defs.MoveCost;
         // Anyone walking to it re-plans on arrival at the old spot.
         return true;

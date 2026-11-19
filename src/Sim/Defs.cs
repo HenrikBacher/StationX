@@ -131,6 +131,11 @@ public static partial class Defs
     /// <summary>Walking slows by this much for each other person on the tile ahead or the one you're on.</summary>
     // Crises (from act 2): a power cut stops the machines; a surge brings a run of MOST IMMEDIATE requests.
     public const int CrisesFromAct = 2;
+    /// <summary>
+    /// A desk left with a message half done: picked up within the hour, nothing is lost; after that, whoever takes it on
+    /// reads back through the worksheet, losing more the longer it sat, up to half the work done.
+    /// </summary>
+    public const double HandoverGrace = 60, HandoverColdBy = 6 * 60, HandoverMaxLoss = 0.5;
     /// <summary>Stores (dockets, worksheets, carbons): from the expansion in spring 1940 the Park orders its own.</summary>
     public const int StoresFromAct = 3;
     public const int StoresStart = 60, StoresOrderSize = 60, StoresCap = 240, StoresOrderCost = 45;

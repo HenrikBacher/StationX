@@ -23,6 +23,17 @@ public class Diag(ITestOutputHelper output)
             foreach (var e in g.Events) if (e.Kind is EventKind.Bad or EventKind.ActStarted) log.Add($"   {g.Day}.{g.MinuteOfDay / 60:00} {e.Kind}: {e.Text[..Math.Min(110, e.Text.Length)]}");
             g.Events.Clear();
             g.Advance(60);
+            if (g.Day.ToString() == Environment.GetEnvironmentVariable("HOURLY"))
+                foreach (var st in g.Stations.Where(st => st.Type == StationType.Dispatch))
+                    output.WriteLine($"   {g.MinuteOfDay / 60:00.0} desk op={st.OperatorId} present={st.OperatorPresent} cur={st.Current} work={st.WorkDone:0.0}/{st.WorkTotal:0.0} in={st.Input.Count} left={st.LeftAt:0} opTask={(st.OperatorId is int oid ? g.StaffById(oid)?.Task?.Kind.ToString() + "@" + g.StaffById(oid)?.TilePos : "")}");
+            if (g.Day.ToString() == Environment.GetEnvironmentVariable("NOONDAY") && (int)(g.MinuteOfDay / 60) == 12)
+                foreach (var s in g.Staff)
+                    output.WriteLine($"     noon {s.Name,-22} {s.Role,-12} {s.Shift,-7} away={s.Away} idle={s.Idle} pin={s.Pinned} post={s.Posted} head={s.HeadOf} sick={s.IsSick(g.Now)} E{s.Energy:0.00} task={s.Task?.Kind}/{s.Task?.Phase}/{s.Task?.Dest} path={s.Path.Count} at {s.TilePos}");
+                foreach (var st in g.Stations.Where(st => st.Type == StationType.Dispatch))
+                    foreach (var s in g.Staff.Where(s => s.Role == Role.Clerk && s.Idle))
+                        output.WriteLine($"     noon try {s.Name} tired={s.Tired} E{s.Energy:0.00} -> {st.UseTile}: path={(Pathfinder.Find(g.Grid, s.TilePos, st.UseTile)?.Count.ToString() ?? "none")} next={g.NextScheduleAt - g.Now:0}");
+                foreach (var s in g.Staff.Where(s => !s.Away))
+                    if (!g.Grid.Walkable(s.TilePos.x, s.TilePos.y)) output.WriteLine($"     noon TRAPPED {s.Name} at {s.TilePos}: {string.Join(",", g.Stations.Where(st => st.X <= s.TilePos.x && s.TilePos.x < st.X + st.Def.W && st.Y <= s.TilePos.y && s.TilePos.y < st.Y + st.Def.H).Select(st => st.Type))}");
             if (g.Day != lastDay)
             {
                 lastDay = g.Day;
@@ -30,10 +41,13 @@ public class Diag(ITestOutputHelper output)
                 log.Clear();
                 var backlog = string.Join(" ", g.Messages.Values.GroupBy(m => m.Next?.ToString() ?? "wait").Select(x => $"{x.Key}:{x.Count()}"));
                 var act = g.Contracts.Where(c => c.State == ContractState.Active).Select(c => $"{c.Net}{c.Delivered}/{c.Quantity}");
-                output.WriteLine($"day {g.Day,3} act {g.ActIndex} £{g.Funds,6} rep {g.Reputation,3:0} staff {g.Staff.Count,2} E{g.AverageEnergy:0.00} M{g.AverageMorale:0.00} susp {g.MaxSuspicion,3:0} delivered {g.Stats.DeliveredTotal} stores {g.Stores:0}/{g.StoresPerDay:0.0}{(g.OutOfStores ? "OUT" : "")} done {g.Stats.ContractsCompleted} fail {g.Stats.ContractsFailed} | {string.Join(",", act)} | {backlog}");
-                if (g.Day is 4000)
+                output.WriteLine($"day {g.Day,3} act {g.ActIndex} £{g.Funds,6} rep {g.Reputation,3:0} staff {g.Staff.Count,2} E{g.AverageEnergy:0.00} M{g.AverageMorale:0.00} susp {g.MaxSuspicion,3:0} delivered {g.Stats.DeliveredTotal} stores {g.Stores:0}/{g.StoresPerDay:0.0}{(g.OutOfStores ? "OUT" : "")} cold {g.Stats.ColdHandovers}/{g.Stats.HandoverMinutesLost:0}m done {g.Stats.ContractsCompleted} fail {g.Stats.ContractsFailed} | {string.Join(",", act)} | {backlog}");
+                if (g.Day.ToString() == Environment.GetEnvironmentVariable("STAFFDAY"))
                     foreach (var s in g.Staff)
                         output.WriteLine($"        {s.Name,-22} {s.Role,-12} {s.Shift,-7} away={s.Away} E{s.Energy:0.00} M{s.Morale:0.00} task={s.Task?.Kind}/{s.Task?.Phase}/{s.Task?.Dest} path={s.Path.Count} at {s.TilePos}");
+                if (Environment.GetEnvironmentVariable("DESK") is string desk)
+                    foreach (var st in g.Stations.Where(st => st.Type.ToString() == desk))
+                        output.WriteLine($"        {st.Type}#{st.Id} cur={st.Current} work={st.WorkDone:0.0}/{st.WorkTotal:0.0} op={st.OperatorId} present={st.OperatorPresent} left={st.LeftAt:0} in={st.Input.Count} out={st.Output.Count} down={st.IsDown(g.Now)} obs={st.Obsolete} rm={st.PendingRemoval} use={st.UseTile} reach={Pathfinder.Find(g.Grid, g.Grid.Zone("mansion")!.InsideDoor, st.UseTile) != null}");
                 if (g.Day >= 25) output.WriteLine("        stations: " + string.Join(" ", g.Stations.GroupBy(s => s.Type).Select(x => $"{x.Key}x{x.Count()}")));
             }
         }
