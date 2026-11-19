@@ -213,6 +213,10 @@ public sealed class AutoPlayer
         if (g.Winter && !g.HasSickBay && g.StationUnlocked(StationType.SickBay, out _) && g.Funds > 1200)
             TryBuildIn(StationType.SickBay, g.Grid.Zone("mansion")!);
 
+        // A security sweep once the Abwehr's suspicion is high, as the papers tip says.
+        if (g.SuspicionOf(Service.Security) >= 50 && g.CanSecuritySweep() == null)
+            g.SecuritySweep();
+
         // Stores, as the tip says: order when they're down to a couple of days, before they run out.
         if ((g.StoresLow || g.OutOfStores) && g.CanOrderStores() == null)
             g.OrderStores();

@@ -2045,3 +2045,39 @@ public class StrandedTests
         return covers;
     }
 }
+
+public class SecurityTests
+{
+    [Fact]
+    public void ASweepPlugsTheLeaksButNotTooOften()
+    {
+        var g = TestUtil.BombeLine(12, checking: true);
+        g.AddSuspicion(Service.Security, 60);
+        double before = g.SuspicionOf(Service.Security);
+        double energy = g.Staff.Where(s => !s.Away).Average(s => s.Energy);
+        Assert.Null(g.CanSecuritySweep());
+        Assert.True(g.SecuritySweep());
+        Assert.Equal(before - Defs.SweepRelief, g.SuspicionOf(Service.Security), 3);
+        Assert.True(g.Staff.Where(s => !s.Away).Average(s => s.Energy) < energy);
+        Assert.NotNull(g.CanSecuritySweep());
+    }
+
+    [Fact]
+    public void PapersLeftOutOvernightAreSometimesFound()
+    {
+        var g = TestUtil.BombeLine(12, checking: true);
+        var desks = g.Stations.Where(s => !s.IsMachine && s.Def.Operator != null).Take(3).ToList();
+        foreach (var st in desks) { st.Current = 1; st.LeftAt = g.Now; }
+        for (int day = 0; day < 20 && g.Stats.PapersFound == 0; day++)
+        {
+            g.Now += Defs.MinutesPerDay;
+            g.DebugDailySecurity();
+        }
+        Assert.True(g.Stats.PapersFound > 0, "the duty officer finds something in twenty nights");
+        Assert.True(g.SuspicionOf(Service.Security) > 0);
+        foreach (var st in desks) { st.Current = null; st.LeftAt = -1; }
+        int before = g.Stats.PapersFound;
+        for (int day = 0; day < 20; day++) { g.Now += Defs.MinutesPerDay; g.DebugDailySecurity(); }
+        Assert.Equal(before, g.Stats.PapersFound);   // nothing left out, nothing found
+    }
+}

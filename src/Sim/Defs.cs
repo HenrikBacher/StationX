@@ -136,6 +136,13 @@ public static partial class Defs
     /// reads back through the worksheet, losing more the longer it sat, up to half the work done.
     /// </summary>
     public const double HandoverGrace = 60, HandoverColdBy = 6 * 60, HandoverMaxLoss = 0.5;
+    /// <summary>
+    /// The Park's own security, from the Polish gift on: papers found left out overnight, staff lodged far away, and
+    /// the sweep that plugs the leaks.
+    /// </summary>
+    public const int SecurityFromAct = 2, PapersOutMax = 3, SweepCooldownDays = 4;
+    public const double PapersOutChance = 0.15, PapersOutSuspicion = 2, FarBilletSuspicion = 0.2;
+    public const double SweepRelief = 15, SweepEnergy = 0.12, SweepMorale = 0.03;
     /// <summary>Stores (dockets, worksheets, carbons): from the expansion in spring 1940 the Park orders its own.</summary>
     public const int StoresFromAct = 3;
     public const int StoresStart = 60, StoresOrderSize = 60, StoresCap = 240, StoresOrderCost = 45;

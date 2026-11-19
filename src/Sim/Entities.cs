@@ -270,6 +270,8 @@ public sealed class Stats
     public int TypexSlips { get; set; }
     /// <summary>Half-done messages picked up after sitting cold, and the desk-minutes of work lost re-reading them.</summary>
     public int ColdHandovers { get; set; }
+    public int PapersFound { get; set; }
+    public int Sweeps { get; set; }
     public double HandoverMinutesLost { get; set; }
     public int InspectionsPassed { get; set; }
     public int InspectionsFailed { get; set; }

@@ -16,7 +16,7 @@ public partial class Hud
     string IntelSig() =>
         $"{S.Policy}|{S.Funds / 100}|{S.OutstationBombes}|{S.RemoteJobs.Count}|{S.Dilemmas.Count}|" +
         string.Join(",", Enum.GetValues<Service>().Select(sv => (int)S.SuspicionOf(sv) / 2)) + "|" +
-        string.Join(",", S.KeyBoardNets().Select(n => $"{S.CanGarden(n)}{S.LockedDown(n)}"));
+        string.Join(",", S.KeyBoardNets().Select(n => $"{S.CanGarden(n)}{S.LockedDown(n)}")) + $"|{S.CanSecuritySweep() == null}{S.Stats.PapersFound}";
 
     void IntelPanel()
     {
@@ -36,6 +36,15 @@ public partial class Hud
             bar.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
             var state = UiTheme.Label(locked ? $"locked {until - S.Day + 1}d" : $"{(int)v}", 12, locked ? Gfx.Bad : UiTheme.TextDim);
             _sideBox.AddChild(Row(name, bar, state));
+        }
+
+        if (S.ActIndex >= Defs.SecurityFromAct)
+        {
+            string? why = S.CanSecuritySweep();
+            var l = UiTheme.Label(S.Stats.PapersFound > 0 ? $"Papers found left out: {S.Stats.PapersFound}" : "The Park's own security", 13, UiTheme.TextDim);
+            l.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+            _sideBox.AddChild(Row(l, UiTheme.Button("Security sweep", () => { S.SecuritySweep(); _sideSig = ""; }, why == null,
+                tooltip: why ?? $"Desks cleared, safes checked, a word in every ear: Abwehr and SD suspicion −{Defs.SweepRelief:0}. Everyone on duty loses an hour's energy and a little morale. Once every {Defs.SweepCooldownDays} days.")));
         }
 
         _sideBox.AddChild(UiTheme.Caps("Policy on using ULTRA", 12, UiTheme.Accent));
@@ -218,6 +227,8 @@ public partial class Hud
             "Intelligence goes off, and some sooner than others. Air and naval decrypts (tonight's raid, a U-boat's position) earn half the breakthroughs after 16 hours and none after 32; army ones after a day and two; Abwehr, police and TUNNY after two days and four. They still count for their requests. Clear backlogs before they go stale.");
         yield return ("offizier", S.Messages.Values.Any(m => m.Offizier && m.Next == StationType.HandCipher),
             "An Offizier message: under the day's naval key it's enciphered again on an officers-only setting. After the Typex it goes to a hand-cipher desk to be unpicked. If naval traffic is heavy, build a second hand-cipher desk.");
+        yield return ("papers", S.Stats.PapersFound > 0 || (S.ActIndex >= Defs.SecurityFromAct && S.Overcrowded > 3),
+            "Leaks raise the Abwehr's suspicion: worksheets left out overnight on desks abandoned mid-message, and staff lodged far away talking on the bus. Keep the watches manned and billets found. When the Abwehr and SD bar climbs past half, a security sweep (Intelligence) plugs the leaks, at an hour of everyone's time.");
         yield return ("handover", S.Stats.ColdHandovers >= 3,
             "Desks are being left half-way through a message for hours. Whoever picks one up must read back through the worksheet: within the hour nothing is lost, after six hours half the work is. Keep enough people on every watch to take over the desks; Balance watches (Staff) spreads them out.");
         yield return ("stores", S.StoresLow,

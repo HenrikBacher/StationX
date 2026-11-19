@@ -155,6 +155,7 @@ public sealed partial class GameState
         DailyPeople();
         DailyIntelligence();
         DailySupplies();
+        DailySecurity();
         foreach (var k in Flows.Keys.ToList())
             if ((Flows[k] *= 0.5) < 0.25) Flows.Remove(k);
         if (Day % 7 == 0) { WeeklyAccounts(); CoverLeft = Defs.CoverPerWeek; }
