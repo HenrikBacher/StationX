@@ -430,9 +430,21 @@ public partial class StationModel : Node3D
     void Chair(Vector3 at)
     {
         ChairLocal ??= at;
-        Mesh3.BoxAt(this, at.X - 0.16f, 0, at.Z - 0.14f, 0.32f, 0.24f, 0.28f, Gfx.OakDark);
-        Mesh3.BoxAt(this, at.X - 0.17f, 0.24f, at.Z - 0.15f, 0.34f, 0.04f, 0.3f, Gfx.Oak);
-        Mesh3.BoxAt(this, at.X - 0.17f, 0.24f, at.Z + 0.12f, 0.34f, 0.32f, 0.04f, Gfx.Oak);
+        // A plain wooden office chair: four turned legs with stretchers, a dished seat, a slatted back under a top rail.
+        var leg = Gfx.OakDark;
+        foreach (var lx in new[] { -0.13f, 0.13f })
+            foreach (var lz in new[] { -0.11f, 0.12f })
+                Mesh3.Cyl(this, 0.016f, 0.013f, 0.24f, new Vector3(at.X + lx, 0.12f, at.Z + lz), leg, 8);
+        foreach (var lx in new[] { -0.13f, 0.13f })
+            Mesh3.Box(this, new Vector3(0.018f, 0.018f, 0.22f), new Vector3(at.X + lx, 0.08f, at.Z + 0.005f), leg);
+        Mesh3.Box(this, new Vector3(0.26f, 0.018f, 0.018f), new Vector3(at.X, 0.1f, at.Z - 0.11f), leg);
+        Mesh3.BoxAt(this, at.X - 0.16f, 0.24f, at.Z - 0.14f, 0.32f, 0.035f, 0.29f, Gfx.Oak);
+        // Back posts rise from the rear legs
+        foreach (var lx in new[] { -0.13f, 0.13f })
+            Mesh3.Cyl(this, 0.015f, 0.016f, 0.32f, new Vector3(at.X + lx, 0.43f, at.Z + 0.13f), leg, 8);
+        for (int k = -1; k <= 1; k++)
+            Mesh3.Box(this, new Vector3(0.035f, 0.17f, 0.012f), new Vector3(at.X + k * 0.07f, 0.4f, at.Z + 0.13f), Gfx.Oak);
+        Mesh3.Box(this, new Vector3(0.3f, 0.05f, 0.025f), new Vector3(at.X, 0.53f, at.Z + 0.13f), Gfx.Oak);
     }
 
     void Paper(float x, float z, float w, float d, float rotY = 0, float y = DeskTop)
