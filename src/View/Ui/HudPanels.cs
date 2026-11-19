@@ -611,7 +611,7 @@ public partial class Hud
             string until = $"{(int)(st.DownUntil % Defs.MinutesPerDay / 60):00}:{(int)(st.DownUntil % 60):00}";
             _inspBox.AddChild(UiTheme.Label(st.Servicing
                 ? $"Being serviced. Back at work at {until}."
-                : $"Broken down. The RAF fitters expect to have it going again by {until}.", 13, st.Servicing ? UiTheme.Accent : Gfx.Bad));
+                : $"Broken down. {char.ToUpperInvariant(Defs.Fitters(st.Type)[0])}{Defs.Fitters(st.Type)[1..]} expect to have it going again by {until}.", 13, st.Servicing ? UiTheme.Accent : Gfx.Bad));
             return;
         }
         var bar = new ProgressBar { MinValue = 0, MaxValue = 1, Value = condition, ShowPercentage = false, CustomMinimumSize = new Vector2(110, 8),

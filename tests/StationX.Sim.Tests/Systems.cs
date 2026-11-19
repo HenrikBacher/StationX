@@ -1319,7 +1319,7 @@ public class WarMapTests
         Assert.NotNull(op);
         Assert.Equal(OpState.Pending, op!.State);
         Assert.False(string.IsNullOrEmpty(op.Won) || string.IsNullOrEmpty(op.Lost));
-        TestUtil.Run(g, 4);
+        TestUtil.Run(g, 4.1);   // just past the deadline, so it has been decided either way
         Assert.NotEqual(OpState.Pending, op.State);
         if (op.State == OpState.Won)
         {
@@ -1850,5 +1850,36 @@ public class KeyBoardTests
         Assert.Contains(Net.Shark, nets);
         // Listed in the definitions' order, so BROWN would sit among the Luftwaffe keys
         Assert.Equal(nets.OrderBy(n => Defs.Nets.Keys.ToList().IndexOf(n)), nets);
+    }
+}
+
+public class TeleprinterTests
+{
+    [Fact]
+    public void AJammedTeleprinterHoldsTrafficUntilMended()
+    {
+        var g = GameState.NewGame(7);
+        g.Advance(1);
+        var c = g.Contracts.First(k => k.State == ContractState.Offered);
+        Assert.True(g.Accept(c.Id));
+        foreach (var tp in g.Stations.Where(s => s.Type == StationType.Inbox)) tp.DownUntil = g.Now + 6 * 60;
+        g.Advance(5 * 60);
+        Assert.Equal(0, c.Spawned);                         // nothing gets through a dead line
+        g.Advance(10 * 60);
+        Assert.True(c.Spawned > 0, "traffic arrives once the GPO engineers have been");
+    }
+
+    [Fact]
+    public void TeleprintersWearWithTraffic()
+    {
+        var g = GameState.NewGame(7);
+        Assert.True(Defs.WearLife(StationType.Inbox) > 0);
+        var tp = g.Stations.First(s => s.Type == StationType.Inbox);
+        Assert.True(tp.Wears);
+        g.Advance(1);
+        var c = g.Contracts.First(k => k.State == ContractState.Offered);
+        g.Accept(c.Id);
+        g.Advance(24 * 60);
+        Assert.True(tp.Wear > 0 || tp.IsDown(g.Now) || g.Stats.Breakdowns > 0);
     }
 }

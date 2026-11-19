@@ -250,14 +250,24 @@ public static partial class Defs
         StationType.TunnyMachine => 1500, // tapes stretched and snapped
         StationType.HeathRobinson => 700, // two tapes kept in step by sprockets: they stretched, slipped and snapped
         StationType.Typex => 3000,        // rotors, contacts and a printer, all worked hard
+        StationType.Inbox => 1,           // teleprinters wear per message received, not per minute: see TeleprinterWearPerMsg
         _ => 0,
     };
+
+    /// <summary>Teleprinters: wear per message received (fully worn after ~150) and breakdown chance per message, times wear squared.</summary>
+    public const double TeleprinterWearPerMsg = 1 / 150.0, TeleprinterHazard = 0.025;
+
+    /// <summary>Who mends it: the Post Office engineers looked after the teleprinter lines, the RAF fitters the machines.</summary>
+    public static string Fitters(StationType t) => t == StationType.Inbox ? "the GPO engineers" : "the RAF fitters";
+
+    public static int RepairCostFor(StationType t) => t == StationType.Inbox ? 30 : RepairCost;
 
     /// <summary>Repair time: a Typex is a far simpler machine than a Bombe.</summary>
     public static double RepairMinutesFor(StationType t) => t switch
     {
         StationType.Typex => RepairMinutes * 0.5,
         StationType.HeathRobinson => RepairMinutes * 0.35,   // splice the tape and start again
+        StationType.Inbox => RepairMinutes * 0.4,            // a GPO engineer and a new print head
         _ => RepairMinutes,
     };
     /// <summary>Chance per working minute of a breakdown, times wear squared.</summary>

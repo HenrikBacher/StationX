@@ -569,9 +569,10 @@ public sealed partial class GameState
                     while (c.Spawned < c.Quantity && c.SpawnTimes[c.Spawned] <= Now)
                     {
                         // The teleprinters this network is routed to; if none, any teleprinter, so nothing is lost.
-                        inbox = Stations.Where(s => s.Type == StationType.Inbox && !s.PendingRemoval && s.ReceivesNet(c.Net))
+                        // A jammed teleprinter takes nothing: its traffic waits at the Y-station until a line is free.
+                        inbox = Stations.Where(s => s.Type == StationType.Inbox && !s.PendingRemoval && !s.IsDown(Now) && s.ReceivesNet(c.Net))
                                     .OrderBy(s => s.Output.Count).FirstOrDefault()
-                                ?? Stations.Where(s => s.Type == StationType.Inbox && !s.PendingRemoval).OrderBy(s => s.Output.Count).FirstOrDefault();
+                                ?? Stations.Where(s => s.Type == StationType.Inbox && !s.PendingRemoval && !s.IsDown(Now)).OrderBy(s => s.Output.Count).FirstOrDefault();
                         if (inbox == null) break;
                         double hour = MinuteOfDay / 60;
                         var m = new Message
@@ -583,6 +584,7 @@ public sealed partial class GameState
                         Messages[m.Id] = m;
                         inbox.Output.Add(m.Id);
                         c.Spawned++;
+                        TeleprinterWear(inbox);
                     }
                     if (c.Standing) CheckMilestones(c);
                     if (c.Delivered >= c.Quantity)

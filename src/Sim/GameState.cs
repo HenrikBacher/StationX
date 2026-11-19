@@ -335,6 +335,7 @@ public sealed partial class GameState
         {
             if (st.Def.Operator == null)
             {
+                if (st.Wears && !MachineUp(st)) continue;
                 if (st.Def.Minutes > 0) WorkAutomatic(st, dt);
                 continue;
             }
@@ -430,7 +431,7 @@ public sealed partial class GameState
         if (st.IsDown(Now)) return false;
         Emit(EventKind.Good, st.Servicing
             ? $"{st.Def.Name} #{st.Id} is serviced and back at work."
-            : $"The RAF fitters have repaired {st.Def.Name} #{st.Id}.");
+            : $"{Cap(Defs.Fitters(st.Type))} have repaired {st.Def.Name} #{st.Id}.");
         st.DownUntil = 0;
         st.Servicing = false;
         return true;
@@ -443,10 +444,23 @@ public sealed partial class GameState
         st.Wear = Math.Min(1.5, st.Wear + dt / Defs.WearLife(st.Type));
         double p = Defs.BreakdownHazard * st.Wear * st.Wear * dt * Defs.Difficulties[Difficulty].WearMult;
         if (!Rng.Chance(p)) return false;
+        BreakDown(st);
+        return true;
+    }
+
+    /// <summary>A teleprinter wears with every message it prints, and a worn one jams.</summary>
+    void TeleprinterWear(Station tp)
+    {
+        tp.Wear = Math.Min(1.5, tp.Wear + Defs.TeleprinterWearPerMsg);
+        if (Rng.Chance(Defs.TeleprinterHazard * tp.Wear * tp.Wear * Defs.Difficulties[Difficulty].WearMult)) BreakDown(tp);
+    }
+
+    void BreakDown(Station st)
+    {
         st.DownUntil = Now + Defs.RepairMinutesFor(st.Type);
         st.Servicing = false;
         st.Wear = 0.1;
-        Funds -= Defs.RepairCost;
+        Funds -= Defs.RepairCostFor(st.Type);
         Stats.Breakdowns++;
         string what = st.Type switch
         {
@@ -454,10 +468,11 @@ public sealed partial class GameState
             StationType.HeathRobinson => Rng.Pick(new[] { "a tape has snapped", "the tapes have slipped out of step", "a tape has stretched and torn on the sprockets" }),
             StationType.TunnyMachine => "the tape has snapped",
             StationType.Typex => Rng.Pick(new[] { "a rotor contact has worn through", "the printer has jammed", "the keyboard has seized" }),
+            StationType.Inbox => Rng.Pick(new[] { "the tape has jammed in the printer", "the line has gone dead", "the print head has worn out" }),
             _ => Rng.Pick(new[] { "a valve has blown", "the photocell has drifted" }),
         };
-        Emit(EventKind.Bad, $"{st.Def.Name} #{st.Id} has broken down: {what}. The RAF fitters will take about {Defs.RepairMinutesFor(st.Type) / 60:0} hours (£{Defs.RepairCost}). Service machines before they wear out.");
-        return true;
+        Emit(EventKind.Bad, $"{st.Def.Name} #{st.Id} has broken down: {what}. {Cap(Defs.Fitters(st.Type))} will take about {Defs.RepairMinutesFor(st.Type) / 60:0} hours (£{Defs.RepairCostFor(st.Type)})." +
+            (st.Type == StationType.Inbox ? " Until then its traffic waits at the Y-station, unless another teleprinter can take it." : " Service machines before they wear out."));
     }
 
     /// <summary>Stations that work by themselves: the pneumatic tubes.</summary>
