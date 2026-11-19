@@ -142,6 +142,8 @@ public static partial class Defs
     public const int InspectionEveryDays = 9;
     public const double InspectionGoodRep = 2;
     public const double InspectionBadRep = 2;
+    /// <summary>Share of the next weekly grant the Treasury withholds after a visit that went badly.</summary>
+    public const double InspectionGrantCut = 0.25;
     public const double CrisisChance = 0.07;            // per day, scaled by difficulty's wear multiplier
     public const int GeneratorCost = 250, OvertimeCost = 200;
     public const double OvertimeRate = 1.25, OvertimeDrain = 1.35, OvertimeMorale = -0.06, OvertimeDays = 2;

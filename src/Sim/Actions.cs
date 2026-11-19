@@ -267,6 +267,13 @@ public sealed partial class GameState
             grant -= cut;
             Emit(EventKind.Bad, $"The Treasury notices GC&CS's healthy balance and trims this week's grant by £{cut}. Money in the bank is money not spent on the war.");
         }
+        if (GrantPenalty > 0)
+        {
+            int held = (int)(grant * GrantPenalty);
+            grant -= held;
+            GrantPenalty = 0;
+            Emit(EventKind.Bad, $"After the last visit from Whitehall, the Treasury holds back £{held} of this week's grant.");
+        }
         Funds += grant - wages - upkeep;
         foreach (var (issuer, days) in NeglectedMinistries().Where(x => x.days >= Defs.NeglectDays).ToList())
         {

@@ -219,7 +219,7 @@ public partial class Hud
         yield return ("offizier", S.Messages.Values.Any(m => m.Offizier && m.Next == StationType.HandCipher),
             "An Offizier message: under the day's naval key it's enciphered again on an officers-only setting. After the Typex it goes to a hand-cipher desk to be unpicked. If naval traffic is heavy, build a second hand-cipher desk.");
         yield return ("inspection", S.InspectionDue,
-            "A visitor from Whitehall is coming. They judge what they see: overflowing in-trays, broken machines, glum faces, a request about to be missed, an overdrawn account. A smooth-running Park earns reputation; a shambles loses it.");
+            "A visitor from Whitehall is coming. They judge what they see: overflowing in-trays, broken machines, glum faces, a request about to be missed, an overdrawn account. A smooth-running Park earns reputation; a shambles loses it, and a quarter of next week's grant.");
         yield return ("priorities", S.KeysQueueing,
             "Keys are queueing for the Bombes. On the Enigma keys card, put the network with the most pressing request First; a network you have no requests for can go on Hold, leaving the Bombes to the others.");
         yield return ("neglect", S.NeglectedMinistries().Any(),

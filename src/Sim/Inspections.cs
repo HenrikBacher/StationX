@@ -8,7 +8,7 @@ namespace StationX.Sim;
 /// Visits from Whitehall. From the Battle of Britain on, every week or two a senior visitor is announced for the next
 /// day. When they come, they walk round the huts and judge what they see: in-trays piled up, machines standing broken,
 /// glum faces, requests about to be missed, an overdrawn account. A park running smoothly earns reputation; a shambles
-/// costs it. The player gets a day's warning to tidy up.
+/// costs it, and part of the next week's grant. The player gets a day's warning to tidy up.
 /// </summary>
 public sealed partial class GameState
 {
@@ -16,6 +16,8 @@ public sealed partial class GameState
     public double InspectionAt { get; set; } = -1;
     public string InspectionBy { get; set; } = "";
     public int NextInspectionDay { get; set; }
+    /// <summary>Share of the next weekly grant withheld because a visit went badly (0 if none).</summary>
+    public double GrantPenalty { get; set; }
 
     static readonly string[] Visitors =
     {
@@ -86,7 +88,9 @@ public sealed partial class GameState
         {
             AdjustRep(-Defs.InspectionBadRep, "Visits");
             Stats.InspectionsFailed++;
-            Emit(EventKind.Bad, $"{Cap(InspectionBy)} was not impressed: {saw}. Whitehall will hear of it.");
+            GrantPenalty = Defs.InspectionGrantCut;
+            Emit(EventKind.Bad, $"{Cap(InspectionBy)} was not impressed: {saw}. Whitehall will hear of it, and the Treasury " +
+                                $"will hold back {Defs.InspectionGrantCut:P0} of next week's grant.");
         }
         else
             Emit(EventKind.Info, $"{Cap(InspectionBy)} looked round and said little: {saw}.");

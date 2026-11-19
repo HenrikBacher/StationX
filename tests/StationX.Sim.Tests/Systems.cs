@@ -1724,6 +1724,31 @@ public class InspectionTests
     }
 
     [Fact]
+    public void ABadVisitCutsTheNextGrantOnce()
+    {
+        var g = TestUtil.BombeLine(12, checking: true);
+        g.Funds = -200;
+        foreach (var s in g.Staff) s.Morale = 0.2;
+        foreach (var st in g.Stations.Where(s => s.Wears)) st.DownUntil = g.Now + 600;
+        g.InspectionBy = "a brigadier from the War Office";
+        g.InspectionAt = g.Now + 1;
+        g.Advance(5);
+        Assert.Equal(1, g.Stats.InspectionsFailed);
+        Assert.Equal(Defs.InspectionGrantCut, g.GrantPenalty);
+
+        int Paid()
+        {
+            g.Funds = 0;   // no Treasury clawback
+            int expected = g.WeeklyGrant - g.WeeklyWages - g.WeeklyUpkeep;
+            g.DebugWeeklyAccounts();
+            return g.Funds - expected;
+        }
+        Assert.Equal(-(int)(g.WeeklyGrant * Defs.InspectionGrantCut), Paid());
+        Assert.Equal(0, g.GrantPenalty);
+        Assert.Equal(0, Paid());
+    }
+
+    [Fact]
     public void InspectionScheduleIsReproducible()
     {
         double At(int seed)
