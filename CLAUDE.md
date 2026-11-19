@@ -44,7 +44,9 @@ Then (user requests, 2026-11-19):
   rota (`RotateWatches`), and nights wear harder after a week straight (`NightsRunning`, tip `nights`).
 - Breaks matter: drain 1/380 per minute at a desk, so a break is due inside every watch. Energy only comes back at a
   rest station (`EnergyRecoverRest` × company bonus, halved by a rival), or slowly if the Park has none at all. Idle
-  people sit down nearby (`Loafing` rests, still `Available` for work, turned out by the tired). Canteen 6 seats,
+  people sit down after `LoafAfter` (30) idle minutes at a table in their own building within `LoafRange` (10), and stay
+  until work comes (`Loafing` rests, still `Available`); the tired turn out loafers and anyone already fresh. A wider
+  range or a shorter wait cost the autoplayer badly (Normal fell to 8/40). Canteen 6 seats,
   common room 4. Tip `teaqueue` when seats run out (the autoplayer adds a table).
 - Panels only list what's in play: teleprinter filters (`ActiveNets`), roles (`RoleOpen`), services (`ServiceInPlay`).
 - Self-updater (`src/View/Updater.cs`): GitHub latest-release check, download, swap, restart; CI stamps

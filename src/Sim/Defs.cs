@@ -94,9 +94,9 @@ public static partial class Defs
     // overnight in the billets).
     public const double EnergyDrainWorking = 1.0 / 380;
     public const double EnergyDrainOther = 1.0 / 900;
-    /// <summary>Idle people with energy below this go and sit down with a cup of tea if there's a seat nearby.</summary>
-    public const double LoafBelow = 0.8;
-    /// <summary>People don't walk through each other: they go round, ask an idle one to step aside, and only after
+    /// <summary>Minutes with nothing to do before someone goes and sits down with a cup of tea, if there's a seat within reach.</summary>
+    public const double LoafAfter = 30;
+    /// <summary>People don't walk through each other: they go round, and only after
     /// this many minutes' wait squeeze past (so a doorway can never jam for good). A detour may add this many tiles.</summary>
     public const double SqueezeAfter = 1;
     /// <summary>Minutes paper waits for a messenger or clerk who is about (not at a desk) before a cryptanalyst, linguist or Wren carries it.</summary>
@@ -104,7 +104,7 @@ public static partial class Defs
     public const int DetourTiles = 6;
     /// <summary>With no canteen or common room anywhere in the Park, people catch their breath where they stand, slowly.</summary>
     public const double EnergyRecoverNowhere = 1.0 / 1500;
-    public const int LoafRange = 14;
+    public const int LoafRange = 10;
     /// <summary>Energy back per minute at a tea table alone; each companion adds a quarter (up to three), a rival halves it.</summary>
     public const double EnergyRecoverRest = 1.0 / 60;
     public const double RestCompany = 0.25;
@@ -362,8 +362,8 @@ public static partial class Defs
     public static readonly Dictionary<Difficulty, DifficultyDef> Difficulties = new()
     {
         [Difficulty.Easy] = new(Difficulty.Easy, "Easy", "More money, longer deadlines, slower German suspicion.", 2200, 1.2, 1, 0.6, 0.7, 0.5),
-        [Difficulty.Normal] = new(Difficulty.Normal, "Normal", "As intended.", 1500, 0.9, 0, 1.0, 0.9),
-        [Difficulty.Hard] = new(Difficulty.Hard, "Hard", "Less money, tighter deadlines, and the Germans notice everything.", 1100, 0.85, -0.25, 1.4, 1.0, 1.2),
+        [Difficulty.Normal] = new(Difficulty.Normal, "Normal", "As intended.", 1500, 0.9, 0, 1.0, 1.0),
+        [Difficulty.Hard] = new(Difficulty.Hard, "Hard", "Less money, tighter deadlines, and the Germans notice everything.", 1100, 0.85, -0.25, 1.4, 1.1, 1.2),
     };
 
     public static readonly Dictionary<Policy, PolicyDef> Policies = new()

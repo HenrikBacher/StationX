@@ -124,6 +124,8 @@ public sealed class Staff
     public double HomeY { get; set; }
     public double LowMoraleDays { get; set; }
 
+    /// <summary>Minutes on duty with nothing to do.</summary>
+    public double IdleMinutes { get; set; }
     /// <summary>Minutes spent waiting for someone standing in the way to move.</summary>
     public double WaitedFor { get; set; }
     public double X { get; set; }

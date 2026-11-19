@@ -76,7 +76,8 @@ public sealed partial class GameState
                     StationType.CommonRoom => 0.004,
                     _ => 0.001,
                 }));
-                if (s.Energy >= Defs.BreakUntil) s.Task = null;
+                // A proper break ends when they're fresh; someone sitting there for want of work stays until work comes.
+                if (s.Energy >= Defs.BreakUntil && !t.Loafing) s.Task = null;
             }
             else if (t is { Kind: TaskKind.Operate } && StationById(t.Dest) is { Working: true })
                 drain = Defs.EnergyDrainWorking;
@@ -127,8 +128,9 @@ public sealed partial class GameState
                 }
                 continue;
             }
+            s.IdleMinutes = s.Task == null ? s.IdleMinutes + dt : 0;
             if (s.Task == null && s.Tired) StartBreak(s, false);
-            else if (s.Task == null && s.Path.Count == 0 && s.Energy < Defs.LoafBelow && s.HeadOf == null && !s.Arriving(Now)) StartBreak(s, true);
+            else if (s.Task == null && s.Path.Count == 0 && s.IdleMinutes >= Defs.LoafAfter && s.HeadOf == null && !s.Arriving(Now)) StartBreak(s, true);
         }
     }
 
@@ -190,12 +192,14 @@ public sealed partial class GameState
         {
             if (!RestOpen(st)) continue;
             int score = Manhattan(st.UseTile, s.TilePos);
-            if (loafing && score > Defs.LoafRange) continue;
+            // The idle only sit down in their own building, close by, so they're quickly back when work comes.
+            if (loafing && (score > Defs.LoafRange || Grid.ZoneAt(st.UseTile.x, st.UseTile.y) != Grid.ZoneAt(s.TilePos.x, s.TilePos.y))) continue;
             Staff? loafer = null;
             if (SeatsTaken(st) >= st.Def.Seats)
             {
                 if (loafing) continue;
-                loafer = Staff.FirstOrDefault(x => x.Task is { Kind: TaskKind.Rest, Loafing: true } t && t.Dest == st.Id);
+                // Anyone sitting there for want of work, or already fresh, gives up their seat to the tired.
+                loafer = Staff.FirstOrDefault(x => x.Task is { Kind: TaskKind.Rest } t && t.Dest == st.Id && (t.Loafing || x.Energy >= Defs.BreakUntil));
                 if (loafer == null) continue;
                 score += 4;
             }

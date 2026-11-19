@@ -188,9 +188,11 @@ public class PeopleTests
     {
         var g = GameState.NewGame(5);
         var tea = g.Place(StationType.Canteen, 12, 6, 0, free: true)!;
-        foreach (var s in g.Staff) s.Energy = 0.6;
-        TestUtil.Run(g, 0.01);
-        Assert.Contains(g.Staff, s => s.Task is { Kind: TaskKind.Rest, Loafing: true });
+        // Fresh, but with nothing to do: after a while they go and sit down, and stay sat.
+        g.Advance(Defs.LoafAfter / 2);
+        Assert.DoesNotContain(g.Staff, s => s.Task is { Kind: TaskKind.Rest });
+        for (int i = 0; i < 20; i++) g.Advance(5);
+        Assert.Contains(g.Staff, s => s.Task is { Kind: TaskKind.Rest, Loafing: true } && s.Energy >= Defs.BreakUntil);
         // Work arrives: the cryptanalyst gets up from the table for the hand-cipher desk.
         g.Place(StationType.Registration, 4, 3, 0, free: true);
         var hand = g.Place(StationType.HandCipher, 6, 3, 0, free: true)!;
