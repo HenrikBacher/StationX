@@ -51,6 +51,10 @@ Then (user requests, 2026-11-19):
 - Panels only list what's in play: teleprinter filters (`ActiveNets`), roles (`RoleOpen`), services (`ServiceInPlay`).
 - Self-updater (`src/View/Updater.cs`): GitHub latest-release check, download, swap, restart; CI stamps
   `config/version` on tags. Only testable end to end from the second release that has it.
+- Patch updates: `export.sh` also makes `<platform>-patch.zip` (StationX.pck + data_*/StationX.*, ~33 MB vs ~100 MB)
+  and `<platform>-base.txt` (sha256sum of every other file). The updater takes the patch when `PatchManifest.BaseMatches`
+  (Godot-free, linked into the tests); a Godot or .NET upgrade falls back to the full download. Keep
+  `application/modify_resources=false` on Windows, or the .exe changes every release and no patch ever fits.
 - The user wants **Hard ≤ 5/40** wins (Normal still ≈ 50%).
 - No walking through each other: busy people standing still block (`_standing`, not in doorways or corridors); walkers
   detour (≤ `DetourTiles`) or wait `SqueezeAfter` minutes, and the view's `SeparatePeople` sidesteps figures.

@@ -23,7 +23,8 @@ GitHub Actions (`.github/workflows/release.yml`) runs the sim tests and the UI s
 Release builds carry their version (CI stamps `application/config/version` from the tag). On start they ask GitHub's
 public releases API whether a newer one is out, and the title screen offers **Update and restart**: it downloads the
 matching archive, unpacks it inside the install folder and swaps it in (on Windows a small script does the swap after
-the game closes). Saves and settings in `user://` are untouched. It can be turned off in Settings; editor runs,
+the game closes). If the engine and .NET runtime are unchanged (each release lists their checksums in
+`*-base.txt`), it fetches only the game's own files (`*-patch.zip`, about a third of the size). Saves and settings in `user://` are untouched. It can be turned off in Settings; editor runs,
 self-tests and screenshots never check.
 
 Godot lives in `~/.local/opt/godot/` and is linked as `~/.local/bin/godot`. Exports need the 4.7.2 .NET export templates in `~/.local/share/godot/export_templates/4.7.2.stable.mono`.

@@ -135,8 +135,8 @@ public partial class Hud
         _titleOpen = false;
         var v = Paper(720);
         v.AddChild(Ink($"Version {Updater.Latest} is ready", 28, Fonts.Heading));
-        v.AddChild(Ink($"You have {(Updater.Current == "" ? "a development build" : $"version {Updater.Current}")}. Your saves and settings are kept. The game downloads the new version " +
-                       "and restarts.", 14));
+        v.AddChild(Ink($"You have {(Updater.Current == "" ? "a development build" : $"version {Updater.Current}")}. Your saves and settings are kept. The game downloads " +
+                       $"{(Updater.PatchFits ? "just the changed game files" : "the new version")} (about {Updater.DownloadMB} MB), installs it over this one and restarts.", 14));
         var scroll = new ScrollContainer { CustomMinimumSize = new Vector2(0, 360), HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
         var notes = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
         notes.AddThemeConstantOverride("separation", 8);

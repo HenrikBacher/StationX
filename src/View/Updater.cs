@@ -26,7 +26,12 @@ public static class Updater
     /// <summary>The newer version on offer, once the check has found one.</summary>
     public static string? Latest { get; private set; }
     public static string? PageUrl { get; private set; }
-    static string? _assetUrl;
+    static string? _assetUrl, _patchUrl, _baseUrl;
+    static long _assetSize, _patchSize;
+    /// <summary>True once the small patch is known to fit this copy (same engine and .NET runtime as the new release).</summary>
+    public static bool PatchFits { get; private set; }
+    /// <summary>What the update will download, in MB.</summary>
+    public static int DownloadMB => (int)Math.Ceiling((PatchFits ? _patchSize : _assetSize) / 1e6);
     /// <summary>What the updater is doing, for the title screen ("Downloading 40%", or an error).</summary>
     public static string? Status { get; private set; }
     public static bool Busy { get; private set; }
@@ -40,12 +45,13 @@ public static class Updater
         return c;
     }
 
-    static string? AssetName => OS.GetName() switch
+    static string? Platform => OS.GetName() switch
     {
-        "Windows" => "StationX-windows-x86_64.zip",
-        "Linux" => "StationX-linux-x86_64.tar.gz",
+        "Windows" => "StationX-windows-x86_64",
+        "Linux" => "StationX-linux-x86_64",
         _ => null,
     };
+    static string? AssetName => Platform == null ? null : Platform + (OS.GetName() == "Windows" ? ".zip" : ".tar.gz");
 
     /// <summary>What's new and fixed in every release since this one, newest first, for the player to read before updating.</summary>
     public static System.Collections.Generic.List<(string version, string notes)> Notes { get; } = new();
@@ -66,14 +72,30 @@ public static class Updater
                 .ToList();
             if (newer.Count == 0) return;
             var latest = newer[0].r;
-            var asset = latest.GetProperty("assets").EnumerateArray().FirstOrDefault(a => a.GetProperty("name").GetString() == AssetName);
+            JsonElement Asset(string name) => latest.GetProperty("assets").EnumerateArray().FirstOrDefault(a => a.GetProperty("name").GetString() == name);
+            var asset = Asset(AssetName!);
             if (asset.ValueKind != JsonValueKind.Object) return;
             _assetUrl = asset.GetProperty("browser_download_url").GetString();
+            _assetSize = asset.GetProperty("size").GetInt64();
+            if (Asset(Platform + "-patch.zip") is { ValueKind: JsonValueKind.Object } patch && Asset(Platform + "-base.txt") is { ValueKind: JsonValueKind.Object } bas)
+            {
+                _patchUrl = patch.GetProperty("browser_download_url").GetString();
+                _patchSize = patch.GetProperty("size").GetInt64();
+                _baseUrl = bas.GetProperty("browser_download_url").GetString();
+            }
             PageUrl = latest.GetProperty("html_url").GetString();
             Notes.Clear();
             foreach (var (r, v) in newer) Notes.Add((v!.ToString(), NewAndFixed(r.GetProperty("body").GetString() ?? "")));
             Latest = newer[0].v!.ToString();
             Notify();
+            if (_baseUrl != null)
+            {
+                var manifest = await Http.GetStringAsync(_baseUrl);
+                string dir = Path.GetDirectoryName(OS.GetExecutablePath())!;
+                PatchFits = await Task.Run(() => PatchManifest.BaseMatches(manifest, dir));
+                GD.Print(PatchFits ? "Update: the small patch fits this copy." : "Update: this copy differs from the new release's base; the full download is needed.");
+                Notify();
+            }
         }
         catch (Exception e) { GD.Print($"Update check failed: {e.Message}"); }
     }
@@ -83,6 +105,7 @@ public static class Updater
     {
         Latest ??= version;
         Notes.Add((version, NewAndFixed(body)));
+        _assetSize = 108_000_000; _patchSize = 33_000_000; PatchFits = true;
     }
 
     /// <summary>The "New" and "Fixes" sections at the top of the release notes (before the list of every commit).</summary>
@@ -99,6 +122,7 @@ public static class Updater
     {
         if (Busy || _assetUrl == null) return;
         Busy = true;
+        bool patch = PatchFits && _patchUrl != null;
         try
         {
             string exe = OS.GetExecutablePath();
@@ -107,10 +131,10 @@ public static class Updater
             string staging = Path.Combine(dir, ".update");
             if (Directory.Exists(staging)) Directory.Delete(staging, true);
             Directory.CreateDirectory(staging);
-            string archive = Path.Combine(staging, AssetName!);
+            string archive = Path.Combine(staging, patch ? Platform + "-patch.zip" : AssetName!);
 
             Status = "Downloading…"; Notify();
-            using (var resp = await Http.GetAsync(_assetUrl, HttpCompletionOption.ResponseHeadersRead))
+            using (var resp = await Http.GetAsync(patch ? _patchUrl : _assetUrl, HttpCompletionOption.ResponseHeadersRead))
             {
                 resp.EnsureSuccessStatusCode();
                 long total = resp.Content.Headers.ContentLength ?? 0;
@@ -141,7 +165,8 @@ public static class Updater
                 }
             });
             File.Delete(archive);
-            if (!File.Exists(Path.Combine(files, Path.GetFileName(exe))))
+            // A patch carries the game pack and code; a full download, the whole game.
+            if (!File.Exists(Path.Combine(files, patch ? "StationX.pck" : Path.GetFileName(exe))))
                 throw new InvalidOperationException("The download doesn't contain the game.");
 
             Status = "Installing…"; Notify();
@@ -168,7 +193,8 @@ public static class Updater
             File.Move(src, dst, overwrite: true);
         }
         Directory.Delete(staging, true);
-        File.SetUnixFileMode(exe, File.GetUnixFileMode(exe) | UnixFileMode.UserExecute | UnixFileMode.GroupExecute | UnixFileMode.OtherExecute);
+        if (!OperatingSystem.IsWindows())
+            File.SetUnixFileMode(exe, File.GetUnixFileMode(exe) | UnixFileMode.UserExecute | UnixFileMode.GroupExecute | UnixFileMode.OtherExecute);
         OS.CreateProcess(exe, Array.Empty<string>());
         ((SceneTree)Engine.GetMainLoop()).Quit();
     }
