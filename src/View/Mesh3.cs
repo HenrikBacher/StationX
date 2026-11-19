@@ -149,6 +149,8 @@ public static class Mesh3
     /// A pitched roof over the rectangle x0..x1 × z0..z1 (eaves at height y, overhang included by the caller), its ridge
     /// along the longer side, `rise` above the eaves. Hipped: the ends slope too, at the same pitch. Otherwise the ends
     /// are upright gables, a second surface for the wall material. UVs run along the eaves and up the slope, in tiles.
+    /// UV2 picks a row of the graded moss texture (Textures.Moss): more at the eaves than the ridge, and more on a slope
+    /// turned away from the sun (north, then west) than on one facing it.
     /// </summary>
     public static MeshInstance3D Roof(Node3D parent, float x0, float x1, float z0, float z1, float y, float rise, bool hipped,
         Material roof, Material? gable = null)
@@ -163,7 +165,21 @@ public static class Mesh3
 
         var st = new SurfaceTool();
         st.Begin(Mesh.PrimitiveType.Triangles);
-        void V(Vector3 p, Vector2 uv) { st.SetUV(uv); st.AddVertex(p); }
+        // The slope being laid: its moss at the eave and at the ridge (0..1).
+        float mossEave = 0, mossRidge = 0;
+        void V(Vector3 p, Vector2 uv)
+        {
+            float moss = Mathf.Lerp(mossEave, mossRidge, Mathf.Clamp((p.Y - y) / rise, 0, 1));
+            st.SetUV(uv);
+            st.SetUV2(new Vector2(uv.X / MossRepeat, Mathf.Lerp(0.97f, 0.03f, moss)));
+            st.AddVertex(p);
+        }
+        void Facing(Vector3 outward)
+        {
+            float shade = Shade(outward);
+            mossEave = 0.12f + 0.32f * shade;
+            mossRidge = 0.01f + 0.06f * shade;
+        }
         void Tri(Vector3 a, Vector2 ua, Vector3 b, Vector2 ub, Vector3 c, Vector2 uc)
         {
             // Wound so the face points up (Godot's front faces are clockwise seen from the front).
@@ -175,6 +191,7 @@ public static class Mesh3
         {
             Vector3 e0 = P(0, side, 0), e1 = P(L, side, 0), r0 = P(inset, half, rise), r1 = P(L - inset, half, rise);
             Vector2 ue0 = new(0, 0), ue1 = new(L, 0), ur0 = new(inset, slope), ur1 = new(L - inset, slope);
+            Facing(P(0, side, 0) - P(0, half, 0));
             Tri(e0, ue0, e1, ue1, r1, ur1);
             Tri(e0, ue0, r1, ur1, r0, ur0);
         }
@@ -182,6 +199,7 @@ public static class Mesh3
             foreach (float end in new[] { 0f, L })
             {
                 float ridgeA = end == 0 ? inset : L - inset;
+                Facing(P(end, half, 0) - P(L / 2, half, 0));
                 Tri(P(end, 0, 0), new Vector2(0, 0), P(end, S, 0), new Vector2(S, 0), P(ridgeA, half, rise), new Vector2(half, endSlope));
             }
         st.GenerateNormals();
@@ -207,6 +225,20 @@ public static class Mesh3
         var mi = new MeshInstance3D { Mesh = mesh };
         parent.AddChild(mi);
         return mi;
+    }
+
+    /// <summary>Tiles of eave one repeat of the moss texture spans.</summary>
+    const float MossRepeat = 4f;
+
+    /// <summary>
+    /// How much a surface facing this way (horizontally) is out of the sun, 0..1. The sun crosses from the east (+x)
+    /// in the morning to the south (+z) in the afternoon, so north (-z) stays damp longest, then west.
+    /// </summary>
+    public static float Shade(Vector3 outward)
+    {
+        var d = new Vector2(outward.X, outward.Z).Normalized();
+        float north = Mathf.Max(0, -d.Y), west = Mathf.Max(0, -d.X), south = Mathf.Max(0, d.Y);
+        return Mathf.Clamp(0.25f + 0.75f * north + 0.4f * west - 0.2f * south, 0, 1);
     }
 
     public static MeshInstance3D Dome(Node3D parent, float r, Vector3 center, Color c)

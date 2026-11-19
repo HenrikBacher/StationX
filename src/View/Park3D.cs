@@ -36,7 +36,11 @@ public partial class Park3D : Node3D
     // look inside. Their materials are their own, so fading them leaves the walls and floors alone.
     readonly List<MeshInstance3D> _roofs = new();
     readonly List<StandardMaterial3D> _roofMats = new();
-    StandardMaterial3D? _felt, _slate, _flatRoof, _gable;
+    StandardMaterial3D? _felt, _feltTrim, _slate, _flatRoof, _gable;
+    /// <summary>The roof materials with moss in their detail layer, bare while snow lies on them.</summary>
+    readonly List<StandardMaterial3D> _mossy = new();
+    /// <summary>The porch roof's slate: the roofs' look, but it stays when they fade (the porch is part of the walls).</summary>
+    StandardMaterial3D? _porchSlate;
     /// <summary>Each roof material's tone, and how far its photo must be brightened to look snow-covered.</summary>
     readonly Dictionary<StandardMaterial3D, (Color tone, float snow)> _roofTones = new();
     float _roofAlpha, _roofSnow;
@@ -327,6 +331,23 @@ public partial class Park3D : Node3D
                     earth = Mathf.Max(earth, t);
                 }
 
+                // Damp shade: the strip north of a building (and less, west of it) that the sun never reaches, where
+                // moss takes over the grass and creeps over the gravel.
+                float damp = 0;
+                foreach (var z in g.Zones)
+                {
+                    if (!z.Unlocked) continue;
+                    float n = z.Y + 0.5f - fy, w = z.X + 0.5f - fx;
+                    bool alongN = fx > z.X + 0.2f && fx < z.X + z.W - 0.2f, alongW = fy > z.Y + 0.2f && fy < z.Y + z.H - 0.2f;
+                    if (alongN && n > 0 && n < 1.6f) damp = Mathf.Max(damp, 1 - n / 1.6f);
+                    if (alongW && w > 0 && w < 1.1f) damp = Mathf.Max(damp, (1 - w / 1.1f) * 0.6f);
+                }
+                if (damp > 0)
+                {
+                    damp *= Mathf.Clamp(Blob(fx * 2.5f, fy * 2.5f, 1, 81) * 1.6f - 0.25f, 0, 1);
+                    c = c.Lerp(Gfx.Moss.Darkened(noise * 0.1f), damp * 0.6f);
+                }
+
                 if (PathAt(g, fx, fy))
                 {
                     c = Gfx.Gravel.Darkened(noise * 0.12f);
@@ -337,6 +358,12 @@ public partial class Park3D : Node3D
                     if (puddle > 0.8f) c = c.Lerp(new Color("3b4446"), Mathf.Clamp((puddle - 0.8f) * 8, 0, 0.85f));
                     gravel = 1; earth = 0;
                     wet = Mathf.Clamp((puddle - 0.8f) * 8, 0, 1);
+                    // Green in the damp shade, most of all at the path's edge, where the gravel is thin and seldom trodden.
+                    if (damp > 0)
+                    {
+                        float edge = PathAt(g, fx + 0.25f, fy) && PathAt(g, fx - 0.25f, fy) && PathAt(g, fx, fy + 0.25f) && PathAt(g, fx, fy - 0.25f) ? 0.45f : 1f;
+                        c = c.Lerp(Gfx.Moss.Lightened(0.1f), damp * 0.5f * edge);
+                    }
                 }
                 earth = Mathf.Clamp(earth, 0, 1 - gravel);
                 float grass = 1 - gravel - earth;
@@ -667,7 +694,7 @@ public partial class Park3D : Node3D
         float x0 = z.X + 0.5f, x1 = z.X + z.W - 0.5f;
         float wallZ = south ? z.Y + z.H - 0.5f : z.Y + 0.5f, o = south ? 1 : -1;
         var front = Sided(south ? 2 : 0, south ? 2 : 0, true);
-        var slate = _slate ?? Textures.Mat(Surface.Felt, new Color("8a8f98"), 2);
+        var slate = _porchSlate ??= Textures.Fading("roof_slates_02", new Color("7c8290"), 2.4f) ?? Textures.Mat(Surface.Felt, new Color("8a8f98"), 2);
 
         // Porch: four columns, an entablature and a pediment over the door.
         float cx = z.DoorX + 0.5f, depth = 0.85f, ph = 1.15f;
@@ -696,44 +723,70 @@ public partial class Park3D : Node3D
         }
     }
 
-    static ImageTexture? _grimeTex;
+    static ImageTexture? _grimeTex, _greenGrimeTex;
+
+    /// <summary>
+    /// The splash-back streaks: soot-brown, or (green) with a film of algae and a few cushions of moss along the
+    /// bottom, for the walls the sun seldom reaches.
+    /// </summary>
+    static ImageTexture GrimeTex(bool green)
+    {
+        if ((green ? _greenGrimeTex : _grimeTex) is { } done) return done;
+        const int W = 128, H = 32;
+        var soot = new Color(0.16f, 0.13f, 0.1f);
+        var algae = new Color(0.17f, 0.2f, 0.09f);
+        var moss = new Color(0.22f, 0.26f, 0.11f);
+        var img = Image.CreateEmpty(W, H, false, Image.Format.Rgba8);
+        for (int x = 0; x < W; x++)
+        {
+            float streak = 0.55f + 0.45f * Blob(x * 0.35f, 0, 1, 61) + 0.25f * (Gfx.Rand01(x, 0, 62) - 0.5f);
+            for (int y = 0; y < H; y++)
+            {
+                float up = y / (H - 1f);   // 0 at the ground
+                float a = Mathf.Pow(Mathf.Clamp(1 - up / Mathf.Clamp(streak, 0.25f, 1f), 0, 1), 1.6f);
+                a *= 0.85f + 0.15f * Gfx.Rand01(x, y, 63);
+                var c = soot;
+                if (green)
+                {
+                    // Algae where the splash-back stays wet longest, the low courses; moss tufts in the angle with the ground.
+                    c = algae.Lerp(soot, Mathf.Clamp(up * 2.2f, 0, 1));
+                    float tuft = Blob(x * 0.5f, y * 0.9f, 1, 64);
+                    if (up < 0.22f && tuft > 0.55f)
+                    {
+                        float t = Mathf.Clamp((tuft - 0.55f) * 6, 0, 1) * (1 - up / 0.22f);
+                        c = c.Lerp(moss.Lightened(0.15f * Gfx.Rand01(x, y, 65)), t);
+                        a = Mathf.Max(a, t * 0.9f);
+                    }
+                }
+                img.SetPixel(x, y, new Color(c.R, c.G, c.B, a));
+            }
+        }
+        img.GenerateMipmaps();
+        var tex = ImageTexture.CreateFromImage(img);
+        if (green) _greenGrimeTex = tex; else _grimeTex = tex;
+        return tex;
+    }
 
     /// <summary>
     /// Rain splash-back and soot up the foot of each outside wall, in uneven streaks: a decal projected onto the
-    /// wall's outer face (and only that: surfaces facing other ways are faded out).
+    /// wall's outer face (and only that: surfaces facing other ways are faded out). Shaded walls (north, west) stay
+    /// damp, so theirs is green with algae and moss, and reaches a little higher.
     /// </summary>
     void Grime(int side, float ax, float ay, float bx, float by, bool brick)
     {
-        if (_grimeTex == null)
-        {
-            const int W = 128, H = 32;
-            var img = Image.CreateEmpty(W, H, false, Image.Format.Rgba8);
-            for (int x = 0; x < W; x++)
-            {
-                float streak = 0.55f + 0.45f * Blob(x * 0.35f, 0, 1, 61) + 0.25f * (Gfx.Rand01(x, 0, 62) - 0.5f);
-                for (int y = 0; y < H; y++)
-                {
-                    float up = y / (H - 1f);   // 0 at the ground
-                    float a = Mathf.Pow(Mathf.Clamp(1 - up / Mathf.Clamp(streak, 0.25f, 1f), 0, 1), 1.6f);
-                    a *= 0.85f + 0.15f * Gfx.Rand01(x, y, 63);
-                    img.SetPixel(x, y, new Color(0.16f, 0.13f, 0.1f, a));
-                }
-            }
-            img.GenerateMipmaps();
-            _grimeTex = ImageTexture.CreateFromImage(img);
-        }
         bool alongX = side is 0 or 2;
         float len = alongX ? Mathf.Abs(bx - ax) : Mathf.Abs(by - ay);
         // Outward normal of this side: 0 N (-z), 1 E (+x), 2 S (+z), 3 W (-x).
         var outward = side switch { 0 => Vector3.Forward, 1 => Vector3.Right, 2 => Vector3.Back, _ => Vector3.Left };
         var mid = new Vector3((ax + bx) / 2, 0, (ay + by) / 2) + outward * (WallThick / 2);
-        float h = brick ? 0.55f : 0.45f;
+        bool green = Mesh3.Shade(outward) > 0.5f;
+        float h = (brick ? 0.55f : 0.45f) * (green ? 1.2f : 1f);
         var d = new Decal
         {
             Size = new Vector3(len + WallThick, 0.4f, h),
-            TextureAlbedo = _grimeTex,
+            TextureAlbedo = GrimeTex(green),
             AlbedoMix = 1,
-            Modulate = new Color(1, 1, 1, brick ? 0.6f : 0.75f),
+            Modulate = new Color(1, 1, 1, (brick ? 0.6f : 0.75f) * (green ? 1.1f : 1f)),
             NormalFade = 0.4f,
             UpperFade = 0.05f,
             LowerFade = 0.05f,
@@ -751,13 +804,17 @@ public partial class Park3D : Node3D
         if (_felt == null)
         {
             _felt = Textures.Fading("asphalt_02", new Color("67635d"), 1.3f);
+            _feltTrim = Textures.Fading("asphalt_02", new Color("67635d"), 1.3f);
             _slate = Textures.Fading("roof_slates_02", new Color("7c8290"), 2.4f);
             _flatRoof = Textures.FadingCopy(Textures.Mat(Surface.Concrete, new Color("8a8a84"), 0.5f));
             _gable = Textures.FadingCopy(Textures.Mat(Surface.Weatherboard, Colors.White));
-            foreach (var (m, snow) in new[] { (_felt, 2.1f), (_slate, 1.35f), (_flatRoof, 1.05f), (_gable, 0f) })
+            foreach (var (m, snow) in new[] { (_felt, 2.1f), (_feltTrim, 2.1f), (_slate, 1.35f), (_flatRoof, 1.05f), (_gable, 0f) })
                 if (m != null) { _roofMats.Add(m); _roofTones[m] = (m.AlbedoColor, snow); }
+            // Moss and lichen on the slopes (graded down to the eaves, heavier on the north) and scattered on flat roofs.
+            foreach (var (m, graded) in new[] { (_felt, true), (_slate, true), (_flatRoof, false) })
+                if (m != null) { Textures.Mossy(m, graded); _mossy.Add(m); }
         }
-        if (_felt == null || _slate == null) return;
+        if (_felt == null || _feltTrim == null || _slate == null) return;
         MeshInstance3D roof;
         if (z.Id == "mansion")
         {
@@ -770,13 +827,13 @@ public partial class Park3D : Node3D
         {
             // Overhanging the long walls more than the gable ends, and a ridge batten along the top.
             roof = Mesh3.Roof(_buildings, x0 - 0.14f, x1 + 0.14f, y0 - 0.3f, y1 + 0.3f, BackWall + 0.04f, 0.62f, false, _felt, _gable);
-            _roofs.Add(Mesh3.Box(_buildings, new Vector3(x1 - x0 + 0.3f, 0.05f, 0.09f), new Vector3((x0 + x1) / 2, BackWall + 0.67f, (y0 + y1) / 2), _felt));
+            _roofs.Add(Mesh3.Box(_buildings, new Vector3(x1 - x0 + 0.3f, 0.05f, 0.09f), new Vector3((x0 + x1) / 2, BackWall + 0.67f, (y0 + y1) / 2), _feltTrim));
             // Felt laid in strips down the slope, each joint held by a batten.
             for (float bx = x0 + 0.5f; bx < x1 - 0.2f; bx += 0.9f)
                 foreach (float s in new[] { -1f, 1f })
                 {
                     float half = (y1 - y0) / 2 + 0.3f, run = Mathf.Sqrt(half * half + 0.62f * 0.62f);
-                    var b = Mesh3.Box(_buildings, new Vector3(0.035f, 0.03f, run), new Vector3(bx, BackWall + 0.04f + 0.31f + 0.015f, (y0 + y1) / 2 + s * half / 2), _felt);
+                    var b = Mesh3.Box(_buildings, new Vector3(0.035f, 0.03f, run), new Vector3(bx, BackWall + 0.04f + 0.31f + 0.015f, (y0 + y1) / 2 + s * half / 2), _feltTrim);
                     b.Rotation = new Vector3(s * Mathf.Atan2(0.62f, half), 0, 0);
                     _roofs.Add(b);
                 }
@@ -792,6 +849,7 @@ public partial class Park3D : Node3D
     /// </summary>
     void MergeStatic()
     {
+        MergeRoofs();
         var keep = new HashSet<Node>(_roofs);
         var containers = new List<Node3D> { _buildings };
         containers.AddRange(_sided.Select(x => x.node));
@@ -847,6 +905,39 @@ public partial class Park3D : Node3D
         }
     }
 
+    /// <summary>
+    /// The roofs fade together, so every roof piece sharing a material (all the huts' felt, every batten) becomes one
+    /// mesh: a handful of draws for the whole roofscape instead of one per batten.
+    /// </summary>
+    void MergeRoofs()
+    {
+        var groups = new Dictionary<Material, SurfaceTool>();
+        foreach (var mi in _roofs)
+        {
+            for (int s = 0; s < mi.Mesh.GetSurfaceCount(); s++)
+            {
+                var m = mi.MaterialOverride ?? mi.Mesh.SurfaceGetMaterial(s);
+                if (!groups.TryGetValue(m, out var st))
+                {
+                    groups[m] = st = new SurfaceTool();
+                    st.Begin(Mesh.PrimitiveType.Triangles);
+                }
+                st.AppendFrom(mi.Mesh, s, mi.Transform);
+            }
+            mi.GetParent().RemoveChild(mi);
+            mi.QueueFree();
+        }
+        _roofs.Clear();
+        foreach (var (m, st) in groups)
+        {
+            var mesh = st.Commit();
+            mesh.SurfaceSetMaterial(0, m);
+            var mi = new MeshInstance3D { Mesh = mesh };
+            _buildings.AddChild(mi);
+            _roofs.Add(mi);
+        }
+    }
+
     /// <summary>Fades the roofs by the camera's view size: off up close, on when looking at the whole Park.</summary>
     public void SetRoofs(float camSize)
     {
@@ -866,6 +957,7 @@ public partial class Park3D : Node3D
             var c = snow == 0 ? tone : tone.Lerp(new Color("d4d8dd") * snow, _roofSnow * 0.75f);
             c.A = _roofAlpha;
             m.AlbedoColor = c;
+            if (_mossy.Contains(m)) m.DetailEnabled = _roofSnow < 0.3f;
             // Blended while fading (a dither looks like static), solid once it's all there.
             m.Transparency = _roofAlpha > 0.99f ? BaseMaterial3D.TransparencyEnum.Disabled : BaseMaterial3D.TransparencyEnum.Alpha;
         }

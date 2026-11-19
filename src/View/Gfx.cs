@@ -13,6 +13,8 @@ public static class Gfx
     public static readonly Color Lawn = new("5e6f40");
     public static readonly Color LawnStripe = new("637545");
     public static readonly Color Gravel = new("8f8268");
+    /// <summary>Moss on damp, shaded ground.</summary>
+    public static readonly Color Moss = new("46562a");
     public static readonly Color GravelDot = new("6f6450");
     public static readonly Color Water = new("3c535a");
     public static readonly Color WaterLight = new("56707a");
