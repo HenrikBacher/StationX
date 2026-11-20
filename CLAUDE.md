@@ -36,7 +36,7 @@ state, so the work can be resumed on any machine.
 
 ## Current work (2026-11-19)
 
-Last release **v0.31.0** (dispatch riders and the gate, music and ambience, failable operations); v0.30.0 had the
+Last release **v0.32.0** (put a request first, MOST IMMEDIATE telegrams); v0.31.0 had dispatch riders and the gate, music and ambience, failable operations; v0.30.0 had the
 campaign to VE Day with great operations, Y-stations, the variety engine and update sheets;
 v0.29.0 had idle tea breaks and patch updates; v0.28.0 had breaks, watches, collisions, the updater. Before that **v0.27.0**: cold handovers, the stranded-staff fix, intelligence freshness by service, security sweeps,
 merged static building meshes (`Park3D.MergeStatic`; screenshots print draw calls). v0.26.0 had overhaul parts 1–5
@@ -92,6 +92,34 @@ Then (user requests, 2026-11-19):
 - Intel dilemmas carry a `Context` ("What we know"); the dialog shows lockdown stakes and suspicion after each option.
   Options were rebalanced so none is strictly worse; keep option 1 the middle (cover) choice, the autoplayer's default.
 
+### Since v0.32.0 (2026-11-20, parallel agents in worktrees)
+
+- Workload panel (U, `HudWorkload.cs`, `Utilisation.cs`): `Station.Use`/`Staff.Use` are `UseLog`s of 24 hourly slots
+  (slot = hour of day), `[JsonIgnore]` (not saved), sampled every 2 game minutes by `TrackUsage` at the end of `StepOnce`;
+  read-only, never touches `Rng` (`TrackUse=false` turns it off; `UtilisationTests.TrackingLeavesTheGameUnchanged` compares
+  whole saves). `DeskUse.Closed` ("after hours") only before watches. `g.Utilisation()` is cached per game minute: steps,
+  roles, watches and `Findings` (bottleneck, unstaffed, down, idle). Floor rings (`Overlay.DrawUse`) only while the panel
+  is open; inspector strips `UseStrip`. Tip `bottleneck`. Shots: `--panel=workload`, `--inspect=Clerk` (any role).
+  Finding: the autoplayer's mid/late Park is mostly idle (Wrens ~90% idle); night watches go unstaffed.
+- Kisses (`Kisses.cs`, from `Campaign.KissesFrom` = Operation Claymore): `Net.Werft` is a hand-cipher feed with no
+  requests and not in `ActiveNets`. `ReadWerft` (the keys card's WERFT row) sends `Defs.WerftPerDay` (2) a day at 05–09
+  on own dice; reading one kisses that day's naval keys (`KissedKeys` "Net:day"): crib ×`KissCribMult` 0.35, Bombe
+  ×`KissBombeMult` 0.8, crib quality 0.99, an attempt under way is cut (`ApplyKiss`). Ranks as due at noon of its day
+  (`KissDue`), filed unread once useless (`FileUnwantedWerft`). Tip `kisses`; the autoplayer follows it. Lever: WERFT
+  difficulty 1.0 (~3 h at a hand-cipher desk); 0.5 put Normal at 27–29. Any new `Net` needs a Handbook path, intercept
+  header and sentences, `StationFor`, serials and a Y-station (the tests check every network).
+- HUD pass: tips `research`, `hutopen`, `watches`, `index`, `storesopen`, `operation`; the walkthrough's `tea` comes before
+  `wait`. The HUD never shrinks below 0.8 of its 1600x900 design (`Hud.MinReadableScale`). Staff wording via `Hud.RoleWord`
+  and `Hud.Doing`. Needs attention entries end with the action and open the panel that fixes it.
+- Graphics: moss (overhaul item 6 done) is a code-drawn texture in the roofs' detail layer (`Textures.Moss`/`Mossy`,
+  `Mesh3.Roof` UV2 by height and `Mesh3.Shade`), green grime on north/west walls, damp moss in `PaintGround`. Roofs merge
+  per material (`MergeRoofs`; battens `_feltTrim`); the porch has its own non-fading slate. Ground wetness
+  (`Park3D.SetWet`: puddles only after rain, dry over ~10 h); rain/snow particles dim at night (`WeatherFx.Sync(light)`);
+  snow covers unbuilt plots. Shots: `--days` past ~110 on seed 7 reach VE Day; use ~100 for late shots.
+- Known, not yet fixed: standing orders' `Contract.TotalDays` is one too many (the view uses `Hud.StandingDays`); the
+  act-1 briefing says build before accepting; the Mansion's dormers stick out of its roof; no telegraph wires; progress
+  bars show through roofs at night; the weekly grant late on is far below wages.
+
 ### Graphics overhaul: period realism, CC0 assets allowed
 
 The user chose realism (not a tabletop diorama or poster art) and allowed CC0 assets. Use Poly Haven 1K JPG maps
@@ -119,7 +147,7 @@ settings. Materials are mapped in `Textures.Pbr` (folder, tiles per repeat, tone
 6. Model detail. Done: surveyed plots (`SurveyLines`: grass, pegs, string, ranging pole), the sectional steel water
    tank (`StaticWaterTank`), doorways with wall over a lintel and open ledged doors (`Doorway`). Also done: the Mansion's porch
    and bays, photographed wood on furniture (`Textures.Wood`: the five furniture wood colours in `Mesh3.Mat` get the
-   `wood_table_worn` photo, divided by its mean). Hut floors sit at ground level, so no hut steps. Still open: moss.
+   `wood_table_worn` photo, divided by its mean). Hut floors sit at ground level, so no hut steps. Moss done since.
 
 ### Core-gameplay ideas to alternate with the overhaul
 
