@@ -586,7 +586,9 @@ public partial class Main : Node3D
     int _bench, _benchFrame;
     bool _benching;
     long _benchAt;
-    readonly double[] _benchMs = new double[6];
+    readonly double[] _benchMs = new double[6], _benchThis = new double[6], _benchWorst = new double[6];
+    double _benchWorstFrame;
+    string _benchWorstAt = "";
     double _benchProcess, _benchCpu, _benchGpu, _benchDraws, _benchWall;
     long _benchStart;
     static readonly string[] BenchParts = { "sim", "events", "stations", "people", "world", "daylight" };
@@ -595,13 +597,25 @@ public partial class Main : Node3D
     {
         if (!_benching) return;
         long now = System.Diagnostics.Stopwatch.GetTimestamp();
-        if (part >= 0) _benchMs[part] += (now - _benchAt) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+        if (part >= 0)
+        {
+            double ms = (now - _benchAt) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+            _benchMs[part] += ms;
+            _benchThis[part] = ms;
+        }
         _benchAt = now;
     }
 
     void BenchFrame()
     {
         if (_benchFrame == 0) _benchStart = System.Diagnostics.Stopwatch.GetTimestamp();
+        double total = _benchThis.Sum();
+        if (_benchFrame > 0 && total > _benchWorstFrame)
+        {
+            _benchWorstFrame = total;
+            _benchThis.CopyTo(_benchWorst, 0);
+            _benchWorstAt = $"day {State.Day} {State.Now % 1440 / 60:00}:{State.Now % 60:00}";
+        }
         var vp = GetViewport().GetViewportRid();
         _benchProcess += Performance.GetMonitor(Performance.Monitor.TimeProcess) * 1000;
         _benchCpu += RenderingServer.ViewportGetMeasuredRenderTimeCpu(vp) + RenderingServer.GetFrameSetupTimeCpu();
@@ -613,7 +627,14 @@ public partial class Main : Node3D
         GD.Print($"BENCH {n} frames at {Speed}x, {State.Staff.Count} staff, {State.Stations.Count} stations, day {State.Day}");
         for (int i = 0; i < BenchParts.Length; i++) GD.Print($"BENCH {BenchParts[i],-10} {_benchMs[i] / n,7:0.000} ms");
         GD.Print($"BENCH {"main",-10} {_benchMs.Sum() / n,7:0.000} ms (of process {_benchProcess / n:0.000} ms)");
+        GD.Print($"BENCH {"worst",-10} {_benchWorstFrame,7:0.000} ms at {_benchWorstAt}: " + string.Join(", ", BenchParts.Select((p, i) => $"{p} {_benchWorst[i]:0.0}")));
         GD.Print($"BENCH {"render cpu",-10} {_benchCpu / n,7:0.000} ms, gpu {_benchGpu / n:0.000} ms, {_benchDraws / n:0} draws");
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        string json = SaveGame.Save(State);
+        double first = sw.Elapsed.TotalMilliseconds;
+        sw.Restart();
+        json = SaveGame.Save(State);
+        GD.Print($"BENCH {"save",-10} {sw.Elapsed.TotalMilliseconds,7:0.000} ms ({first:0} ms the first time), {json.Length / 1024} KB");
         GD.Print($"BENCH {"frame",-10} {_benchWall / n,7:0.000} ms wall ({n * 1000 / _benchWall:0} fps)");
         QuitGame();
     }
