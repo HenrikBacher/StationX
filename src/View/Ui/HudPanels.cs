@@ -63,7 +63,7 @@ public partial class Hud
                        string.Join(",", S.Candidates.Select(c => c.Id)) + $"|{S.Funds / 25}|{(int)(S.Now / 30)}|{_idleFirst}",
             "requests" => string.Join(",", S.Contracts.Select(c => $"{c.Id}{c.State}{c.Priority}{c.Delivered}{c.Spawned}{c.MilestonesChecked}{(int)((c.State == ContractState.Offered ? c.OfferExpires : c.Due) - S.Now) / 60}")) +
                           $"|{string.Join(",", S.KeyBoardNets().Select(n => S.KeyRoute(n)))}",
-            "research" => $"{S.Points}|{string.Join(",", S.Researched)}|{string.Join(",", S.ResearchAvailable)}",
+            "research" => $"{S.Points}|{string.Join(",", S.Researched)}|{string.Join(",", S.ResearchAvailable)}|{S.ChiefsReports}|{S.CantReport()}",
             "huts" => $"{S.Funds / 100}|{S.OutstationBombes}|{S.CanBuyOutstation()}|" + string.Join(",", S.Grid.Zones.Select(z => $"{z.Available}{z.Unlocked}")),
             "intel" => IntelSig(),
             "ystations" => YSig(),
@@ -592,6 +592,18 @@ public partial class Hud
                 _sideBox.AddChild(UiTheme.Label($"{Defs.Research[id].Name}: {Defs.Research[id].Blurb}", 12, UiTheme.TextDim));
         }
         _sideBox.AddChild(UiTheme.Label("More methods will become possible as the war goes on.", 12, UiTheme.TextDim));
+        {
+            // Breakthroughs left over once the methods are paid for can go to Whitehall as standing.
+            var v = Card(S.ResearchDone() ? UiTheme.Accent : null);
+            var name = UiTheme.Label("Report to the Chiefs of Staff", 15, UiTheme.Text, Fonts.BodyBold);
+            name.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+            v.AddChild(Row(name, UiTheme.Label($"{S.ReportCost} breakthroughs", 13, S.Points >= S.ReportCost ? UiTheme.Accent : Gfx.Bad)));
+            v.AddChild(UiTheme.Label($"Write up what the Park has learned for the Chiefs: +{Defs.ReportRep:0} reputation. Each report costs {Defs.ReportCostStep} more than the last, " +
+                                     $"and there's one a fortnight at most{(S.ChiefsReports > 0 ? $" ({S.ChiefsReports} sent so far)" : "")}. " +
+                                     "Keep enough back for the methods the war will bring.", 12, UiTheme.TextDim));
+            string? why = S.CantReport();
+            v.AddChild(Row(Spacer(), UiTheme.Button("Send a report", () => { S.ReportToChiefs(); _sideSig = ""; }, why == null, tooltip: why ?? "")));
+        }
     }
 
     // ------------------------------------------------------------------- huts

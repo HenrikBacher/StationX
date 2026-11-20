@@ -174,6 +174,10 @@ Then (user requests, 2026-11-19):
   bicycles by how many are in the building (the far-billeted come by bus); one merged mesh per fill level, two draws a rack.
 - Geese on the lake (`Geese.cs`, real-time, still while paused, standing on ice). `Mesh3.MergePainted` merges a node of
   plain-colour parts into one vertex-coloured mesh (used by the bikes and geese). Statistics charts: scale, dates, hover.
+- Reports to the Chiefs (`Reports.cs`): a sink for breakthroughs once `QuotaActive`: +`ReportRep` (2) per report, every
+  `ReportEveryDays` (14), cost 60 + 50 per report sent. Research panel card, tip `chiefs`, the autoplayer sends one when
+  `ResearchDone()`. Reputation is touchy here: +4 weekly from act 1 put Normal at 25–29; +2 fortnightly from the quota at
+  24 (baseline 21). Balance: Normal 24, Hard 2.
 
 ### Graphics overhaul: period realism, CC0 assets allowed
 

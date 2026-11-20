@@ -298,6 +298,9 @@ public static partial class Defs
     /// <summary>Hours from accepting a post to reporting for duty: interview, vetting, the Official Secrets Act and the train.</summary>
     public static double VettingHours(Role r, Difficulty d) =>
         (r == Role.Messenger ? 6 : 16) * d switch { Difficulty.Easy => 0.5, _ => 1.0 };
+    // ---- Reports to the Chiefs of Staff (a sink for breakthroughs) ----
+    public const int ReportBaseCost = 60, ReportCostStep = 50;
+    public const double ReportRep = 2, ReportEveryDays = 14;
     // ---- The Telegraph crossword ----
     public static readonly DateOnly CrosswordFrom = new(1942, 1, 13);
     public const int CrosswordCost = 75;

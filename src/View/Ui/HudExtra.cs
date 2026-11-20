@@ -312,6 +312,9 @@ public partial class Hud
             "A network has changed its frequencies and gone quiet until its Y-station finds it again. Spare receiver sets search the band: keep one or two unallocated in Y-stations (Y) and the next search is much quicker.");
         yield return ("df", S.MaxSuspicion > 30 && Enum.GetValues<Service>().Any(sv => S.CanBuyDf(sv) == null),
             "German suspicion is rising. Direction-finding stations (Y-stations, Y) take bearings on the enemy's transmitters, so a cover story can point to the fix: cover choices for that service then draw half the suspicion.");
+        yield return ("chiefs", S.ResearchDone() && S.CantReport() == null,
+            $"There's nothing new to research for now, and the breakthroughs are piling up. Research (T) → Report to the Chiefs of Staff turns {S.ReportCost} of them into " +
+            $"+{Defs.ReportRep:0} reputation, once a fortnight; each report costs more than the last. Keep enough back for the methods the war will bring.");
         yield return ("crossword", S.CantHoldCrossword() == null && S.CrosswordAt < 0,
             $"The Daily Telegraph will run a crossword competition for us. Staff (H) → Telegraph crossword (£{Defs.CrosswordCost}): in {Defs.CrosswordDays} days " +
             $"{Defs.CrosswordRecruits} skilled cryptanalysts join the candidates, crossword fiends with faster, better cribs. Run one when you're short of cryptanalysts.");

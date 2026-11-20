@@ -235,6 +235,8 @@ public sealed class AutoPlayer
             g.DoResearch(goal.Research!.Value);
         foreach (var r in g.ResearchAvailable.OrderBy(r => Defs.Research[r].Cost).ToList())
             g.DoResearch(r);
+        // The chiefs tip: with nothing left to research, breakthroughs go to the Chiefs of Staff.
+        if (g.ResearchDone() && g.CantReport() == null) g.ReportToChiefs();
 
         // Huts
         foreach (var z in g.Grid.Zones.Where(z => z.Available && !z.Unlocked))
