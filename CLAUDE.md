@@ -210,7 +210,7 @@ Then (user requests, 2026-11-19):
 
 ### Since v0.36.0 (2026-11-20)
 
-- Smoother frames: the save serializer warms up on a worker thread (`SaveGame.WarmUp`, first save 178 → 24 ms), toasts go
+- Smoother frames: the save serializer warms up on a worker thread 20 s after launch (`SaveGame.WarmUp`, first save 178 → 24 ms; at launch it made the self-test's timed input flaky), toasts go
   up one a frame (`Hud.ShowNextToast`), GC in `SustainedLowLatency`; `--bench` lists the five worst frames, slow event
   handlers and collections. The measuring tools live in `MainBench.cs`. v0.35.0 installs match v0.36.0's base lists
   (patch path checked).

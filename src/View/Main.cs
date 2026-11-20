@@ -253,7 +253,10 @@ public partial class Main : Node3D
         overlayLayer.AddChild(new Overlay { Main = this, Name = "Overlay" });
         Hud = new Hud(this) { Name = "Hud" };
         AddChild(Hud);
-        _ = SaveGame.WarmUp();
+        // Twenty seconds in, long before the first midnight's autosave: at launch its burst of allocation set off a
+        // collection that stalled the first frames (and made the self-test's timed clicks flaky).
+        if (!OS.GetCmdlineUserArgs().Any(a => a == "--selftest" || a.StartsWith("--shot")))
+            GetTree().CreateTimer(20).Timeout += () => SaveGame.WarmUp();
         // No blocking full collections while playing: the Park's midnight bookkeeping set one off, a 9 ms frame.
         System.Runtime.GCSettings.LatencyMode = System.Runtime.GCLatencyMode.SustainedLowLatency;
         Settings.ApplyGraphics = ApplyGraphics;

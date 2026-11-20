@@ -18,7 +18,11 @@ public partial class Main
     void Check(bool ok, string what)
     {
         GD.Print((ok ? "PASS  " : "FAIL  ") + what);
-        if (!ok) _testFails.Add(what);
+        if (ok) return;
+        _testFails.Add(what);
+        // What was in the way: the game's seed (to replay it), any sheet open, what the mouse is over.
+        GD.Print($"      seed {State.Seed}, day {State.Day} {State.MinuteOfDay / 60:00}:{State.MinuteOfDay % 60:00}, sheet open {Hud.ModalOpen}, " +
+                 $"panel {Hud.PanelId ?? "none"}, over {GetViewport().GuiGetHoveredControl()?.GetPath().ToString() ?? "the world"}");
     }
 
     async Task Frames(int n = 2)
