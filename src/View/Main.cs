@@ -425,11 +425,13 @@ public partial class Main : Node3D
             }
             m.Sync(st, State, dt);
         }
-        foreach (var id in StationModels.Keys.Where(id => State.StationById(id) == null).ToList())
-        {
-            StationModels[id].QueueFree();
-            StationModels.Remove(id);
-        }
+        // Every station now has a model, so a model is left over only when there are more models than stations.
+        if (StationModels.Count > State.Stations.Count)
+            foreach (var id in StationModels.Keys.Where(id => State.StationById(id) == null).ToList())
+            {
+                StationModels[id].QueueFree();
+                StationModels.Remove(id);
+            }
     }
 
     readonly List<PersonModel> _shownPeople = new();
@@ -490,11 +492,12 @@ public partial class Main : Node3D
             }
             m.Sync(s, State, dt, face, rest, seat);
         }
-        foreach (var id in PersonModels.Keys.Where(id => State.StaffById(id) == null).ToList())
-        {
-            PersonModels[id].QueueFree();
-            PersonModels.Remove(id);
-        }
+        if (PersonModels.Count > State.Staff.Count)
+            foreach (var id in PersonModels.Keys.Where(id => State.StaffById(id) == null).ToList())
+            {
+                PersonModels[id].QueueFree();
+                PersonModels.Remove(id);
+            }
         SeparatePeople();
     }
 

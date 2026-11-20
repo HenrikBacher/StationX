@@ -35,7 +35,19 @@ public sealed partial class GameState
     /// <summary>A change of frequencies due today, per network.</summary>
     public Dictionary<Net, double> FreqChangeAt { get; set; } = new();
 
-    public static YStationDef YStationOf(Net net) => Defs.YStations.First(y => y.Nets.Contains(net));
+    /// <summary>Each network's station (the first that lists it), built once: this is asked every tick.</summary>
+    static readonly Dictionary<Net, YStationDef> YStationByNet = MapYStations();
+
+    static Dictionary<Net, YStationDef> MapYStations()
+    {
+        var map = new Dictionary<Net, YStationDef>();
+        foreach (var y in Defs.YStations)
+            foreach (var n in y.Nets) map.TryAdd(n, y);
+        return map;
+    }
+
+    public static YStationDef YStationOf(Net net) =>
+        YStationByNet.TryGetValue(net, out var y) ? y : Defs.YStations.First(y => y.Nets.Contains(net));
 
     /// <summary>Sets on a network. WERFT is taken down on the naval sets' frequencies, so it shares their cover.</summary>
     public int CoverOf(Net n) => n == Net.Werft ? Math.Max(Cover.GetValueOrDefault(Net.Dolphin), Cover.GetValueOrDefault(Net.Shark)) : Cover.GetValueOrDefault(n);
@@ -74,8 +86,15 @@ public sealed partial class GameState
     /// <summary>A working teleprinter in the Park that takes this network (or, failing that, any working one).</summary>
     public Station? TeleprinterFor(Net n)
     {
-        var up = Stations.Where(s => s.Type == StationType.Inbox && !s.PendingRemoval && !s.IsDown(Now)).ToList();
-        return up.Where(s => s.ReceivesNet(n)).OrderBy(s => s.Output.Count).FirstOrDefault() ?? up.OrderBy(s => s.Output.Count).FirstOrDefault();
+        // The least busy (the first of equals), without LINQ: this runs for every request every tick.
+        Station? taking = null, any = null;
+        foreach (var s in Stations)
+        {
+            if (s.Type != StationType.Inbox || s.PendingRemoval || s.IsDown(Now)) continue;
+            if (any == null || s.Output.Count < any.Output.Count) any = s;
+            if (s.ReceivesNet(n) && (taking == null || s.Output.Count < taking.Output.Count)) taking = s;
+        }
+        return taking ?? any;
     }
 
     /// <summary>
@@ -85,9 +104,14 @@ public sealed partial class GameState
     public bool LineWorking(Net n) => Lines.Contains(YStationOf(n).Id) && TeleprinterFor(n) != null;
 
     /// <summary>The registration desk a dispatch rider hands a bundle to: the least loaded one.</summary>
-    public Station? RiderDesk() =>
-        Stations.Where(s => s.Type == StationType.Registration && !s.PendingRemoval && !s.Obsolete && !s.IsDown(Now))
-                .OrderBy(s => s.Input.Count).FirstOrDefault();
+    public Station? RiderDesk()
+    {
+        Station? best = null;
+        foreach (var s in Stations)
+            if (s.Type == StationType.Registration && !s.PendingRemoval && !s.Obsolete && !s.IsDown(Now) && (best == null || s.Input.Count < best.Input.Count))
+                best = s;
+        return best;
+    }
 
     /// <summary>Riders seen arriving lately, for the view to draw (not saved).</summary>
     [System.Text.Json.Serialization.JsonIgnore]
@@ -177,14 +201,30 @@ public sealed partial class GameState
     /// New networks on the air take spare sets, up to what they need; a network that goes off the air gives its sets
     /// back.
     /// </summary>
+    readonly List<Net> _onAir = new();
+
     void AllotCover()
     {
-        var onAir = CoveredNets().ToList();
-        foreach (var n in Cover.Keys.Where(n => !onAir.Contains(n)).ToList())
+        // CoveredNets() without the LINQ, into a list kept for reuse (this runs every few minutes): the networks in play,
+        // in a stable sort by NetOrder.
+        var onAir = _onAir;
+        onAir.Clear();
+        foreach (var n in ActiveNets)
         {
-            Cover.Remove(n);
-            Covered.Remove(n);
+            if (!InPlay(n)) continue;
+            int at = onAir.Count, key = NetOrder.IndexOf(n);
+            while (at > 0 && NetOrder.IndexOf(onAir[at - 1]) > key) at--;
+            onAir.Insert(at, n);
         }
+        List<Net>? gone = null;
+        foreach (var n in Cover.Keys)
+            if (!onAir.Contains(n)) (gone ??= new()).Add(n);
+        if (gone != null)
+            foreach (var n in gone)
+            {
+                Cover.Remove(n);
+                Covered.Remove(n);
+            }
         foreach (var n in onAir)
         {
             if (!Covered.Add(n)) continue;
@@ -213,22 +253,25 @@ public sealed partial class GameState
 
     void TickYService()
     {
-        foreach (var (n, at) in FreqChangeAt.ToList())
-        {
-            if (Now < at) continue;
-            FreqChangeAt.Remove(n);
-            if (Searching(n) || !Covered.Contains(n)) continue;
-            double h = SearchHours(n);
-            SearchUntil[n] = Now + h * 60;
-            Stats.FreqChanges++;
-            Emit(EventKind.Bad, $"{Defs.NetOf(n).Name} has changed its frequencies and gone quiet. {YStationOf(n).Name} is searching the band: " +
-                                $"with {SpareSets} spare set{(SpareSets == 1 ? "" : "s")}, about {Math.Max(1, (int)Math.Round(h))} hours.");
-        }
-        foreach (var (n, until) in SearchUntil.ToList())
-            if (Now >= until)
+        // Copies of the tables only when there is something in them: this runs every tick.
+        if (FreqChangeAt.Count > 0)
+            foreach (var (n, at) in FreqChangeAt.ToList())
             {
-                SearchUntil.Remove(n);
-                Emit(EventKind.Good, $"{YStationOf(n).Name} has found {Defs.NetOf(n).Name} on its new frequencies. The traffic it missed was caught on repeats.");
+                if (Now < at) continue;
+                FreqChangeAt.Remove(n);
+                if (Searching(n) || !Covered.Contains(n)) continue;
+                double h = SearchHours(n);
+                SearchUntil[n] = Now + h * 60;
+                Stats.FreqChanges++;
+                Emit(EventKind.Bad, $"{Defs.NetOf(n).Name} has changed its frequencies and gone quiet. {YStationOf(n).Name} is searching the band: " +
+                                    $"with {SpareSets} spare set{(SpareSets == 1 ? "" : "s")}, about {Math.Max(1, (int)Math.Round(h))} hours.");
             }
+        if (SearchUntil.Count > 0)
+            foreach (var (n, until) in SearchUntil.ToList())
+                if (Now >= until)
+                {
+                    SearchUntil.Remove(n);
+                    Emit(EventKind.Good, $"{YStationOf(n).Name} has found {Defs.NetOf(n).Name} on its new frequencies. The traffic it missed was caught on repeats.");
+                }
     }
 }

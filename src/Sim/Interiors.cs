@@ -115,7 +115,9 @@ public sealed partial class Grid
     public Room? RoomAt(int x, int y)
     {
         var z = ZoneAt(x, y);
-        return z?.Rooms.FirstOrDefault(r => r.Contains(x, y));
+        if (z == null) return null;
+        foreach (var r in z.Rooms) if (r.Contains(x, y)) return r;
+        return null;
     }
 
     /// <summary>Gives a building its rooms. For a save from before interiors, opens a doorway wherever a desk already stands across a new wall.</summary>

@@ -52,13 +52,15 @@ public sealed partial class GameState
     {
         var def = Defs.Station(t);
         var (w, h) = Defs.Dims(t, rot);
+        // The autoplayer tries every tile of a hut in turn, so a spot that fails early must cost next to nothing: the
+        // sets below are made only when needed, and the occupancy grid is rebuilt only if it was touched.
+        bool touched = moving != null;
         if (moving != null)
             foreach (var (fx, fy) in moving.Footprint()) Grid.Occupant[fy * Grid.Width + fx] = -1;
         try
         {
             Zone? zone = null;
-            var occupiedByStaff = new HashSet<(int, int)>(Staff.Where(s => !s.Away).Select(s => s.TilePos));
-            var useTiles = new HashSet<(int, int)>(Stations.Where(s => s != moving).Select(s => s.UseTile));
+            HashSet<(int, int)>? occupiedByStaff = null, useTiles = null;
             for (int dy = 0; dy < h; dy++)
                 for (int dx = 0; dx < w; dx++)
                 {
@@ -80,7 +82,9 @@ public sealed partial class GameState
                         if (Grid.RoomAt(tx, ty) is { Corridor: true } cor) return $"Keep the {cor.Name.ToLowerInvariant()} clear";
                     }
                     if (Grid.OccupantAt(tx, ty) >= 0) return "Something is already there";
+                    useTiles ??= new HashSet<(int, int)>(Stations.Where(s => s != moving).Select(s => s.UseTile));
                     if (useTiles.Contains((tx, ty))) return "Blocks another station's working space";
+                    occupiedByStaff ??= new HashSet<(int, int)>(Staff.Where(s => !s.Away).Select(s => s.TilePos));
                     if (occupiedByStaff.Contains((tx, ty))) return "Someone is standing there";
                 }
             var use = Station.UseTileFor(t, x, y, rot);
@@ -96,6 +100,7 @@ public sealed partial class GameState
 
             // Everything must stay reachable after placing.
             var fake = new Station { Id = int.MaxValue, Type = t, X = x, Y = y, Rot = rot };
+            touched = true;
             foreach (var (fx, fy) in fake.Footprint()) Grid.Occupant[fy * Grid.Width + fx] = fake.Id;
             try
             {
@@ -115,7 +120,7 @@ public sealed partial class GameState
         }
         finally
         {
-            Grid.RebuildOccupancy(Stations);
+            if (touched) Grid.RebuildOccupancy(Stations);
         }
     }
 
@@ -582,6 +587,8 @@ public sealed partial class GameState
         return true;
     }
 
+    Predicate<Contract>? _finishedWith;
+
     void TickContracts()
     {
         // Offers
@@ -679,7 +686,7 @@ public sealed partial class GameState
                     break;
             }
         }
-        Contracts.RemoveAll(c => c.State == ContractState.Expired ||
+        Contracts.RemoveAll(_finishedWith ??= c => c.State == ContractState.Expired ||
                                  (c.State is ContractState.Completed or ContractState.Failed && Now - c.Due > 2 * Defs.MinutesPerDay));
 
         // A scripted request that fails comes back: the war doesn't wait, and the act needs it.

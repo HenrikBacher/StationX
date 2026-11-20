@@ -709,7 +709,7 @@ public partial class StationModel : Node3D
         return s;
     }
 
-    static void ShowPile(List<MeshInstance3D> pile, IReadOnlyList<int> ids, GameState g)
+    static void ShowPile(List<MeshInstance3D> pile, IReadOnlyList<int> ids, GameState g, Material?[] shown)
     {
         for (int i = 0; i < pile.Count; i++)
         {
@@ -720,7 +720,9 @@ public partial class StationModel : Node3D
             var col = m == null ? Gfx.Paper
                 : m.Next == null && m.Loc == Loc.Output ? Gfx.PaperWaiting
                 : Gfx.Paper.Lerp(Gfx.NetColor(m.Net), 0.22f);
-            pile[i].MaterialOverride = Mesh3.Mat(col);
+            var mat = Mesh3.Mat(col);
+            // Set only when it changes: each set is a call into the renderer.
+            if (shown[i] != mat) pile[i].MaterialOverride = shown[i] = mat;
         }
     }
 
@@ -770,6 +772,12 @@ public partial class StationModel : Node3D
         }
     }
 
+    float[]? _spinSpeed;
+    bool[]? _spinAxis;
+    float?[]? _slideFrom;
+    readonly List<int> _pileIds = new();
+    Material?[] _inShown = System.Array.Empty<Material?>(), _outShown = System.Array.Empty<Material?>();
+
     public void Sync(Station st, GameState g, float dt)
     {
         _time += dt;
@@ -777,18 +785,31 @@ public partial class StationModel : Node3D
         bool working = st.Working && !st.IsDown(g.Now);
         if (working)
         {
-            foreach (var s in _spinners)
+            // Each part's speed and axis, read from its metadata once rather than through the engine every frame.
+            if (_spinSpeed == null || _spinSpeed.Length != _spinners.Count)
             {
-                float speed = (float)s.GetMeta("speed");
-                if (s.HasMeta("axis")) s.RotateX(speed * dt);
+                _spinSpeed = new float[_spinners.Count];
+                _spinAxis = new bool[_spinners.Count];
+                for (int i = 0; i < _spinners.Count; i++)
+                {
+                    _spinSpeed[i] = (float)_spinners[i].GetMeta("speed");
+                    _spinAxis[i] = _spinners[i].HasMeta("axis");
+                }
+            }
+            for (int i = 0; i < _spinners.Count; i++)
+            {
+                var s = _spinners[i];
+                float speed = _spinSpeed[i];
+                if (_spinAxis![i]) s.RotateX(speed * dt);
                 else s.RotateObjectLocal(Vector3.Up, speed * dt);
             }
+            if (_slideFrom == null || _slideFrom.Length != _sliders.Count) _slideFrom = new float?[_sliders.Count];
             for (int i = 0; i < _sliders.Count; i++)
             {
                 var sl = _sliders[i];
                 var p = sl.Position;
-                if (!sl.HasMeta("bx")) sl.SetMeta("bx", p.X);
-                float bx = Type == StationType.Banburismus ? -0.1f + i * 0.2f : (float)sl.GetMeta("bx");
+                _slideFrom[i] ??= p.X;   // where it rests, taken the first time it moves
+                float bx = Type == StationType.Banburismus ? -0.1f + i * 0.2f : _slideFrom[i]!.Value;
                 p.X = Mathf.Sin(_time * (0.9f + i * 0.3f) + i * 2) * (Type == StationType.Banburismus ? 0.25f : 0.03f) + bx;
                 sl.Position = p;
             }
@@ -826,10 +847,14 @@ public partial class StationModel : Node3D
         }
 
         if (Defs.IsRest(Type)) return;
-        var input = new List<int>(st.Input);
+        var input = _pileIds;
+        input.Clear();
+        input.AddRange(st.Input);
         if (st.Current is int c) input.Add(c);
-        if (Type != StationType.Inbox) ShowPile(_inPile, input, g);
-        if (Type != StationType.Dispatch) ShowPile(_outPile, st.Output, g);
+        if (_inShown.Length != _inPile.Count) _inShown = new Material?[_inPile.Count];
+        if (_outShown.Length != _outPile.Count) _outShown = new Material?[_outPile.Count];
+        if (Type != StationType.Inbox) ShowPile(_inPile, input, g, _inShown);
+        if (Type != StationType.Dispatch) ShowPile(_outPile, st.Output, g, _outShown);
     }
 
     /// <summary>World-space point just above the station, for overlays.</summary>

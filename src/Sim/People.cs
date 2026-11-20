@@ -41,8 +41,12 @@ public sealed partial class GameState
     {
         double hour = MinuteOfDay / 60;
         bool night = hour >= 20 || hour < 6;
-        var cold = ColdZones();
-        bool anyRest = Stations.Any(RestOpen);
+        var cold = ColdZoneList();
+        // The tea tables open this tick: nothing in the loop below opens, closes, builds or removes one.
+        _openRests.Clear();
+        foreach (var st in Stations)
+            if (RestOpen(st)) _openRests.Add((st, st.UseTile, Grid.ZoneAt(st.UseTile.x, st.UseTile.y)));
+        bool anyRest = _openRests.Count > 0;
         for (int i = Staff.Count - 1; i >= 0; i--)
         {
             var s = Staff[i];
@@ -66,7 +70,7 @@ public sealed partial class GameState
             if (t is { Kind: TaskKind.Rest } && s.Path.Count == 0 && StationById(t.Dest) is { } rest)
             {
                 // A cup of tea goes further in company, and nowhere at all across the table from a rival.
-                int company = RestingAt(rest.Id, s);
+                int company = RestingAt(rest.Id, s, Defs.RestCompanyMax);
                 bool rival = RivalRestingAt(s, rest.Id);
                 double rate = rival ? Defs.RestRivalMult : 1 + Defs.RestCompany * Math.Min(company, Defs.RestCompanyMax);
                 s.Energy = Math.Min(1, s.Energy + Defs.EnergyRecoverRest * rate * dt);
@@ -91,7 +95,7 @@ public sealed partial class GameState
 
             if (drain > 0)
             {
-                if (IsCold(s, cold))
+                if (cold != null && Grid.ZoneAt((int)s.X, (int)s.Y) is { } zone && cold.Contains(zone))
                 {
                     s.Chilled = true;
                     drain *= Defs.ColdDrainMult;
@@ -175,13 +179,35 @@ public sealed partial class GameState
         (st.Type != StationType.Rounders || MinuteOfDay is >= 8 * 60 and < 19 * 60 && Weather is Weather.Fine or Weather.Overcast);
 
     /// <summary>Others sitting (not still walking up) at a rest station.</summary>
-    public int RestingAt(int stationId, Staff? except = null) =>
-        Staff.Count(o => o != except && o.Task is { Kind: TaskKind.Rest } t && t.Dest == stationId && o.Path.Count == 0 && !o.Away);
+    public int RestingAt(int stationId, Staff? except = null) => RestingAt(stationId, except, int.MaxValue);
+
+    /// <summary>As <see cref="RestingAt(int, Staff?)"/>, but stops counting at <paramref name="upTo"/>.</summary>
+    int RestingAt(int stationId, Staff? except, int upTo)
+    {
+        int n = 0;
+        foreach (var o in Staff)
+            if (o != except && o.Task is { Kind: TaskKind.Rest } t && t.Dest == stationId && o.Path.Count == 0 && !o.Away && ++n >= upTo) break;
+        return n;
+    }
 
     public bool RivalRestingAt(Staff s, int stationId) =>
         s.Rival is int rid && StaffById(rid) is { Task: { Kind: TaskKind.Rest } rt } && rt.Dest == stationId;
 
-    int SeatsTaken(Station st) => Staff.Count(x => x.Task is { Kind: TaskKind.Rest } t && t.Dest == st.Id);
+    readonly Dictionary<int, int> _seatsTaken = new(), _restingAt = new();
+    readonly List<(Station st, (int x, int y) use, Zone? zone)> _openRests = new();
+
+    /// <summary>Seats taken (by anyone on a break there, sitting or still on the way) and people sitting, per rest station.</summary>
+    void CountRests()
+    {
+        _seatsTaken.Clear();
+        _restingAt.Clear();
+        foreach (var o in Staff)
+        {
+            if (o.Task is not { Kind: TaskKind.Rest } t) continue;
+            _seatsTaken[t.Dest] = _seatsTaken.GetValueOrDefault(t.Dest) + 1;
+            if (o.Path.Count == 0 && !o.Away) _restingAt[t.Dest] = _restingAt.GetValueOrDefault(t.Dest) + 1;
+        }
+    }
 
     /// <summary>
     /// Tea break. Unhappy people head for the common room or the rounders pitch. The tired go wherever there's a seat,
@@ -193,18 +219,23 @@ public sealed partial class GameState
         Station? best = null;
         Staff? bump = null;
         int bestScore = int.MaxValue;
-        foreach (var st in Stations)
+        // Who sits where, counted once for every table rather than once per table (this runs for everyone idle, every tick).
+        bool counted = false;
+        var rival = s.Rival is int rid ? StaffById(rid) : null;
+        var here = s.TilePos;
+        var hereZone = loafing ? Grid.ZoneAt(here.x, here.y) : null;
+        foreach (var (st, use, zone) in _openRests)
         {
-            if (!RestOpen(st)) continue;
-            int score = Manhattan(st.UseTile, s.TilePos);
+            int score = Manhattan(use, here);
             // The idle only sit down in their own building, close by, so they're quickly back when work comes.
-            if (loafing && (score > Defs.LoafRange || Grid.ZoneAt(st.UseTile.x, st.UseTile.y) != Grid.ZoneAt(s.TilePos.x, s.TilePos.y))) continue;
+            if (loafing && (score > Defs.LoafRange || zone != hereZone)) continue;
+            if (!counted) { CountRests(); counted = true; }
             Staff? loafer = null;
-            if (SeatsTaken(st) >= st.Def.Seats)
+            if (_seatsTaken.GetValueOrDefault(st.Id) >= st.Def.Seats)
             {
                 if (loafing) continue;
                 // Anyone sitting there for want of work, or already fresh, gives up their seat to the tired.
-                loafer = Staff.FirstOrDefault(x => x.Task is { Kind: TaskKind.Rest } t && t.Dest == st.Id && (t.Loafing || x.Energy >= Defs.BreakUntil));
+                loafer = WouldGiveUpSeat(st.Id);
                 if (loafer == null) continue;
                 score += 4;
             }
@@ -216,17 +247,36 @@ public sealed partial class GameState
                 score -= Defs.RoundersPull;
             }
             // Company draws people in; a rival at the table keeps them away.
-            score -= 2 * Math.Min(RestingAt(st.Id), Defs.RestCompanyMax);
-            if (RivalRestingAt(s, st.Id)) score += 30;
+            score -= 2 * Math.Min(_restingAt.GetValueOrDefault(st.Id), Defs.RestCompanyMax);
+            if (rival is { Task: { Kind: TaskKind.Rest } rt } && rt.Dest == st.Id) score += 30;
             if (score < bestScore) { bestScore = score; best = st; bump = loafer; }
         }
         if (best == null || !SendTo(s, best.UseTile)) return;
         if (bump != null) { bump.Task = null; bump.Path.Clear(); }
-        var used = Staff.Where(x => x.Task is { Kind: TaskKind.Rest } t && t.Dest == best.Id).Select(x => x.Task!.Seat).ToHashSet();
-        int seat = 0;
-        while (used.Contains(seat)) seat++;
+        int seat = FreeSeat(best.Id);
         s.Task = new StaffTask { Kind = TaskKind.Rest, Dest = best.Id, Seat = seat, Loafing = loafing };
         if (s.Path.Count == 0) OnArrive(s);
+    }
+
+    // Lambdas capturing a loop's variable cost an allocation on every pass of the loop, so these are loops of their own.
+
+    /// <summary>The first at a table sitting there for want of work, or already fresh.</summary>
+    Staff? WouldGiveUpSeat(int stationId)
+    {
+        foreach (var x in Staff)
+            if (x.Task is { Kind: TaskKind.Rest } t && t.Dest == stationId && (t.Loafing || x.Energy >= Defs.BreakUntil)) return x;
+        return null;
+    }
+
+    /// <summary>The lowest seat number nobody at the table has taken.</summary>
+    int FreeSeat(int stationId)
+    {
+        var used = new HashSet<int>();
+        foreach (var x in Staff)
+            if (x.Task is { Kind: TaskKind.Rest } t && t.Dest == stationId) used.Add(t.Seat);
+        int seat = 0;
+        while (used.Contains(seat)) seat++;
+        return seat;
     }
 
     /// <summary>People due a break with no seat free anywhere: they stand about, getting no rest.</summary>
@@ -309,6 +359,20 @@ public sealed partial class GameState
     /// <summary>True if this person is standing in one of the cold zones.</summary>
     public bool IsCold(Staff s, HashSet<string>? cold) =>
         cold != null && Grid.ZoneAt((int)s.X, (int)s.Y) is { } zone && cold.Contains(zone.Id);
+
+    readonly List<Zone> _coldZones = new();
+
+    /// <summary>As <see cref="ColdZones"/>, as the zones themselves in a list kept for reuse: this runs every tick.</summary>
+    List<Zone>? ColdZoneList()
+    {
+        if (!Winter) return null;
+        _coldZones.Clear();
+        foreach (var z in Grid.Zones)
+            if (z.Unlocked && !Defs.Heated(z.Id)) _coldZones.Add(z);
+        foreach (var st in Stations)
+            if (st.Type == StationType.Stove && !st.PendingRemoval && Grid.ZoneAt(st.X, st.Y) is { } z) _coldZones.Remove(z);
+        return _coldZones;
+    }
 
     /// <summary>Open timber huts with no stove, while it's winter; null in summer.</summary>
     public HashSet<string>? ColdZones()

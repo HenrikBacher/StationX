@@ -31,7 +31,17 @@ public sealed class Station
     /// <summary>What it has been doing over the last day (Utilisation.cs); not saved.</summary>
     [System.Text.Json.Serialization.JsonIgnore] public UseLog? Use { get; set; }
 
-    public StationDef Def => Defs.Station(Type);
+    // Def and UseTile are asked for constantly; both are remembered until the type or placement changes.
+    StationDef? _def;
+    StationType _defType;
+    public StationDef Def
+    {
+        get
+        {
+            if (_def == null || _defType != Type) { _def = Defs.Station(Type); _defType = Type; }
+            return _def;
+        }
+    }
     public (int w, int h) Dims => Defs.Dims(Type, Rot);
     public double Progress => WorkTotal > 0 ? Math.Clamp(WorkDone / WorkTotal, 0, 1) : 0;
     public bool Working => Current != null && (OperatorPresent || IsMachine);
@@ -56,7 +66,17 @@ public sealed class Station
                 yield return (X + dx, Y + dy);
     }
 
-    public (int x, int y) UseTile => UseTileFor(Type, X, Y, Rot);
+    (StationType t, int x, int y, int rot)? _useKey;
+    (int x, int y) _use;
+    public (int x, int y) UseTile
+    {
+        get
+        {
+            var key = (Type, X, Y, Rot);
+            if (_useKey != key) { _use = UseTileFor(Type, X, Y, Rot); _useKey = key; }
+            return _use;
+        }
+    }
 
     public static (int x, int y) UseTileFor(StationType t, int x, int y, int rot)
     {

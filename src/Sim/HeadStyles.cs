@@ -30,15 +30,18 @@ public sealed partial class GameState
     /// <summary>Each headed zone's style, for the tick (cheaper than looking up per person).</summary>
     /// <param name="inNow">True for heads at the Park right now; false for the daily effects, which count a head
     /// who is merely off watch (but not one off sick or on leave).</param>
-    Dictionary<Zone, HeadStyleDef> HeadsToday(bool inNow = true)
+    Dictionary<Zone, HeadStyleDef> HeadsToday(bool inNow = true, Dictionary<Zone, HeadStyleDef>? into = null)
     {
-        var d = new Dictionary<Zone, HeadStyleDef>();
+        var d = into ?? new Dictionary<Zone, HeadStyleDef>();
+        d.Clear();
         foreach (var s in Staff)
             if (s.HeadOf != null && !s.Leaving && (inNow ? !s.Away : !s.IsSick(Now)) && Grid.Zone(s.HeadOf) is { } z) d[z] = Defs.HeadStyles[s.HeadStyle];
         return d;
     }
 
     Dictionary<Zone, HeadStyleDef> _heads = new();
+    /// <summary>Reused for the heads in now, which are looked up afresh every tick.</summary>
+    readonly Dictionary<Zone, HeadStyleDef> _headsNow = new();
 
     HeadStyleDef? HeadOfLastZone(Staff s) => s.LastZone != null && Grid.Zone(s.LastZone) is { } z && _heads.TryGetValue(z, out var h) ? h : null;
 

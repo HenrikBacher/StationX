@@ -167,6 +167,7 @@ public static class Pathfinder
     [ThreadStatic] static int[]? _cost;
     [ThreadStatic] static int[]? _stamp;
     [ThreadStatic] static int _gen;
+    [ThreadStatic] static PriorityQueue<int, int>? _open;
 
     /// <param name="avoid">Tiles to go round if possible (people standing there); the goal itself is never avoided.</param>
     public static List<(int x, int y)>? Find(Grid g, (int x, int y) from, (int x, int y) to, HashSet<(int, int)>? avoid = null)
@@ -183,7 +184,8 @@ public static class Pathfinder
         if (_gen == int.MaxValue) { Array.Clear(_stamp); _gen = 1; }
 
         int start = from.y * Grid.Width + from.x, goal = to.y * Grid.Width + to.x;
-        var open = new PriorityQueue<int, int>();
+        var open = _open ??= new PriorityQueue<int, int>();
+        open.Clear();
         _stamp[start] = _gen;
         _cost[start] = 0;
         _came[start] = -1;
