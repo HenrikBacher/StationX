@@ -84,16 +84,18 @@ public static class Gfx
 
     public static Color NetColor(Net n) => n switch
     {
-        Net.Police => new Color("8c8c8c"),
-        Net.Abwehr => new Color("6b5b8c"),
+        // Checked for colour-blind players (Machado protan/deutan/tritan, CIELAB): every pair at least ΔE 8 apart in each,
+        // and each network has a shape of its own as well (NetMark).
+        Net.Police => new Color("b4b4b4"),
+        Net.Abwehr => new Color("8f74b8"),
         Net.Red => new Color("c0504a"),
         Net.LightBlue => new Color("6fa3c9"),
         Net.Chaffinch => new Color("c9a14a"),
-        Net.Brown => new Color("9a6a44"),
-        Net.Dolphin => new Color("4f8c84"),
-        Net.Werft => new Color("7d8a5c"),
-        Net.Shark => new Color("3d5a80"),
-        Net.Jn25 => new Color("b5655b"),
+        Net.Brown => new Color("6b4a2c"),
+        Net.Dolphin => new Color("3f8a7c"),
+        Net.Werft => new Color("93a35a"),
+        Net.Shark => new Color("2f4a78"),
+        Net.Jn25 => new Color("d07fae"),
         _ => Colors.White,
     };
 

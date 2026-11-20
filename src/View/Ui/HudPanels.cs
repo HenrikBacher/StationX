@@ -634,9 +634,14 @@ public partial class Hud
     static void ContractHeader(Control v, Contract c)
     {
         bool urgent = c.Tag != null || c.Flash;
-        var issuer = UiTheme.Caps(Defs.IssuerNames[c.Issuer] + (urgent ? " · MOST IMMEDIATE" : "") + (c.Priority && c.State == ContractState.Active ? " · FIRST" : ""), 11,
-            urgent || c.Priority ? Gfx.Bad : UiTheme.TextDim);
-        v.AddChild(issuer);
+        var issuer = UiTheme.Caps(Defs.IssuerNames[c.Issuer] + " · " + Defs.NetOf(c.Net).Name + (urgent ? " · MOST IMMEDIATE" : "") +
+            (c.Priority && c.State == ContractState.Active ? " · FIRST" : ""), 11, urgent || c.Priority ? Gfx.Bad : UiTheme.TextDim);
+        var head = new HBoxContainer();
+        head.AddThemeConstantOverride("separation", 6);
+        head.AddChild(NetMark.For(c.Net, 13));
+        issuer.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        head.AddChild(issuer);
+        v.AddChild(head);
         v.AddChild(UiTheme.Label(c.Title, 15, UiTheme.Text, Fonts.BodyBold));
     }
 

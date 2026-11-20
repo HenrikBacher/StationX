@@ -274,6 +274,10 @@ Then (user requests, 2026-11-19):
   To fit it the lake moved south: `Grid.LakeY` is saved (old saves 23, new games `NewLakeY` 24.6); `Water.CentreZ` and
   the view's lake paint follow it (`Water.Place` in `Park3D.Rebuild`). Old saves' lake keeps Hut 7 out (`AddMissingZones`).
   The autoplayer posts a Japanese reader to the desk's building on each watch (the `japanese` tip says so). Balance 40/23/1.
+- Colour-blind check: `Gfx.NetColor` re-picked so every pair is ≥ ΔE 8 under Machado protan/deutan/tritan (was 1.5:
+  WERFT/JN-25 deutan, RED/BROWN). `NetMark` draws a shape per network (circle RED, square LIGHT BLUE, triangles CHAFFINCH/
+  DOLPHIN, diamond BROWN, star SHARK, plus POLICE, X ABWEHR, ring JN-25, bar WERFT, hexagon TUNNY) on the keys card and
+  request cards, whose header now names the network.
 
 ### Graphics overhaul: period realism, CC0 assets allowed
 

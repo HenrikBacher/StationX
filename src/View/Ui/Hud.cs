@@ -404,6 +404,8 @@ public partial class Hud : CanvasLayer
             row.AddThemeConstantOverride("separation", 8);
             var chip = new ColorRect { Color = Gfx.NetColor(n), CustomMinimumSize = new Vector2(6, 30) };
             row.AddChild(chip);
+            var mark = NetMark.For(n);
+            row.AddChild(mark);
             var texts = new VBoxContainer();
             texts.AddThemeConstantOverride("separation", -2);
             texts.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
@@ -473,6 +475,7 @@ public partial class Hud : CanvasLayer
         var row = new HBoxContainer();
         row.AddThemeConstantOverride("separation", 8);
         row.AddChild(new ColorRect { Color = Gfx.NetColor(Net.Werft), CustomMinimumSize = new Vector2(6, 30) });
+        row.AddChild(NetMark.For(Net.Werft));
         var texts = new VBoxContainer();
         texts.AddThemeConstantOverride("separation", -2);
         texts.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
