@@ -76,6 +76,13 @@ public partial class Hud
                     () => { _main.CenterOnTile(z.X + z.W / 2f, z.Y + z.H / 2f); ShowZone(z); }));
         foreach (var st in S.Stations.Where(s => s.Def.Operator is Role && !s.Obsolete && s.Input.Count > 0 && !S.CanBeStaffed(s)))
             Station(st, $"Nobody can work the {st.Def.Name.ToLowerInvariant()}: hire a {RoleWord(st.Def.Operator!.Value)}", Gfx.Warn);
+        // What the workload record shows has held for most of the last day (not a passing moment).
+        foreach (var f in S.Utilisation().Lasting)
+        {
+            // With nobody of that role at all, the line above already says to hire one.
+            if (f.Kind == "nobody" && f.Role is Role ro && !S.Staff.Any(p => p.Role == ro && !p.Leaving)) continue;
+            list.Add(new Alert(f.Text, Gfx.Warn, () => OpenPanel(f.Kind == "stuck" ? "build" : "staff")));
+        }
         return list;
     }
 
