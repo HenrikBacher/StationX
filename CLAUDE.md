@@ -320,6 +320,12 @@ Then (user requests, 2026-11-19):
   `NewGame(…, custom)` keeps it unless plain at the start (a later start always counts as custom). New-game sheet: Custom rules
   checkbox, a row of three per rule, "Start in" for the campaign too. No best score or war record for custom games.
   `--modal=custom`.
+- Notables' stories (`Notables.cs`, `DailyNotables` in `DailyPeople`, once each via `ScriptedDone`, only with them on the staff
+  and not off sick; `Away` is also true off watch, so never test that): `welchman` (from Their Finest Hour; option 1 `welchman:zone`
+  → `Reorganised`/`DisruptedUntil`, `ZoneFactor` in `Duration`: ×1.3 for 2 days then ×0.9; option 0 `story-later:` → `StoryAgain`
+  +14 days), `knox` (from Claymore; `knox-home`: `KnoxAtHome`, sent off, +`KnoxPoints` 5 a week; `knox-stay`: +0.3 strain; dies
+  from `Defs.KnoxDied` or after the Testery: fired, morale), `turing-us` (from U-559; away 30 days, `TuringWent` → Dayton +1), the
+  bicycle toast. The autoplayer takes option 0 for staff dilemmas. `--modal=welchman|knox|turing-us`. Balance 39/23/3.
 
 ### Graphics overhaul: period realism, CC0 assets allowed
 

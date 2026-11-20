@@ -722,7 +722,7 @@ public sealed partial class GameState
                 if (Researched.Contains(ResearchId.Hollerith)) t *= 0.6;
                 break;
         }
-        return Math.Max(1, t / op.SpeedFor(st.Type));
+        return Math.Max(1, t * ZoneFactor(st) / op.SpeedFor(st.Type));
     }
 
     /// <summary>Machine-cipher decrypts go through Hut 3's Index from the Battle of Britain; hand ciphers never do.</summary>

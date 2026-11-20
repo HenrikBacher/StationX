@@ -120,6 +120,9 @@ public sealed partial class GameState
             case "generator" when PowerCut:
                 Generator = true;
                 break;
+            case { } story when story.StartsWith("story-later:") || story.StartsWith("welchman:") || story is "knox-home" or "knox-stay" or "turing-us":
+                StoryAction(story, d);
+                break;
             case { } mole when mole.StartsWith("mole"):
                 MoleAction(mole);
                 break;

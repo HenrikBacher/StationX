@@ -192,6 +192,14 @@ public static partial class Defs
     /// <summary>Flu waves: how much likelier illness is, the share precautions leave, the chance each winter day of a warning, its notice and length.</summary>
     public const double FluWaveMult = 3, FluPrecautionShare = 0.5, FluChance = 0.03;
     public const int FluWarningDays = 3, FluDays = 14, FluPrecautionCost = 150;
+    /// <summary>
+    /// The notables' stories: Welchman's reorganised building (time ×, for good; × in the upheaval, for days), the days before a
+    /// declined story comes again, Knox's weekly breakthroughs from Courns Wood, the strain of staying, his death and its toll,
+    /// and Turing's month in America.
+    /// </summary>
+    public const double WelchmanFaster = 0.9, WelchmanUpheaval = 1.3, KnoxStrain = 0.3, KnoxDiedMorale = 0.04;
+    public const int WelchmanUpheavalDays = 2, StoryAgainDays = 14, KnoxPoints = 5, TuringAwayDays = 30;
+    public static readonly DateOnly KnoxDied = new(1943, 2, 27);
     /// <summary>The Wicked Uncles' early letter: offered below this reputation from Claymore; what it brings, and the proper channels instead.</summary>
     public const double UnclesAt = 25, UnclesRep = 10, UnclesMorale = 0.04, UnclesChannelsRep = 4;
     public const int UnclesFunds = 2000, UnclesChannelsFunds = 500, UnclesWrens = 3;

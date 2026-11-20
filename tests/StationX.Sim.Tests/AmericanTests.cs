@@ -274,3 +274,57 @@ public class CustomRulesTests
         Assert.NotNull(GameState.NewGame(3, Difficulty.Normal, GameMode.Campaign, 5, new CustomRules()).Custom);
     }
 }
+
+public class NotableStoryTests
+{
+    static Staff Notable(GameState g, string name)
+    {
+        var p = TestUtil.Add(g, Role.Cryptanalyst);
+        p.Name = p.Notable = name;
+        return p;
+    }
+
+    [Fact]
+    public void WelchmansSystemSlowsThenSpeedsHisBuilding()
+    {
+        var g = TestUtil.BombeLine(12, checking: true);
+        var w = Notable(g, "Gordon Welchman");
+        w.Posted = "hut6";
+        var crib = g.Stations.First(s => s.Type == StationType.Crib);
+        var op = g.Staff.First(s => s.Role == Role.Cryptanalyst && s != w);
+        var m = new Message { Net = Net.Red, Day = g.Day };
+        double before = g.Duration(crib, op, m);
+        g.Dilemmas.Clear();
+        Assert.True(g.DebugStory("welchman"));
+        var d = g.Dilemmas.Single(x => x.Tag == "welchman");
+        Assert.True(g.ResolveDilemma(d.Id, 1));
+        Assert.Equal(before * Defs.WelchmanUpheaval, g.Duration(crib, op, m), 6);
+        g.Now += (Defs.WelchmanUpheavalDays + 0.1) * Defs.MinutesPerDay;
+        Assert.Equal(before * Defs.WelchmanFaster, g.Duration(crib, op, m), 6);
+    }
+
+    [Fact]
+    public void KnoxFromCournsWoodAndTuringInAmerica()
+    {
+        var g = GameState.NewGame(3);
+        g.DebugSkipToAct(Campaign.EnigmaFinale);
+        var k = Notable(g, "Dilly Knox");
+        g.Dilemmas.Clear();
+        Assert.True(g.DebugStory("knox"));
+        Assert.True(g.ResolveDilemma(g.Dilemmas.Single(x => x.Tag == "knox").Id, 1));
+        Assert.True(g.KnoxAtHome);
+        Assert.True(k.IsSick(g.Now));
+        var t = Notable(g, "Alan Turing");
+        Assert.True(g.DebugStory("turing-us"));
+        Assert.True(g.ResolveDilemma(g.Dilemmas.Single(x => x.Tag == "turing-us").Id, 1));
+        Assert.True(t.IsSick(g.Now));
+        g.Brusa = 1;
+        g.BrusaDay = g.Day;
+        g.Researched.Add(ResearchId.FourRotorBombe);
+        Assert.Equal(Defs.DaytonStart + 1, g.DaytonBombes);
+        // Knox dies in 1943.
+        g.DebugSkipToAct(Campaign.IndexOf("Colossus"));
+        g.Advance(Defs.MinutesPerDay);
+        Assert.DoesNotContain(g.Staff, s => s.Notable == "Dilly Knox" && !s.Leaving);
+    }
+}

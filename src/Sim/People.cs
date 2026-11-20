@@ -479,6 +479,7 @@ public sealed partial class GameState
         MaybeRuthless();
         MaybeMatapan();
         MaybeBrusa();
+        DailyNotables();
         DailyAmericans();
         DailyFlu();
         SpreadIllness();

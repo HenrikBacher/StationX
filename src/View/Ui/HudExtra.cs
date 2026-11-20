@@ -493,6 +493,18 @@ public partial class Hud
                 S.DebugMatapan();
                 if (S.Dilemmas.Count > 0) ShowDilemma(S.Dilemmas[0]);
                 break;
+            case "welchman" or "knox" or "turing-us":
+                S.Dilemmas.Clear();
+                foreach (var (who, role) in new[] { ("Gordon Welchman", Role.Cryptanalyst), ("Dilly Knox", Role.Cryptanalyst), ("Alan Turing", Role.Cryptanalyst) })
+                    if (!S.Staff.Any(x => x.Notable == who))
+                    {
+                        var p = S.NewPerson(role, 3);
+                        p.Name = p.Notable = who;
+                        p.Female = false;
+                        S.Staff.Add(p);
+                    }
+                if (S.DebugStory(name)) ShowDilemma(S.Dilemmas[0]);
+                break;
             case "flu":
                 S.Dilemmas.Clear();
                 S.DebugFlu();
@@ -833,6 +845,7 @@ public partial class Hud
             "artist" => "MOST SECRET · MI5 · DOUBLE CROSS",
             "mole" => "MOST SECRET · MI5",
             "flu" => "THE MEDICAL OFFICER",
+            "welchman" or "knox" or "turing-us" => "PERSONAL · THE DIRECTOR",
             _ => d.Service == Service.Security ? "SECURITY" : $"ULTRA · {Defs.ServiceNames[d.Service].ToUpperInvariant()}",
         };
         v.AddChild(Ink(header, 13, Fonts.BodyBold, UiTheme.Stamp));

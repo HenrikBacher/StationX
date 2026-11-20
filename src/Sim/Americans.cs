@@ -22,7 +22,7 @@ public sealed partial class GameState
 
     /// <summary>US Navy Bombes at Dayton taking our four-rotor menus: a few at first, more each month.</summary>
     public int DaytonBombes => Brusa <= 0 || !Researched.Contains(ResearchId.FourRotorBombe) ? 0
-        : Math.Min(Defs.DaytonMax, Defs.DaytonStart + Math.Max(0, Day - BrusaDay) / Defs.DaytonGrowDays);
+        : Math.Min(Defs.DaytonMax, Defs.DaytonStart + (TuringWent ? 1 : 0) + Math.Max(0, Day - BrusaDay) / Defs.DaytonGrowDays);
 
     public int DaytonJobs
     {
