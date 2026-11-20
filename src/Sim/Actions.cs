@@ -450,7 +450,7 @@ public sealed partial class GameState
     public double ExpectationMult => !QuotaActive || IntelQuota <= 0 ? 1
         : Math.Clamp(Defs.QuotaSlope * (1 - IntelRate / IntelQuota), Defs.QuotaFloor, Defs.QuotaMaxMult);
     public int WeeklyUpkeep => Stations.Sum(s => s.Def.Upkeep) + OutstationBombes * Defs.OutstationUpkeep;
-    public int WeeklyGrant => (int)((Defs.GrantBase + Defs.GrantPerRep * Reputation) * Defs.Difficulties[Difficulty].GrantMult * WarMood);
+    public int WeeklyGrant => (int)((Defs.GrantBase + Defs.GrantPerRep * Reputation) * Rules.GrantMult * WarMood);
 
     // ------------------------------------------------------------- machine servicing
 
@@ -553,7 +553,7 @@ public sealed partial class GameState
         var net = Defs.NetOf(tpl.Net);
         int baseQty = Rng.Range(tpl.MinQty, tpl.MaxQty + 1);
         int qty = (int)Math.Round(baseQty * Defs.TrafficScale(ActIndex));
-        double days = Math.Max(2, Rng.Range(tpl.MinDays, tpl.MaxDays + 1) + Defs.Difficulties[Difficulty].ExtraDays);
+        double days = Math.Max(2, Rng.Range(tpl.MinDays, tpl.MaxDays + 1) + Rules.ExtraDays);
         var c = new Contract
         {
             Id = NextId++,

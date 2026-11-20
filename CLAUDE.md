@@ -315,6 +315,11 @@ Then (user requests, 2026-11-19):
   beside `Defs.HistoryFirsts` (key, text, date, exact) in `Hud.AgainstHistory()` on the end sheet. `Records.Wars()`/`AddWar` keep
   every finished war in `user://records.cfg` section "wars" (key seed-difficulty, so a game ending again updates its line;
   never written when `Settings.Persist` is off), and the end sheet ranks this one.
+- Custom games (`Custom.cs`): `CustomRules` (Funds, Grant, Patience, Deadlines, Suspicion, Wear) → `g.Rules` (the `DifficultyDef`
+  with them laid over, cached; Difficulty/Custom setters reset it). Every sim use of `Defs.Difficulties[Difficulty]` is now `Rules`.
+  `NewGame(…, custom)` keeps it unless plain at the start (a later start always counts as custom). New-game sheet: Custom rules
+  checkbox, a row of three per rule, "Start in" for the campaign too. No best score or war record for custom games.
+  `--modal=custom`.
 
 ### Graphics overhaul: period realism, CC0 assets allowed
 

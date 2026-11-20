@@ -483,6 +483,7 @@ public partial class Hud
             case "save": ShowSaves(true); break;
             case "load": ShowSaves(false); break;
             case "newgame": ShowNewGame(); break;
+            case "custom": _ngCustomOn = true; _ngCustom.Patience = 0.6; ShowNewGame(); break;
             case "flash":
                 S.DebugFlash();
                 if (S.Contracts.LastOrDefault(c => c.Flash && c.State == ContractState.Offered) is { } fc) ShowFlash(fc);
@@ -538,7 +539,7 @@ public partial class Hud
         v.AddChild(Letterhead());
         v.AddChild(new HSeparator());
         v.AddChild(Ink("Paused", 30, Fonts.Heading));
-        v.AddChild(Ink($"{S.Act.ChapterTitle}: {S.Act.Title}\n{S.Date:dddd d MMMM yyyy} · {Defs.Difficulties[S.Difficulty].Name}{(S.Mode == GameMode.FreePlay ? " · free play" : "")}", 14));
+        v.AddChild(Ink($"{S.Act.ChapterTitle}: {S.Act.Title}\n{S.Date:dddd d MMMM yyyy} · {Defs.Difficulties[S.Difficulty].Name}{(S.Custom != null ? " · custom" : "")}{(S.Mode == GameMode.FreePlay ? " · free play" : "")}", 14));
         foreach (var (label, act) in new (string, Action)[]
                  {
                      ("Resume", CloseModal),
@@ -661,6 +662,8 @@ public partial class Hud
     Difficulty _ngDifficulty = Difficulty.Normal;
     GameMode _ngMode = GameMode.Campaign;
     int _ngAct;
+    bool _ngCustomOn;
+    CustomRules _ngCustom = new();
 
     void ShowNewGame()
     {
@@ -701,7 +704,53 @@ public partial class Hud
         v.AddChild(Choice(Enum.GetValues<Difficulty>().Select(d => (d, Defs.Difficulties[d].Name, Defs.Difficulties[d].Blurb)), _ngDifficulty, d => _ngDifficulty = d));
         v.AddChild(Ink(Defs.Difficulties[_ngDifficulty].Blurb + $" Starting funds £{Defs.Difficulties[_ngDifficulty].StartFunds:N0}.", 13, Fonts.Body));
 
-        if (_ngMode == GameMode.FreePlay)
+        var custom = new CheckBox { Text = "Custom rules", ButtonPressed = _ngCustomOn, FocusMode = Control.FocusModeEnum.None };
+        custom.AddThemeColorOverride("font_color", UiTheme.PaperInk);
+        custom.AddThemeColorOverride("font_pressed_color", UiTheme.PaperInk);
+        custom.AddThemeColorOverride("font_hover_color", UiTheme.PaperInk);
+        custom.AddThemeColorOverride("font_hover_pressed_color", UiTheme.PaperInk);
+        foreach (var style in new[] { "normal", "pressed", "hover", "hover_pressed", "focus" }) custom.AddThemeStyleboxOverride(style, new StyleBoxEmpty());
+        custom.Toggled += on => { _ngCustomOn = on; ShowNewGame(); };
+        v.AddChild(custom);
+        if (_ngCustomOn)
+        {
+            v.AddChild(Ink("Laid over the difficulty above. A custom game keeps no best score.", 12, Fonts.Body));
+            var grid = new GridContainer { Columns = 2 };
+            grid.AddThemeConstantOverride("h_separation", 12);
+            grid.AddThemeConstantOverride("v_separation", 4);
+            void Rule(string label, string tip, (double value, string name)[] opts, Func<double> get, Action<double> set)
+            {
+                var l = Ink(label, 13, Fonts.Body);
+                l.TooltipText = tip;
+                l.MouseFilter = Control.MouseFilterEnum.Pass;
+                l.CustomMinimumSize = new Vector2(170, 0);
+                grid.AddChild(l);
+                var row = new HBoxContainer();
+                row.AddThemeConstantOverride("separation", 6);
+                foreach (var (value, name) in opts)
+                {
+                    var b = PaperButton(name, () => { set(value); ShowNewGame(); });
+                    b.CustomMinimumSize = new Vector2(124, 0);
+                    if (get() != value)
+                    {
+                        b.AddThemeStyleboxOverride("normal", UiTheme.Box(new Color(0, 0, 0, 0), UiTheme.PaperInk, 2, 18, 4));
+                        b.AddThemeColorOverride("font_color", UiTheme.PaperInk);
+                    }
+                    row.AddChild(b);
+                }
+                grid.AddChild(row);
+            }
+            var c = _ngCustom;
+            Rule("Money at the start", "Starting funds.", new[] { (0.6, "Lean"), (1.0, "As set"), (2.0, "Rich") }, () => c.Funds, x => c.Funds = x);
+            Rule("Weekly grant", "The Treasury's weekly grant.", new[] { (0.75, "Lean"), (1.0, "As set"), (1.5, "Generous") }, () => c.Grant, x => c.Grant = x);
+            Rule("Whitehall's patience", "How much reputation each failure costs.", new[] { (1.5, "Short"), (1.0, "As set"), (0.6, "Long") }, () => c.Patience, x => c.Patience = x);
+            Rule("Deadlines", "Days each request allows.", new[] { (-1.0, "A day less"), (0.0, "As set"), (1.0, "A day more") }, () => c.Deadlines, x => c.Deadlines = x);
+            Rule("German suspicion", "How fast acting on ULTRA raises suspicion.", new[] { (1.5, "Sharp"), (1.0, "As set"), (0.6, "Slow") }, () => c.Suspicion, x => c.Suspicion = x);
+            Rule("Machines", "Wear, breakdowns, raids and crises.", new[] { (1.6, "Fragile"), (1.0, "As set"), (0.5, "Sturdy") }, () => c.Wear, x => c.Wear = x);
+            v.AddChild(grid);
+        }
+
+        if (_ngMode == GameMode.FreePlay || _ngCustomOn)
         {
             v.AddChild(Ink("Start in", 13, Fonts.BodyBold, UiTheme.Stamp));
             var pick = new OptionButton { FocusMode = Control.FocusModeEnum.None };
@@ -724,7 +773,9 @@ public partial class Hud
         {
             _titleOpen = false;
             CloseModal();
-            _main.NewGame(Random.Shared.Next(100000), showTitle: false, _ngDifficulty, _ngMode, _ngMode == GameMode.FreePlay ? _ngAct : 0);
+            _main.NewGame(Random.Shared.Next(100000), showTitle: false, _ngDifficulty, _ngMode, _ngMode == GameMode.FreePlay || _ngCustomOn ? _ngAct : 0,
+                          _ngCustomOn ? new CustomRules { Funds = _ngCustom.Funds, Grant = _ngCustom.Grant, Patience = _ngCustom.Patience,
+                                                          Deadlines = _ngCustom.Deadlines, Suspicion = _ngCustom.Suspicion, Wear = _ngCustom.Wear } : null);
         }));
         v.AddChild(row);
     }
@@ -815,7 +866,7 @@ public partial class Hud
             var fx = o.Effects();
             if (o.Suspicion != 0)
             {
-                double after = System.Math.Clamp(now + (o.Suspicion > 0 ? o.Suspicion * Defs.Difficulties[S.Difficulty].SuspicionMult : o.Suspicion), 0, Defs.SuspicionLimit);
+                double after = System.Math.Clamp(now + (o.Suspicion > 0 ? o.Suspicion * S.Rules.SuspicionMult : o.Suspicion), 0, Defs.SuspicionLimit);
                 fx += $" (to {(int)after}{(after >= Defs.SuspicionLimit ? ": they'd lock us out" : "")})";
             }
             if (fx.Length > 0) box.AddChild(Ink(fx, 12, Fonts.Body, UiTheme.PaperInk with { A = 0.75f }));

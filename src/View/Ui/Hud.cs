@@ -235,7 +235,7 @@ public partial class Hud : CanvasLayer
         _funds.TooltipText = $"Weekly Treasury grant £{S.WeeklyGrant:N0}, wages £{S.WeeklyWages:N0}, upkeep £{S.WeeklyUpkeep:N0}. Paid every Sunday night. " +
                              $"The grant alone never covers a growing Park: the ministries pay for each request delivered (£{S.EarnedThisWeek:N0} since Sunday)." +
                              (cut > 0 ? $"\nWith more than £{Defs.TreasuryComfortable:N0} in hand, the Treasury will hold back £{cut:N0} of it." : "");
-        double slip = S.DailyExpectation * S.ExpectationMult * Defs.Difficulties[S.Difficulty].RepLossMult;
+        double slip = S.DailyExpectation * S.ExpectationMult * S.Rules.RepLossMult;
         _rep.TooltipText = "Completed requests raise it, missed deadlines lower it. It sets the weekly Treasury grant. At zero, GC&CS is closed down." +
                            (S.QuotaActive
                                ? $"\n\nWhitehall expects {S.IntelQuota} fresh decrypts a day, a share of what the ministries ask for that grows as the war goes on. Over the last two days " +

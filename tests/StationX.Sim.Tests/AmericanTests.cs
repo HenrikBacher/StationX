@@ -251,3 +251,26 @@ public class FirstsTests
         Assert.All(Defs.HistoryFirsts, h => Assert.True(h.key == "Enigma" || h.key == "Colossus" || System.Enum.TryParse<Net>(h.key, out _), h.key));
     }
 }
+
+public class CustomRulesTests
+{
+    [Fact]
+    public void CustomRulesLayOverTheDifficulty()
+    {
+        var plain = GameState.NewGame(3, Difficulty.Normal, custom: new CustomRules());
+        Assert.Null(plain.Custom);
+        var g = GameState.NewGame(3, Difficulty.Normal, custom: new CustomRules { Funds = 2, Patience = 0.5, Deadlines = 1 });
+        var d = Defs.Difficulties[Difficulty.Normal];
+        Assert.Equal(d.StartFunds * 2, g.Funds);
+        Assert.Equal(d.RepLossMult * 0.5, g.Rules.RepLossMult, 6);
+        Assert.Equal(d.ExtraDays + 1, g.Rules.ExtraDays, 6);
+        double rep = g.Reputation;
+        g.AdjustRep(-10);
+        Assert.Equal(rep - 10 * d.RepLossMult * 0.5, g.Reputation, 6);
+        var back = SaveGame.Load(SaveGame.Save(g));
+        Assert.NotNull(back.Custom);
+        Assert.Equal(g.Rules.RepLossMult, back.Rules.RepLossMult, 6);
+        // A later start always counts as custom.
+        Assert.NotNull(GameState.NewGame(3, Difficulty.Normal, GameMode.Campaign, 5, new CustomRules()).Custom);
+    }
+}

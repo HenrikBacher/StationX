@@ -699,13 +699,15 @@ public static class Campaign
 
 public sealed partial class GameState
 {
-    public static GameState NewGame(int seed, Difficulty difficulty = Difficulty.Normal, GameMode mode = GameMode.Campaign, int startAct = 0)
+    public static GameState NewGame(int seed, Difficulty difficulty = Difficulty.Normal, GameMode mode = GameMode.Campaign, int startAct = 0,
+                                    CustomRules? custom = null)
     {
         var g = new GameState
         {
             Seed = seed, Rng = new Rng((ulong)seed * 2654435761UL + 1), Now = 9 * 60,
-            Difficulty = difficulty, Mode = mode, Funds = Defs.Difficulties[difficulty].StartFunds, Billets = Defs.StartBillets,
+            Difficulty = difficulty, Mode = mode, Billets = Defs.StartBillets, Custom = custom is { Plain: false } || (custom != null && startAct > 0) ? custom : null,
         };
+        g.Funds = g.Rules.StartFunds;
         Array.Fill(g.Grid.Occupant, -1);
         g.Place(StationType.Dispatch, 16, 3, 0, free: true);
         foreach (var (role, x, y) in new[] { (Role.Clerk, 7, 6), (Role.Clerk, 8, 7), (Role.Cryptanalyst, 10, 6), (Role.Linguist, 11, 7) })

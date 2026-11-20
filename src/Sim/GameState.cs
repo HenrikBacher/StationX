@@ -48,7 +48,8 @@ public sealed partial class GameState
     public Rng Rng { get; set; } = new();
     public double Now { get; set; }
     public int Funds { get; set; } = 1500;
-    public Difficulty Difficulty { get; set; } = Difficulty.Normal;
+    public Difficulty Difficulty { get => _difficulty; set { _difficulty = value; _rules = null; } }
+    Difficulty _difficulty = Difficulty.Normal;
     public GameMode Mode { get; set; } = GameMode.Campaign;
     public Policy Policy { get; set; } = Policy.Standard;
     public Dictionary<Service, double> Suspicion { get; set; } = new();
@@ -562,7 +563,7 @@ public sealed partial class GameState
     {
         if (_heads.Count > 0 && Grid.ZoneAt(st.X, st.Y) is { } wz && _heads.TryGetValue(wz, out var wh)) dt *= wh.Wear;
         st.Wear = Math.Min(1.5, st.Wear + dt / Defs.WearLife(st.Type));
-        double p = Defs.BreakdownHazard * st.Wear * st.Wear * dt * Defs.Difficulties[Difficulty].WearMult;
+        double p = Defs.BreakdownHazard * st.Wear * st.Wear * dt * Rules.WearMult;
         if (!Rng.Chance(p)) return false;
         BreakDown(st);
         return true;
@@ -572,7 +573,7 @@ public sealed partial class GameState
     void TeleprinterWear(Station tp)
     {
         tp.Wear = Math.Min(1.5, tp.Wear + Defs.TeleprinterWearPerMsg);
-        if (Rng.Chance(Defs.TeleprinterHazard * tp.Wear * tp.Wear * Defs.Difficulties[Difficulty].WearMult)) BreakDown(tp);
+        if (Rng.Chance(Defs.TeleprinterHazard * tp.Wear * tp.Wear * Rules.WearMult)) BreakDown(tp);
     }
 
     void BreakDown(Station st)
@@ -1227,7 +1228,7 @@ public sealed partial class GameState
 
     public void AdjustRep(double delta, string reason = "Other")
     {
-        if (delta < 0) delta *= Defs.Difficulties[Difficulty].RepLossMult;
+        if (delta < 0) delta *= Rules.RepLossMult;
         double before = Reputation;
         Reputation = Math.Clamp(Reputation + delta, Mode == GameMode.FreePlay ? 5 : 0, 100);
         if (Reputation != before)

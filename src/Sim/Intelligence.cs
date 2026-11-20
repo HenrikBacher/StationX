@@ -16,7 +16,7 @@ public sealed partial class GameState
 
     public void AddSuspicion(Service sv, double amount)
     {
-        if (amount > 0) amount *= Defs.Difficulties[Difficulty].SuspicionMult;
+        if (amount > 0) amount *= Rules.SuspicionMult;
         double v = Math.Clamp(SuspicionOf(sv) + amount, 0, Defs.SuspicionLimit);
         Suspicion[sv] = v;
         if (v >= Defs.SuspicionWarn && SuspicionWarned.Add(sv))

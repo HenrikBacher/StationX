@@ -359,15 +359,17 @@ public partial class Hud
         {
             int score = S.Score();
             var (honour, citation) = S.Honour();
-            int previous = Records.Submit(S.Difficulty, score);
+            // A custom game keeps no best score.
+            int previous = S.Custom == null ? Records.Submit(S.Difficulty, score) : 0;
             string best = score > previous && previous > 0 ? $"A new best on {Defs.Difficulties[S.Difficulty].Name} (was {previous:N0})."
                         : previous > 0 ? $"Best on {Defs.Difficulties[S.Difficulty].Name}: {previous:N0}." : "";
             v.AddChild(new HSeparator());
             v.AddChild(Ink($"Score {score:N0}", 22, Fonts.Heading));
             v.AddChild(Ink(won ? honour : "No honours", 18, Fonts.Heading, UiTheme.Stamp));
-            v.AddChild(Ink((won ? citation : "Lost campaigns score half.") + (best != "" ? "  " + best : ""), 13));
-            Records.AddWar(new Records.War($"{S.Seed}-{S.Difficulty}", DateTime.Now.ToString("yyyy-MM-dd HH:mm"), S.Difficulty, won, score,
-                    $"{S.Date.Day} {S.Date.ToString("MMMM yyyy", System.Globalization.CultureInfo.InvariantCulture)}"));
+            v.AddChild(Ink((won ? citation : "Lost campaigns score half.") + (S.Custom != null ? "  A custom game: no best score is kept." : best != "" ? "  " + best : ""), 13));
+            if (S.Custom == null)
+                Records.AddWar(new Records.War($"{S.Seed}-{S.Difficulty}", DateTime.Now.ToString("yyyy-MM-dd HH:mm"), S.Difficulty, won, score,
+                                               $"{S.Date.Day} {S.Date.ToString("MMMM yyyy", System.Globalization.CultureInfo.InvariantCulture)}"));
             var wars = Records.Wars();
             if (wars.Count > 1)
             {

@@ -403,9 +403,10 @@ public partial class Main : Node3D
         }
     }
 
-    public void NewGame(int seed, bool showTitle, Difficulty difficulty = Difficulty.Normal, GameMode mode = GameMode.Campaign, int startAct = 0)
+    public void NewGame(int seed, bool showTitle, Difficulty difficulty = Difficulty.Normal, GameMode mode = GameMode.Campaign, int startAct = 0,
+                        CustomRules? custom = null)
     {
-        AdoptState(GameState.NewGame(seed, difficulty, mode, startAct));
+        AdoptState(GameState.NewGame(seed, difficulty, mode, startAct, custom));
         State.Events.RemoveAll(e => e.Kind == EventKind.ActStarted);
         if (showTitle) Hud.ShowStart();
         else if (_shotPath == null && !_selfTest) Hud.ShowBriefing();

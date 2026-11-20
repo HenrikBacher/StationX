@@ -27,7 +27,7 @@ public partial class GameState
         if (!InBlitz(Date)) return;
         // The night of 20 November 1940: a stick of bombs meant for Bletchley's railway junction lands on the Park.
         bool historic = Date >= HistoricBombs && !Stats.ScriptedDone.Contains("bombs1940");
-        if (!historic && !Rng.Chance(Defs.RaidChance * Defs.Difficulties[Difficulty].WearMult)) return;
+        if (!historic && !Rng.Chance(Defs.RaidChance * Rules.WearMult)) return;
         NextRaidAt = Day * Defs.MinutesPerDay + Rng.Range(20.5, 26.0) * 60;
         RaidBomb = historic || Rng.Chance(Defs.RaidBombChance);
     }

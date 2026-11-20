@@ -43,7 +43,7 @@ public sealed partial class GameState
         if (ActIndex < Defs.CrisesFromAct || PowerCutAt >= 0 || SurgeAt >= 0 || PowerCut || SurgeLeft > 0) return;
         // A separate dice for crises, so they don't shift every other random roll in the game.
         var r = new Random(Mix(Seed, Day, 0xC415));
-        if (r.NextDouble() >= Defs.CrisisChance * Math.Min(1.0, Defs.Difficulties[Difficulty].WearMult)) return;
+        if (r.NextDouble() >= Defs.CrisisChance * Math.Min(1.0, Rules.WearMult)) return;
         double at = Day * Defs.MinutesPerDay + (7 + r.NextDouble() * 14) * 60;
         if (r.NextDouble() < 0.5 && Stations.Any(s => s.Wears)) PowerCutAt = at;
         else SurgeAt = at;
