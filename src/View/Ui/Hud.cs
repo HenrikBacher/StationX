@@ -239,7 +239,7 @@ public partial class Hud : CanvasLayer
         if (S.QuotaActive)
         {
             int q = S.IntelQuota;
-            _quota.Text = $"Fresh decrypts {S.IntelRate:0.#} a day of {q} wanted · {S.FreshToday:0} today";
+            _quota.Text = $"Decrypts {S.IntelRate:0.#} a day of {q} · {S.FreshToday:0} today";
             _quota.AddThemeColorOverride("font_color", S.IntelRate >= q ? Gfx.Good : S.IntelRate >= q * 0.6 ? UiTheme.TextDim : Gfx.Warn);
             _quota.TooltipText = _rep.TooltipText;
         }
