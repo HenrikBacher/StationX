@@ -58,6 +58,10 @@ public static class UseLook
     /// <summary>"3 waiting, 1h 05m": the same words on the floor in the flow view and the workload view.</summary>
     public static string Waiting(int count, double oldest) => count == 0 ? "" : $"{count} waiting, {Age(oldest)}";
 
+    /// <summary>"3 waiting 1h05": the same, short enough for a tag on a crowded floor.</summary>
+    public static string WaitingShort(int count, double oldest) =>
+        count == 0 ? "" : $"{count} waiting {(oldest >= 60 ? $"{(int)(oldest / 60)}h{(int)(oldest % 60):00}" : $"{(int)oldest}m")}";
+
     /// <summary>A desk's shares over its open hours: after hours (before there are watches) left out.</summary>
     public static double[] Open(double[] share)
     {

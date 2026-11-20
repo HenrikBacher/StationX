@@ -70,6 +70,24 @@ public partial class Hud : CanvasLayer
 
     public bool IsMouseOverUi() => _root.GetViewport().GuiGetHoveredControl() != null;
 
+    /// <summary>Whether a rectangle on screen (in viewport pixels) lies under a HUD panel or button.</summary>
+    public bool Covers(Rect2 r)
+    {
+        foreach (var n in _root.GetChildren())
+            if (n is Control { Visible: true } c && Covers(c, r, 0)) return true;
+        return false;
+    }
+
+    static bool Covers(Control c, Rect2 r, int depth)
+    {
+        if (c is PanelContainer or BaseButton)
+            return (c.GetGlobalTransformWithCanvas() * new Rect2(Vector2.Zero, c.Size)).Intersects(r);
+        if (depth >= 2) return false;
+        foreach (var n in c.GetChildren())
+            if (n is Control { Visible: true } k && Covers(k, r, depth + 1)) return true;
+        return false;
+    }
+
     public override void _Process(double delta)
     {
         ApplyScale();

@@ -106,6 +106,8 @@ public partial class Overlay : Control
             DrawColoredPolygon(new[] { midp + dir * ah, midp - dir * ah * 0.6f + n * ah * 0.7f, midp - dir * ah * 0.6f - n * ah * 0.7f }, col);
         }
         if (!rings) return;
+        _tags.Clear();
+        _taken.Clear();
         foreach (var st in s.Stations)
         {
             if (st.IsRest || !Main.StationModels.TryGetValue(st.Id, out var m)) continue;
@@ -114,9 +116,14 @@ public partial class Overlay : Control
             var col = UseLook.Wait(st.Input.Count, oldest);
             DrawArc(c, 16, 0, Mathf.Tau, 28, new Color(0, 0, 0, 0.6f), 6, true);
             DrawArc(c, 16, 0, Mathf.Tau, 28, col, 4, true);
+            _taken.Add(new Rect2(c - new Vector2(19, 19), new Vector2(38, 38)));
+            bool focused = st.Id == (Main.HoverStation ?? Main.SelectedStation);
             if (st.Input.Count > 0)
-                Tag(c + new Vector2(18, 6), UseLook.Waiting(st.Input.Count, oldest), col, 11);
+                _tags.Add((focused ? double.MaxValue : oldest, c, focused ? UseLook.Waiting(st.Input.Count, oldest) : UseLook.WaitingShort(st.Input.Count, oldest), col, focused));
         }
+        _ringsPlaced = _taken.Count;
+        _tags.Sort((x, y) => y.Rank.CompareTo(x.Rank));
+        foreach (var (_, c, text, edge, focused) in _tags) PlaceTag(c, 16, text, edge, 11, focused);
     }
 
     static double Oldest(GameState s, Station st)
@@ -159,11 +166,14 @@ public partial class Overlay : Control
     void DrawUse(GameState s, float zoom)
     {
         var ink = new Color(0, 0, 0, 0.65f);
+        const float r = 15;
+        _tags.Clear();
+        _taken.Clear();
+        int? focus = Main.HoverStation ?? Main.SelectedStation;
         foreach (var st in s.Stations)
         {
             if (st.Use is not { } log || st.Obsolete || !Main.StationModels.TryGetValue(st.Id, out var m)) continue;
             var c = Screen(m.GlobalPosition + new Vector3(0, 0.05f, 0));
-            const float r = 15;
             DrawArc(c, r, 0, Mathf.Tau, 32, ink, 9, true);
             // Over its open hours, as in the panel: after hours (before there are watches) left out.
             double total = log.Total() - log.In((int)DeskUse.Closed);
@@ -180,15 +190,27 @@ public partial class Overlay : Control
             var now = s.DeskState(st);
             DrawCircle(c, 6.5f, ink);
             DrawCircle(c, 5, UseLook.Desk[(int)now]);
-            if (zoom > 0.6f && total > 0)
-            {
-                int busy = (int)Math.Round(log.In((int)DeskUse.Working) / total * 100);
-                // Paper waiting in the flow view's words and colour, so the two views read alike.
-                if (st.Input.Count > 0)
-                    Tag(c + new Vector2(r + 4, 6), $"{busy}% busy · {UseLook.Waiting(st.Input.Count, Oldest(s, st))}", UseLook.Wait(st.Input.Count, Oldest(s, st)), 11);
-                else Tag(c + new Vector2(r + 4, 6), $"{busy}% busy", UseLook.Desk[(int)now] with { A = 1 }, 11);
-            }
+            _taken.Add(new Rect2(c - new Vector2(r + 4, r + 4), new Vector2(2 * r + 8, 2 * r + 8)));
+            if (total <= 0) continue;
+            int busy = (int)Math.Round(log.In((int)DeskUse.Working) / total * 100);
+            bool focused = st.Id == focus;
+            // Only desks with something to say get a tag (paper waiting, worked hard, out of action), and only when
+            // zoomed in enough to read them; the desk under the mouse or selected always has its say, in full.
+            bool worth = st.Input.Count > 0 || busy >= 50 || now == DeskUse.Down;
+            if (!focused && (!worth || zoom <= 0.6f)) continue;
+            double oldest = st.Input.Count > 0 ? Oldest(s, st) : 0;
+            string text = focused
+                ? $"{st.Def.Name} · {busy}% busy" + (st.Input.Count > 0 ? $" · {UseLook.Waiting(st.Input.Count, oldest)}" : now == DeskUse.Down ? " · out of action" : "")
+                : st.Input.Count > 0 ? $"{busy}% · {UseLook.WaitingShort(st.Input.Count, oldest)}" : now == DeskUse.Down ? $"{busy}% · down" : $"{busy}%";
+            var edge = st.Input.Count > 0 ? UseLook.Wait(st.Input.Count, oldest) : UseLook.Desk[(int)now] with { A = 1 };
+            // The focused desk first, then the longest waits, then the busiest: a tag that would cover one already
+            // placed (or a neighbour's ring) tries the other side, and is left out if that is taken too.
+            double rank = focused ? double.MaxValue : st.Input.Count > 0 ? 1e6 + oldest : busy;
+            _tags.Add((rank, c, text, edge, focused));
         }
+        _ringsPlaced = _taken.Count;
+        _tags.Sort((x, y) => y.Rank.CompareTo(x.Rank));
+        foreach (var (_, c, text, edge, focused) in _tags) PlaceTag(c, r, text, edge, 11, focused);
         foreach (var p in s.Staff)
         {
             if (p.Away || s.PersonState(p) is not PersonUse u || !Main.PersonModels.TryGetValue(p.Id, out var pm)) continue;
@@ -197,6 +219,53 @@ public partial class Overlay : Control
             DrawCircle(at, 3.4f, UseLook.Person[(int)u]);
         }
     }
+
+    readonly System.Collections.Generic.List<(double Rank, Vector2 At, string Text, Color Edge, bool Always)> _tags = new();
+    /// <summary>Screen space already covered by rings and tags this frame.</summary>
+    readonly System.Collections.Generic.List<Rect2> _taken = new();
+
+    /// <summary>
+    /// A tag beside a ring at <paramref name="c"/>: right of it if that's clear, else left, above or below. If every
+    /// side would cover another tag, or lie off screen or under the HUD, it is left out, unless <paramref name="always"/>. Neighbouring rings only push it
+    /// aside, they never hide it (rings sit close in a busy hut).
+    /// </summary>
+    void PlaceTag(Vector2 c, float ringR, string text, Color edge, int size, bool always)
+    {
+        var sz = Fonts.Body.GetStringSize(text, HorizontalAlignment.Left, -1, size) + new Vector2(10, 7);
+        Span<Vector2> spots = stackalloc Vector2[]
+        {
+            c + new Vector2(ringR + 4, 6), c + new Vector2(1 - ringR - sz.X, 6),
+            c + new Vector2(5 - sz.X / 2, -ringR - 9), c + new Vector2(5 - sz.X / 2, ringR - 5 + sz.Y),
+        };
+        Vector2? best = null;
+        int bestHits = int.MaxValue;
+        var view = GetViewportRect();
+        foreach (var at in spots)
+        {
+            var rect = TagRect(at, sz);
+            int hits = 0;
+            bool onTag = false;
+            for (int i = 0; i < _taken.Count; i++)
+                if (_taken[i].Intersects(rect))
+                {
+                    hits++;
+                    if (i >= _ringsPlaced) onTag = true;
+                }
+            // Off screen or under the HUD is as bad as on another tag: nobody would see it.
+            if (onTag || !view.Encloses(rect) || Main.Hud.Covers(rect)) continue;
+            if (hits < bestHits) { best = at; bestHits = hits; }
+            if (hits == 0) break;
+        }
+        if (best == null && !always) return;
+        var pos = best ?? spots[0];
+        _taken.Add(TagRect(pos, sz));
+        Tag(pos, text, edge, size);
+    }
+
+    /// <summary>How many of <see cref="_taken"/> are rings (they come first).</summary>
+    int _ringsPlaced;
+
+    static Rect2 TagRect(Vector2 at, Vector2 sz) => new(at - new Vector2(5, sz.Y - 7), sz);
 
     /// <summary>While placing, outline the huts that take this station; the rest are greyed over.</summary>
     void DrawAllowedZones(GameState s, StationType t)
