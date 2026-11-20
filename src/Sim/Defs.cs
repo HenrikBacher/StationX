@@ -425,6 +425,9 @@ public static partial class Defs
     public const double TeleprinterWearPerMsg = 1 / 150.0, TeleprinterHazard = 0.025;
 
     /// <summary>Who mends it: the Post Office engineers looked after the teleprinter lines, the RAF fitters the machines.</summary>
+    /// <summary>A role's name in running text: lower case, but Wrens and the RAF keep their capitals.</summary>
+    public static string RoleWord(Role r) => r is Role.Wren or Role.Fitter ? Roles[r].Name : Roles[r].Name.ToLowerInvariant();
+    public static string RolePlural(Role r) => r is Role.Wren or Role.Fitter ? Roles[r].Plural : Roles[r].Plural.ToLowerInvariant();
     public static string Fitters(StationType t) => FitterServes(t) ? "the RAF fitters" : "the GPO engineers";
     /// <summary>The machines RAF fitters look after: the Bombes, checking machines and Typex. Teleprinters, Colossus and the Tunny machines are the Post Office's.</summary>
     public static bool FitterServes(StationType t) => t is StationType.Bombe or StationType.Bombe4 or StationType.Checking or StationType.Typex;

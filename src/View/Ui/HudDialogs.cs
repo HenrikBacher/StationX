@@ -280,19 +280,52 @@ public partial class Hud
         v.AddChild(row);
     }
 
+    /// <summary>The Park's war in figures, two columns: what was read, what came of it, and who did it.</summary>
+    Control WarRecord()
+    {
+        var st = S.Stats;
+        static string D(DateOnly d) => $"{d.Day} {d.ToString("MMMM yyyy", System.Globalization.CultureInfo.InvariantCulture)}";
+        var left = new System.Collections.Generic.List<string>
+        {
+            $"{D(S.DateOf(0))} to {D(S.Date)}, {S.Day:N0} days at the Park",
+            $"Decrypts delivered: {st.DeliveredTotal:N0}" + (st.LateDecrypts > 0 ? $" ({st.LateDecrypts:N0} late)" : ""),
+            $"Keys broken: {st.KeyBreaks.Values.Sum():N0}",
+            $"Requests completed: {st.ContractsCompleted:N0} · missed: {st.ContractsFailed:N0}",
+            $"ULTRA decisions taken: {st.DilemmasResolved:N0}",
+        };
+        var nets = st.Delivered.Where(x => x.Value > 0).OrderByDescending(x => x.Value).Take(5).ToList();
+        if (nets.Count > 0) left.Add("Most read: " + string.Join(" · ", nets.Select(x => $"{Defs.NetOf(x.Key).Name} {x.Value:N0}")));
+        var right = new System.Collections.Generic.List<string>();
+        foreach (var (id, outcome) in S.OpOutcomes)
+            if (GreatOps.ById(id) is { } op)
+                right.Add($"{op.Name}: " + outcome switch { OpOutcome.Success => "a success", OpOutcome.Partial => "went badly", _ => "failed" });
+        int peak = S.History.Count > 0 ? Math.Max(S.History.Max(h => h.Staff), S.Staff.Count) : S.Staff.Count;
+        right.Add($"Staff: {S.Staff.Count} at the end, {peak} at the most");
+        if (st.Breakdowns > 0) right.Add($"Machine breakdowns: {st.Breakdowns}" + (st.FitterRepairs > 0 ? $", {st.FitterRepairs} mended by our own fitters" : ""));
+        if (st.Delivered.TryGetValue(Net.Jn25, out int jn) && jn > 0)
+            right.Add($"JN-25 read: {jn:N0}" + (S.OshimaRead > 0 ? $", with {S.OshimaRead} of Ōshima's reports" : ""));
+        if (S.TonnageLost > 0) right.Add($"Shipping lost in the SHARK blackout: {S.TonnageLost:N0} tons");
+        var grid = new GridContainer { Columns = 2 };
+        grid.AddThemeConstantOverride("h_separation", 24);
+        foreach (var lines in new[] { left, right })
+        {
+            var col = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, CustomMinimumSize = new Vector2(370, 0) };
+            col.AddThemeConstantOverride("separation", 2);
+            foreach (var line in lines) col.AddChild(Ink(line, 13));
+            grid.AddChild(col);
+        }
+        return grid;
+    }
+
     void ShowEnd(bool won)
     {
-        var v = Paper(720);
+        var v = Paper(820);
         v.AddChild(Letterhead());
         v.AddChild(new HSeparator());
         string heading = !won ? "Closed down" : S.ActIndex == Campaign.Acts.Length - 1 ? "VICTORY" : S.ActIndex > Campaign.EnigmaFinale ? "TUNNY" : "SHARK";
         v.AddChild(Ink(heading, 34, Fonts.Heading, won ? UiTheme.PaperInk : UiTheme.Stamp));
         if (!string.IsNullOrEmpty(S.EndReason)) v.AddChild(Ink(S.EndReason, 15));
-        v.AddChild(Ink(
-            $"Decrypts delivered: {S.Stats.DeliveredTotal}\n" +
-            $"Requests completed: {S.Stats.ContractsCompleted} · missed: {S.Stats.ContractsFailed}\n" +
-            $"Staff at the end: {S.Staff.Count}" +
-            (S.TonnageLost > 0 ? $"\nShipping lost during the SHARK blackout: {S.TonnageLost:N0} tons" : ""), 14));
+        v.AddChild(WarRecord());
         if (S.Mode == GameMode.Campaign)
         {
             int score = S.Score();
@@ -308,6 +341,9 @@ public partial class Hud
             var causes = S.Stats.RepByCause.Where(x => Math.Abs(x.Value) >= 0.5).OrderBy(x => x.Value).ToList();
             if (causes.Count > 0)
                 v.AddChild(Ink("Reputation over the war: " + string.Join(" · ", causes.Select(x => $"{x.Key} {(x.Value > 0 ? "+" : "−")}{Math.Abs(x.Value):0}")), 12, Fonts.Body));
+            if (won && S.ActIndex == Campaign.Acts.Length - 1)
+                v.AddChild(Ink("The Park was broken up that summer and its machines taken apart. Those who worked here kept the secret: the story was " +
+                               "first told in 1974, and many never told their families at all.", 13, Fonts.Body, UiTheme.Stamp));
         }
         var row = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.End };
         row.AddThemeConstantOverride("separation", 12);

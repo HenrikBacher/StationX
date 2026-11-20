@@ -305,7 +305,7 @@ public sealed partial class GameState
         if (men.Count == 0) return;
         // The Ministry of Labour has an unerring eye for the people you can least spare.
         var who = men.OrderByDescending(s => s.Skill * 10 + Rng.Range(0, 15)).First();
-        var role = Defs.Roles[who.Role].Name.ToLowerInvariant();
+        var role = Defs.RoleWord(who.Role);
         RaiseDilemma(new Dilemma
         {
             Service = Service.Security, StaffId = who.Id, Title = "Call-up papers",

@@ -152,7 +152,7 @@ public sealed partial class GameState
     {
         var t = NewTale(0x7A1C);
         t["who"] = s.Name;
-        t["role"] = Defs.Roles[s.Role].Name.ToLowerInvariant();
+        t["role"] = Defs.RoleWord(s.Role);
         t["where"] = t.Pick("the Eight Bells", "the Duke of Wellington", "the Shoulder of Mutton", "a dance at Wilton Hall", "the station buffet",
                             "a crowded train to Euston", "their billet's kitchen table", "a cinema queue in Bedford");
         t["said"] = t.Pick("'machines that read German signals'", "'how we knew where the bombers were going'", "'the Wrens and their clever machines'",

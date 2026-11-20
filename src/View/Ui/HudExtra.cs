@@ -320,7 +320,7 @@ public partial class Hud
             $"(£{Defs.SocialCost}): the Recreational Club puts on a concert, a revue or a dance, and everyone's spirits rise. Once every {Defs.SocialEveryDays:0} days.");
         if (S.PostingGap() is var (pz, pr, pw))
             yield return ("posting", true,
-                $"{pz.Name} has {Defs.Roles[pr].Plural.ToLowerInvariant()}' desks but no {Defs.Roles[pr].Name.ToLowerInvariant()} posted there" +
+                $"{pz.Name} has {Defs.RolePlural(pr)}' desks but no {Defs.RoleWord(pr)} posted there" +
                 (S.WatchesAvailable ? $" on the {Defs.Shifts[pw].Name.ToLowerInvariant()}" : "") +
                 ". Everyone stays in the building they're posted to: hire one for it (pick the building on the candidate's card), " +
                 "or select someone in Staff (H) and change Posted to.");

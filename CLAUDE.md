@@ -262,6 +262,9 @@ Then (user requests, 2026-11-19):
 - Reputation forecast: `RepTrend()` (RepLog over `RepTrendDays` 3) and `RepRunsOutIn()` (falling more than `RepTrendFloor`
   0.3 a day and out within `RepForecastDays` 21). The line under the reputation bar ends "gone in ~N days" in red (alone
   before the quota), with the rate in the tooltip. View only.
+- End sheet: `Hud.WarRecord()` (two columns: dates and days, decrypts and late, keys, requests, decisions, most-read
+  networks; great operations, staff now and at peak, breakdowns and fitters' repairs, JN-25 and Ōshima, tonnage) and a
+  postscript at VE Day. `Defs.RoleWord`/`RolePlural` lower-case role names but keep "Wren" and "RAF".
 
 ### Graphics overhaul: period realism, CC0 assets allowed
 

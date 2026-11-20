@@ -538,7 +538,7 @@ public partial class Hud
     readonly Dictionary<Role, bool> _rolesOpen = new();
 
     /// <summary>A role in running text: "a clerk", but "a Wren" (a member of the WRNS).</summary>
-    static string RoleWord(Role r) => r == Role.Wren ? Defs.Roles[r].Name : Defs.Roles[r].Name.ToLowerInvariant();
+    static string RoleWord(Role r) => Defs.RoleWord(r);
 
     static string ShortRole(Role r) => r switch
     {
@@ -919,7 +919,7 @@ public partial class Hud
     {
         var rd = Defs.Roles[s.Role];
         _inspBox.AddChild(UiTheme.Heading(s.Name, 18));
-        _inspBox.AddChild(UiTheme.Label($"{rd.Name}{(s.Second is Role sec ? $" (and {Defs.Roles[sec].Name.ToLowerInvariant()})" : "")} · {Stars(s.Skill)} · £{s.Salary}/week", 13, UiTheme.Accent));
+        _inspBox.AddChild(UiTheme.Label($"{rd.Name}{(s.Second is Role sec ? $" (and {Defs.RoleWord(sec)})" : "")} · {Stars(s.Skill)} · £{s.Salary}/week", 13, UiTheme.Accent));
         if (s.Skill < 3 && s.Role != Role.Messenger)
             _inspBox.AddChild(UiTheme.Label($"Experience: {Hours(Defs.ExperienceFor[s.Skill + 1] - s.Experience)} more work to reach {Stars(s.Skill + 1)} (with a pay rise)", 11, UiTheme.TextDim));
         if (s.Bio != null) _inspBox.AddChild(UiTheme.Label(s.Bio, 12, UiTheme.Text));
@@ -932,7 +932,7 @@ public partial class Hud
             var l = UiTheme.Label($"{td.Name}: {td.Blurb}", 12, td.Good ? UiTheme.Accent : Gfx.Bad);
             _inspBox.AddChild(l);
         }
-        string doing = s.Arriving(S.Now) ? $"On the way: vetting and the train to Bletchley. Reports in about {Math.Max(1, Math.Round((s.ArrivesAt - S.Now) / 60))} h" : s.IsSick(S.Now) ? (s.OffReason == "course" ? $"On a course to learn the {Defs.Roles[s.Second ?? s.Role].Name.ToLowerInvariant()}'s work: back in about {Math.Max(1, Math.Round((s.SickUntil - S.Now) / 60))} h" : $"{(s.OffReason switch { "leave" => "On leave", "breakdown" => "Sent home after a breakdown", _ => "Off sick" })}: back in about {Math.Max(1, Math.Round((s.SickUntil - S.Now) / Defs.MinutesPerDay))} days") : s.Away ? $"Off watch, back at the billets until {Defs.Shifts[s.Shift].StartHour:00}:00" : s.Task switch
+        string doing = s.Arriving(S.Now) ? $"On the way: vetting and the train to Bletchley. Reports in about {Math.Max(1, Math.Round((s.ArrivesAt - S.Now) / 60))} h" : s.IsSick(S.Now) ? (s.OffReason == "course" ? $"On a course to learn the {Defs.RoleWord(s.Second ?? s.Role)}'s work: back in about {Math.Max(1, Math.Round((s.SickUntil - S.Now) / 60))} h" : $"{(s.OffReason switch { "leave" => "On leave", "breakdown" => "Sent home after a breakdown", _ => "Off sick" })}: back in about {Math.Max(1, Math.Round((s.SickUntil - S.Now) / Defs.MinutesPerDay))} days") : s.Away ? $"Off watch, back at the billets until {Defs.Shifts[s.Shift].StartHour:00}:00" : s.Task switch
         {
             { Kind: TaskKind.Operate } t => $"Working at the {S.StationById(t.Dest)?.Def.Name.ToLowerInvariant()}",
             { Kind: TaskKind.Carry, Phase: 0 } => "Fetching messages",
@@ -1011,7 +1011,7 @@ public partial class Hud
             foreach (Role r in Enum.GetValues<Role>())
             {
                 if (r == s.Second || Defs.Course(s.Role, r) is not var (hours, cost)) continue;
-                learn.AddItem($"Learn {Defs.Roles[r].Name.ToLowerInvariant()}'s work ({hours:0} h away, £{cost})", (int)r);
+                learn.AddItem($"Learn {Defs.RoleWord(r)}'s work ({hours:0} h away, £{cost})", (int)r);
                 if (S.CantTrain(s, r) is string why)
                 {
                     learn.SetItemDisabled(learn.ItemCount - 1, true);

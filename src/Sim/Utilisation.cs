@@ -297,7 +297,7 @@ public sealed partial class GameState
     public int UseSlotNow => (int)Math.Floor(Now / 60) % UseLog.Slots;
 
     /// <summary>A role in running text, plural: "clerks", but "Wrens" (members of the WRNS).</summary>
-    public static string PluralWord(Role r) => r == Role.Wren ? Defs.Roles[r].Plural : Defs.Roles[r].Plural.ToLowerInvariant();
+    public static string PluralWord(Role r) => Defs.RolePlural(r);
 
     public static string Plural(StationType t) => t switch
     {
@@ -543,7 +543,7 @@ public sealed partial class GameState
         var go = Expendable(role);
         foreach (var p in go) Fire(p.Id);
         if (go.Count > 0)
-            Emit(EventKind.Info, $"{go.Count} {(go.Count == 1 ? Defs.Roles[role].Name.ToLowerInvariant() : PluralWord(role))} who stood idle most of their watch " +
+            Emit(EventKind.Info, $"{go.Count} {(go.Count == 1 ? Defs.RoleWord(role) : PluralWord(role))} who stood idle most of their watch " +
                                  $"have been thanked and let go, saving £{go.Sum(p => p.Salary)} a week.");
         return go.Count;
     }
