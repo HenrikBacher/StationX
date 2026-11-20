@@ -250,6 +250,7 @@ public partial class Main : Node3D
         overlayLayer.AddChild(new Overlay { Main = this, Name = "Overlay" });
         Hud = new Hud(this) { Name = "Hud" };
         AddChild(Hud);
+        _ = SaveGame.WarmUp();
         Settings.ApplyGraphics = ApplyGraphics;
         Settings.Apply();
 

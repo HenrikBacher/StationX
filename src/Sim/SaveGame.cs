@@ -49,6 +49,17 @@ public static class SaveGame
     public static string Save(GameState g) =>
         JsonSerializer.Serialize(new SaveFile { Info = InfoOf(g), State = g }, Options);
 
+    /// <summary>
+    /// Serialises a throwaway game on a worker thread, so the serializer's one-off setup for these types (about 180 ms)
+    /// is done before the first autosave rather than as a stall at the first midnight. The sim keeps no shared mutable
+    /// state, so a separate game is safe to build and write alongside the real one.
+    /// </summary>
+    public static System.Threading.Tasks.Task WarmUp() => System.Threading.Tasks.Task.Run(() =>
+    {
+        try { Load(Save(GameState.NewGame(1, Difficulty.Normal))); }
+        catch (Exception) { /* only a warm-up */ }
+    });
+
     public static GameState Load(string json)
     {
         var file = JsonSerializer.Deserialize<SaveFile>(json, Options) ?? throw new InvalidOperationException("Empty save file");
