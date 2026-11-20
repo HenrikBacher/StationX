@@ -268,6 +268,8 @@ public partial class Hud
             "A ministry has had nothing from us for days. Leave one waiting ten days and it complains to the Foreign Office every week. Take one of its requests.");
         yield return ("layout", S.Staff.Count >= 18 && S.Stats.DeliveredTotal > 40 && S.Stats.HandOvers < S.Stats.DeliveredTotal / 4,
             "Put each step's desk beside the next one (registration, Typex, translation, despatch): neighbouring desks pass paper across without a runner. And keep aisles clear: people squeezing past each other walk slower.");
+        yield return ("bottleneck", S.UseHours >= 6 && S.Utilisation().Top is { Kind: "bottleneck" or "unstaffed" },
+            "Paper is piling up at one step of the line while others wait for it. Workload (U) shows how busy each kind of desk, machine and person has been over the last day, and names the bottleneck; while it's open, a ring round every desk shows the same.");
         yield return ("ycover", S.ActIndex >= 1 && S.CoveredNets().Any(n => S.CoverShare(n) < 1),
             $"A network has fewer than {Defs.SetsWanted} receiver sets at its Y-station: its traffic comes in hours late and garbled. In Y-stations (Y), move a set over from a network with no requests, or buy another. The Y Board allots one more each chapter.");
         yield return ("riders", S.ActIndex >= 2 && S.Lines.Count == 0 && S.Funds >= Defs.LineCost * 2,

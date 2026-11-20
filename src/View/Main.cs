@@ -277,6 +277,9 @@ public partial class Main : Node3D
             if (args.TryGetValue("inspect", out var insp) && System.Enum.TryParse<StationType>(insp, out var it)
                 && State.Stations.Where(s => s.Type == it).OrderByDescending(s => s.Input.Count).FirstOrDefault() is { } ist)
                 Hud.ShowInspector(ist.Id, null);
+            else if (args.TryGetValue("inspect", out var inr) && System.Enum.TryParse<Role>(inr, out var ir)
+                     && State.Staff.FirstOrDefault(p => p.Role == ir && !p.Away) is { } ip)
+                Hud.ShowInspector(null, ip.Id);   // --inspect=Role : someone of that role on duty
             if (args.ContainsKey("breakdown") && State.Stations.FirstOrDefault(s => s.Wears) is { } worn)
             {
                 worn.DownUntil = State.Now + Defs.RepairMinutes;
@@ -847,6 +850,7 @@ public partial class Main : Node3D
             case Key.I: Hud.TogglePanel("intel"); break;
             case Key.Y: Hud.TogglePanel("ystations"); break;
             case Key.K: Hud.TogglePanel("stats"); break;
+            case Key.U: Hud.TogglePanel("workload"); break;
             case Key.N: Hud.TogglePanel("intercepts"); break;
             case Key.O: Hud.TogglePanel("war"); break;
             case Key.F1: Hud.TogglePanel("handbook"); break;

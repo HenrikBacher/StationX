@@ -133,6 +133,8 @@ Godot lives in `~/.local/opt/godot/` and is linked as `~/.local/bin/godot`. Expo
 - **Free play.** No objectives and no closure. Start at any chapter, with everything before it already built and researched. The war moves on every ten days.
 - **Difficulty.** Easy, Normal and Hard change starting funds, the grant, deadlines, how fast suspicion grows and how much a missed deadline costs.
 
+- **Workload (U).** How busy every desk, machine and person has been over the last 24 game hours. Each kind of desk gets a bar (working, no paper, paper with nobody at it, out of action, quiet, after hours) with its busy share and how much paper is waiting for it; each role a bar of its time on watch (at a desk, carrying, walking, on a break, idle); each watch its figures. At the top a plain-English line names the bottleneck ("Bombes are the bottleneck: 96% busy, 12 waiting"), desks short of staff and on which watch, and roles standing idle. Click a row to go to the desk most in need, or to someone of that role. While the panel is open, a ring round every desk shows its day and a dot in the middle what it is doing now, and a dot over each person their state. The desk and person inspectors carry the same day as an hour-by-hour strip. The record is kept only while playing (it starts afresh after loading).
+
 A **Needs attention** list under the Enigma keys shows broken or badly worn machines, freezing huts, unanswered flash requests, requests about to be missed, decrypts waiting for a card index nobody has built, people with nowhere to sit for their break, networks short of receiver sets, an overdraft, desks nobody on the staff can work, air raids, overcrowded billets, illness and ministries left waiting. Each says what to do; click one to go to it.
 
 At the end of a campaign you get a **score** (decrypts, requests, reputation and speed, less missed deadlines and shipping lost; ×0.75 on Easy, ×1.4 on Hard) and an honour, from "Thanked by the Director" to Churchill's "geese that laid the golden eggs". The best score on each difficulty is kept in `user://records.cfg`.
@@ -154,6 +156,7 @@ The game autosaves every morning. It also has three save slots and a quicksave.
 | Shift-click | place several |
 | M | move the selected station (£25) |
 | F | flow view: where paper goes, and how long it waits at each desk |
+| U | Workload: how busy each desk, machine and role has been over the last day, and the bottleneck |
 | B H Q T G I Y K | Build, Staff, Requests, Research, Huts, Intelligence, Y-stations, Statistics |
 | F5 / F8 | quicksave / quickload |
 | Esc | cancel, deselect, close panel, then the pause menu |
@@ -200,8 +203,8 @@ godot --path . --resolution 1600x900 -- --selftest      # exits 1 on any failure
 
 Optional flags:
 
-- `--panel=requests|build|staff|research|huts|intel|stats`
-- `--modal=pause|settings|save|load|newgame|dilemma|update|end` `--place=Type@x,y;...` puts stations down (free, building unlocked) for a visual check. `--lineup=x,y` stands everyone on duty in rows by role, to check how people look. `--age=H` makes every message H hours older; `--inspect=Type` opens the busiest station of that type.
+- `--panel=requests|build|staff|research|huts|intel|stats|workload`
+- `--modal=pause|settings|save|load|newgame|dilemma|update|end` `--place=Type@x,y;...` puts stations down (free, building unlocked) for a visual check. `--lineup=x,y` stands everyone on duty in rows by role, to check how people look. `--age=H` makes every message H hours older; `--inspect=Type` opens the busiest station of that type (`--inspect=Clerk` or another role: someone of that role on duty).
 - `--select=bombe`, `--briefing`, `--title`, `--build=Registration`
 - `--weather=fine|overcast|rain|fog|snow|storm`, `--raid`, `--head=hut6` (appoints the best cryptanalyst head of that hut)
 - `--quarter=0..3`, `--flows`, `--breakdown` (breaks the first machine and wears another)

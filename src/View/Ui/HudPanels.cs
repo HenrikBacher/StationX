@@ -71,6 +71,7 @@ public partial class Hud
             "war" => WarMapSig(),
             "stats" => $"{S.History.Count}|{_statsRange}",
             "handbook" => HandbookSig(),
+            "workload" => WorkloadSig(),
             _ => "",
         };
         sig = _panel + sig;
@@ -90,6 +91,7 @@ public partial class Hud
             case "war": WarMapPanel(); break;
             case "stats": StatsPanel(); break;
             case "handbook": HandbookPanel(); break;
+            case "workload": WorkloadPanel(); break;
         }
     }
 
@@ -611,6 +613,7 @@ public partial class Hud
                 : st.OperatorPresent ? $"{op.Name} at work" : $"{op.Name} on the way";
             _inspBox.AddChild(UiTheme.Label(who, 13, op == null && st.Input.Count > 0 ? Gfx.Warn : UiTheme.Text));
             _inspBox.AddChild(UiTheme.Label($"In tray {st.Input.Count}/{d.InputCap} · out tray {st.Output.Count}", 13, UiTheme.Text));
+            _inspBox.AddChild(UseStripFor(st, null));
         }
         else
         {
@@ -749,6 +752,7 @@ public partial class Hud
             _ => "Waiting for work",
         };
         _inspBox.AddChild(UiTheme.Label(doing, 13));
+        if (!s.Arriving(S.Now)) _inspBox.AddChild(UseStripFor(null, s));
         var bars = new GridContainer { Columns = 2 };
         bars.AddThemeConstantOverride("h_separation", 8);
         foreach (var (what, val) in new[] { ("Energy", s.Energy), ("Morale", s.Morale), ("Nerves", 1 - s.Strain) })

@@ -146,6 +146,7 @@ public sealed partial class GameState
             FinishRemovals();
             CheckGoals();
         }
+        TrackUsage(dt);
     }
 
     void OnNewDay()

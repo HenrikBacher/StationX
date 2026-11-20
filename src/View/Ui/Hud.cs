@@ -227,7 +227,7 @@ public partial class Hud : CanvasLayer
                  {
                      ("build", "Build", "B"), ("staff", "Staff", "H"), ("requests", "Requests", "Q"),
                      ("research", "Research", "T"), ("huts", "Huts", "G"),
-                     ("intel", "Intelligence", "I"), ("ystations", "Y-stations", "Y"), ("intercepts", "Intercepts", "N"), ("war", "War map", "O"), ("stats", "Statistics", "K"), ("handbook", "Handbook", "F1"),
+                     ("intel", "Intelligence", "I"), ("ystations", "Y-stations", "Y"), ("intercepts", "Intercepts", "N"), ("war", "War map", "O"), ("stats", "Statistics", "K"), ("workload", "Workload", "U"), ("handbook", "Handbook", "F1"),
                  })
         {
             var b = UiTheme.Button(label, () => TogglePanel(id), tooltip: $"Key {key}");
