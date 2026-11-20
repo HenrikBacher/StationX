@@ -320,6 +320,31 @@ public partial class Hud
         return grid;
     }
 
+    /// <summary>The Park's firsts beside history's, where either has happened by now.</summary>
+    Control? AgainstHistory()
+    {
+        var lines = new System.Collections.Generic.List<string>();
+        static string D(DateOnly d) => d.ToString("d MMM yyyy", System.Globalization.CultureInfo.InvariantCulture);
+        foreach (var (key, what, when, exact) in Defs.HistoryFirsts)
+        {
+            string real = exact ? D(when) : when.ToString("MMMM yyyy", System.Globalization.CultureInfo.InvariantCulture);
+            if (S.Stats.Firsts.TryGetValue(key, out int day))
+            {
+                var ours = S.DateOf(day);
+                int diff = when.DayNumber - ours.DayNumber;
+                string lead = !exact ? "" : diff > 0 ? $", {diff} days sooner" : diff < 0 ? $", {-diff} days later" : ", the same day";
+                lines.Add($"{what}: {D(ours)} (history: {real}{lead})");
+            }
+            else if (when <= S.Date) lines.Add($"{what}: not done here (history: {real})");
+        }
+        if (lines.Count == 0) return null;
+        var box = new VBoxContainer();
+        box.AddThemeConstantOverride("separation", 1);
+        box.AddChild(Ink("Against history", 12, Fonts.BodyBold, UiTheme.Stamp));
+        foreach (var l in lines) box.AddChild(Ink(l, 12));
+        return box;
+    }
+
     void ShowEnd(bool won)
     {
         var v = Paper(820);
@@ -329,6 +354,7 @@ public partial class Hud
         v.AddChild(Ink(heading, 34, Fonts.Heading, won ? UiTheme.PaperInk : UiTheme.Stamp));
         if (!string.IsNullOrEmpty(S.EndReason)) v.AddChild(Ink(S.EndReason, 15));
         v.AddChild(WarRecord());
+        if (AgainstHistory() is { } history) v.AddChild(history);
         if (S.Mode == GameMode.Campaign)
         {
             int score = S.Score();
@@ -340,6 +366,14 @@ public partial class Hud
             v.AddChild(Ink($"Score {score:N0}", 22, Fonts.Heading));
             v.AddChild(Ink(won ? honour : "No honours", 18, Fonts.Heading, UiTheme.Stamp));
             v.AddChild(Ink((won ? citation : "Lost campaigns score half.") + (best != "" ? "  " + best : ""), 13));
+            Records.AddWar(new Records.War($"{S.Seed}-{S.Difficulty}", DateTime.Now.ToString("yyyy-MM-dd HH:mm"), S.Difficulty, won, score,
+                    $"{S.Date.Day} {S.Date.ToString("MMMM yyyy", System.Globalization.CultureInfo.InvariantCulture)}"));
+            var wars = Records.Wars();
+            if (wars.Count > 1)
+            {
+                int rank = 1 + wars.Count(w => w.Score > score);
+                v.AddChild(Ink($"Your wars on this computer: {wars.Count}, {wars.Count(w => w.Won)} won. This one ranks {rank} of {wars.Count}.", 12, Fonts.Body));
+            }
             // Where the reputation went: the lesson of a lost campaign, and a footnote to a won one.
             var causes = S.Stats.RepByCause.Where(x => Math.Abs(x.Value) >= 0.5).OrderBy(x => x.Value).ToList();
             if (causes.Count > 0)

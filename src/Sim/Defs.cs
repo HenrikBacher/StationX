@@ -177,6 +177,18 @@ public static partial class Defs
     /// <summary>The mole (from the Blackout to D-Day): suspicion a day while leaking, days before MI5 brings names, and what each ending costs or brings.</summary>
     public const double MoleLeakAir = 1.2, MoleLeakArmy = 0.8, MoleMovedMorale = 0.08, MoleCaughtRep = 3, MoleRelief = 10, MoleWrongMorale = 0.04, MoleWrongRep = 3;
     public const int MoleNoticeDays = 6;
+    /// <summary>
+    /// Firsts to set beside the Park's own on the end sheet: the key in <see cref="Stats.Firsts"/>, what it was, and when it happened
+    /// (an exact day where it's known, else only the month, shown without a difference).
+    /// </summary>
+    public static readonly (string key, string what, DateOnly when, bool exact)[] HistoryFirsts =
+    {
+        ("Enigma", "First wartime Enigma key broken", new(1940, 1, 17), true),
+        ("Dolphin", "DOLPHIN first read", new(1941, 3, 1), false),
+        ("Shark", "SHARK broken", new(1942, 12, 13), true),
+        ("Tunny", "TUNNY first broken by hand", new(1942, 7, 1), false),
+        ("Colossus", "Colossus's first break", new(1944, 2, 5), true),
+    };
     /// <summary>Flu waves: how much likelier illness is, the share precautions leave, the chance each winter day of a warning, its notice and length.</summary>
     public const double FluWaveMult = 3, FluPrecautionShare = 0.5, FluChance = 0.03;
     public const int FluWarningDays = 3, FluDays = 14, FluPrecautionCost = 150;

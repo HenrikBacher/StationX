@@ -854,7 +854,7 @@ public sealed partial class GameState
                 else { Requeue(st, m); return; }
                 break;
             case StationType.Colossus:
-                if (Rng.Chance(0.92)) KeyBreak(m, true);
+                if (Rng.Chance(0.92)) { Stats.Firsts.TryAdd("Colossus", Day); KeyBreak(m, true); }
                 else { Requeue(st, m); return; }
                 break;
             case StationType.HeathRobinson:
@@ -1126,6 +1126,8 @@ public sealed partial class GameState
         }
         Keys[KeyId(net, carrier.Day)] = KeyStatus.Broken;
         Stats.Inc(Stats.KeyBreaks, net);
+        Stats.Firsts.TryAdd(net.ToString(), Day);
+        if (Defs.NetOf(net).Family is not (Family.Hand or Family.Lorenz)) Stats.Firsts.TryAdd("Enigma", Day);
         KeysToday++;
         if (byBombe) Stats.Inc(Stats.BombeBreaks, net);
         if (net == Net.Shark && SharkBlackout)

@@ -311,6 +311,8 @@ public sealed class Stats
 {
     public Dictionary<Net, int> Delivered { get; set; } = new();
     public Dictionary<Net, int> KeyBreaks { get; set; } = new();
+    /// <summary>The game day of each first: "Enigma", a network's name (Net), "Colossus". For the record against history.</summary>
+    public Dictionary<string, int> Firsts { get; set; } = new();
     public Dictionary<Net, int> BombeBreaks { get; set; } = new();
     public int MilestonesMet { get; set; }
     public int MilestonesMissed { get; set; }
@@ -355,6 +357,7 @@ public sealed class Stats
     {
         Delivered = new(Delivered),
         KeyBreaks = new(KeyBreaks),
+        Firsts = new(Firsts),
         BombeBreaks = new(BombeBreaks),
         DilemmasResolved = DilemmasResolved,
         ScriptedDone = new(ScriptedDone),

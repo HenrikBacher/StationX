@@ -311,6 +311,10 @@ Then (user requests, 2026-11-19):
   act 1, once per `FluWinter`) raises a dilemma (`Tag` "flu") `FluWarningDays` 3 ahead; the wave lasts `FluDays` 14 and multiplies
   `SpreadIllness`'s chance by `FluMult` (`FluWaveMult` 3, × `FluPrecautionShare` 0.5 with precautions, `Action` "flu", £150). Top bar
   "flu coming"/"FLU". `--modal=flu`. Balance 39/22/1.
+- Against history: `Stats.Firsts` (game day of the first "Enigma", each `Net` name, "Colossus"; set in `KeyBreak` and the Colossus step)
+  beside `Defs.HistoryFirsts` (key, text, date, exact) in `Hud.AgainstHistory()` on the end sheet. `Records.Wars()`/`AddWar` keep
+  every finished war in `user://records.cfg` section "wars" (key seed-difficulty, so a game ending again updates its line;
+  never written when `Settings.Persist` is off), and the end sheet ranks this one.
 
 ### Graphics overhaul: period realism, CC0 assets allowed
 

@@ -236,3 +236,18 @@ public class FluTests
         Assert.Equal(1, g.FluMult);
     }
 }
+
+public class FirstsTests
+{
+    [Fact]
+    public void TheFirstKeyBreakIsRecordedForTheEndSheet()
+    {
+        var g = TestUtil.BombeLine(12, checking: true);
+        g.AddScripted(Net.Red, 4, 4, 0, 0, "t", "t", "t");
+        TestUtil.Run(g, 1.5);
+        Assert.True(g.Stats.Firsts.ContainsKey("Enigma"));
+        int day = g.Stats.Firsts["Enigma"];
+        Assert.Contains(g.Stats.Firsts, kv => kv.Key != "Enigma" && kv.Value == day);
+        Assert.All(Defs.HistoryFirsts, h => Assert.True(h.key == "Enigma" || h.key == "Colossus" || System.Enum.TryParse<Net>(h.key, out _), h.key));
+    }
+}
