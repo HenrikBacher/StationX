@@ -1490,12 +1490,17 @@ public partial class Park3D : Node3D
     /// pole to pole, in from the country past the east fence and dropped to the Mansion's wall, where the teleprinter
     /// and telephone lines came in.
     /// </summary>
+    /// <summary>Where the telegraph poles stand (on the ground), for anything placed outdoors to keep clear of.</summary>
+    public readonly List<Vector3> PolesAt = new();
+
     void TelegraphLine(Grid g)
     {
         var wood = new Color("4a3a2a");
         var poles = new List<Vector3>();
+        PolesAt.Clear();
         void Pole(Vector3 p)
         {
+            PolesAt.Add(p);
             Mesh3.Cyl(_buildings, 0.05f, 0.07f, 2.4f, p + new Vector3(0, 1.2f, 0), wood, 6);
             Mesh3.Box(_buildings, new Vector3(0.6f, 0.05f, 0.05f), p + new Vector3(0, 2.2f, 0), wood);
             foreach (float o in Insulators)

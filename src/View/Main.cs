@@ -481,7 +481,7 @@ public partial class Main : Node3D
         SyncPeople(dt);
         _riders.Sync(State, running ? dt : 0, Speed, _park);
         _park.SetVisitor(State.VisitorHere);
-        _bikes.Sync(State, dt);
+        _bikes.Sync(State, dt, _park.PolesAt);
         PanKeys(dt);
         UpdateHover();
         UpdateGhost();
