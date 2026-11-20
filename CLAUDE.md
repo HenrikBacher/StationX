@@ -170,6 +170,8 @@ Then (user requests, 2026-11-19):
   gate node, `SetVisitor`) from 30 min before a visit to 2 h after; shots: `--visitor`. Balance: Easy 40, Normal 21, Hard 2.
 - Staff panel "Let N go" per role: `Expendable(role)` (watches with `RoleWatch.Spare`; keeps `max(Needed,1)+1` counted live,
   not from the cached report; idlest `SpareHand`s, no heads or notables), `LetGo`. The autoplayer doesn't use it.
+- Bicycle racks (`Bikes.cs`): beside each open building's door (the Mansion's clear of its porch), filled with up to 6
+  bicycles by how many are in the building (the far-billeted come by bus); one merged mesh per fill level, two draws a rack.
 
 ### Graphics overhaul: period realism, CC0 assets allowed
 

@@ -24,6 +24,7 @@ public partial class Main : Node3D
     Park3D _park = null!;
     public Park3D Park => _park;
     Riders _riders = null!;
+    Bikes _bikes = null!;
     Music _music = null!;
     double _nextTrain = 40, _nextPlane = 90, _nextTyping = 3;
     int _lastHour = -1;
@@ -212,6 +213,8 @@ public partial class Main : Node3D
         AddChild(_park);
         _riders = new Riders { Name = "Riders" };
         AddChild(_riders);
+        _bikes = new Bikes { Name = "Bikes" };
+        AddChild(_bikes);
         _music = new Music { Name = "Music" };
         AddChild(_music);
         _stationRoot = new Node3D { Name = "Stations" };
@@ -401,6 +404,7 @@ public partial class Main : Node3D
         StationModels.Clear();
         PersonModels.Clear();
         _furniture.Clear();
+        _bikes.Clear();
         Rig.LookAtTile(11, 8);
         Rig.Cam.Size = 16;
         Paused = false;
@@ -477,6 +481,7 @@ public partial class Main : Node3D
         SyncPeople(dt);
         _riders.Sync(State, running ? dt : 0, Speed, _park);
         _park.SetVisitor(State.VisitorHere);
+        _bikes.Sync(State, dt);
         PanKeys(dt);
         UpdateHover();
         UpdateGhost();
