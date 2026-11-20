@@ -1314,9 +1314,11 @@ public partial class Park3D : Node3D
         Mesh3.Box(_gate, new Vector3(0.08f, 0.62f, 0.08f), new Vector3(0.75f, 0.31f, gy + 1.68f), Gfx.Cream);
         _boom = new Node3D { Position = new Vector3(0.75f, 0.72f, gy - 0.62f) };
         _gate.AddChild(_boom);
+        var pole = new Node3D();
         for (int k = 0; k < 6; k++)
-            Mesh3.Box(_boom, new Vector3(0.06f, 0.06f, 0.4f), new Vector3(0, 0, 0.2f + k * 0.4f), k % 2 == 0 ? Gfx.Cream : Gfx.PostRed);
-        Mesh3.Box(_boom, new Vector3(0.1f, 0.1f, 0.22f), new Vector3(0, 0, -0.18f), new Color("3a3a36"));
+            Mesh3.Box(pole, new Vector3(0.06f, 0.06f, 0.4f), new Vector3(0, 0, 0.2f + k * 0.4f), k % 2 == 0 ? Gfx.Cream : Gfx.PostRed);
+        Mesh3.Box(pole, new Vector3(0.1f, 0.1f, 0.22f), new Vector3(0, 0, -0.18f), new Color("3a3a36"));
+        _boom.AddChild(Mesh3.MergePainted(pole, "Pole"));   // one draw for the striped pole
         SetBoom(_boomOpen);
 
         // A visitor's staff car, drawn up on the grass below the Mansion while they go round.
@@ -1327,27 +1329,29 @@ public partial class Park3D : Node3D
         // The sentry: battledress, webbing, steel helmet, rifle slung; facing the road, by his box.
         var guard = new Node3D { Position = new Vector3(1.4f, 0, gy - 1.05f), RotationDegrees = new Vector3(0, 180, 0) };
         _gate.AddChild(guard);
+        var still = new Node3D();   // everything of him but the waving arm, merged below into one draw
         var serge = new Color("6a6446");
         var webbing = new Color("b9ae86");
         var boots = new Color("1d1a17");
         var skin = new Color("d9b08c");
         foreach (float z in new[] { -0.06f, 0.06f })
         {
-            Mesh3.Box(guard, new Vector3(0.09f, 0.42f, 0.09f), new Vector3(0, 0.25f, z), serge);          // legs
-            Mesh3.Box(guard, new Vector3(0.12f, 0.06f, 0.09f), new Vector3(0.02f, 0.03f, z), boots);      // boots
-            Mesh3.Box(guard, new Vector3(0.08f, 0.08f, 0.09f), new Vector3(0, 0.08f, z), webbing);       // anklets
+            Mesh3.Box(still, new Vector3(0.09f, 0.42f, 0.09f), new Vector3(0, 0.25f, z), serge);          // legs
+            Mesh3.Box(still, new Vector3(0.12f, 0.06f, 0.09f), new Vector3(0.02f, 0.03f, z), boots);      // boots
+            Mesh3.Box(still, new Vector3(0.08f, 0.08f, 0.09f), new Vector3(0, 0.08f, z), webbing);       // anklets
         }
-        Mesh3.Box(guard, new Vector3(0.16f, 0.3f, 0.26f), new Vector3(0, 0.6f, 0), serge);                 // blouse
-        Mesh3.Box(guard, new Vector3(0.17f, 0.05f, 0.27f), new Vector3(0, 0.49f, 0), webbing);            // belt
-        Mesh3.Box(guard, new Vector3(0.17f, 0.3f, 0.04f), new Vector3(0.0f, 0.62f, 0), webbing).RotationDegrees = new Vector3(40, 0, 0); // cross-strap
-        Mesh3.Box(guard, new Vector3(0.08f, 0.1f, 0.12f), new Vector3(0.09f, 0.55f, 0.06f), webbing);     // pouch
-        Mesh3.Sphere(guard, 0.07f, new Vector3(0, 0.83f, 0), skin);
-        Mesh3.Dome(guard, 0.1f, new Vector3(0, 0.86f, 0), new Color("4b4a36"));
-        Mesh3.Cyl(guard, 0.115f, 0.115f, 0.012f, new Vector3(0, 0.865f, 0), new Color("4b4a36"), 14);   // the brim
+        Mesh3.Box(still, new Vector3(0.16f, 0.3f, 0.26f), new Vector3(0, 0.6f, 0), serge);                 // blouse
+        Mesh3.Box(still, new Vector3(0.17f, 0.05f, 0.27f), new Vector3(0, 0.49f, 0), webbing);            // belt
+        Mesh3.Box(still, new Vector3(0.17f, 0.3f, 0.04f), new Vector3(0.0f, 0.62f, 0), webbing).RotationDegrees = new Vector3(40, 0, 0); // cross-strap
+        Mesh3.Box(still, new Vector3(0.08f, 0.1f, 0.12f), new Vector3(0.09f, 0.55f, 0.06f), webbing);     // pouch
+        Mesh3.Sphere(still, 0.07f, new Vector3(0, 0.83f, 0), skin);
+        Mesh3.Dome(still, 0.1f, new Vector3(0, 0.86f, 0), new Color("4b4a36"));
+        Mesh3.Cyl(still, 0.115f, 0.115f, 0.012f, new Vector3(0, 0.865f, 0), new Color("4b4a36"), 14);   // the brim
         // Left arm down, rifle slung on the left shoulder.
-        Mesh3.Box(guard, new Vector3(0.07f, 0.3f, 0.07f), new Vector3(0, 0.58f, -0.16f), serge);
-        var rifle = Mesh3.Box(guard, new Vector3(0.03f, 0.72f, 0.04f), new Vector3(-0.08f, 0.62f, -0.1f), new Color("4a3424"));
+        Mesh3.Box(still, new Vector3(0.07f, 0.3f, 0.07f), new Vector3(0, 0.58f, -0.16f), serge);
+        var rifle = Mesh3.Box(still, new Vector3(0.03f, 0.72f, 0.04f), new Vector3(-0.08f, 0.62f, -0.1f), new Color("4a3424"));
         rifle.RotationDegrees = new Vector3(0, 0, 12);
+        guard.AddChild(Mesh3.MergePainted(still, "Sentry"));
         // Right arm: hangs by his side, raised to wave a rider through while the pole is up.
         _sentryArm = new Node3D { Position = new Vector3(0, 0.72f, 0.16f) };
         guard.AddChild(_sentryArm);
@@ -1370,42 +1374,43 @@ public partial class Park3D : Node3D
     /// </summary>
     static void StaffCar(Node3D car)
     {
+        var paint = new Node3D();   // all but the glass, merged at the end into one draw
         var black = new Color("16171a");
         var trim = new Color("0d0d0f");
         var chrome = new Color("c9c6bd");
         var tyre = new Color("141312");
         // Chassis and floor
-        Mesh3.Box(car, new Vector3(0.56f, 0.1f, 1.62f), new Vector3(0, 0.2f, 0), trim);
+        Mesh3.Box(paint, new Vector3(0.56f, 0.1f, 1.62f), new Vector3(0, 0.2f, 0), trim);
         foreach (float wz in new[] { 0.55f, -0.52f })
             foreach (float wx in new[] { -0.31f, 0.31f })
             {
-                Mesh3.Cyl(car, 0.15f, 0.15f, 0.1f, new Vector3(wx, 0.15f, wz), tyre, 16).RotationDegrees = new Vector3(0, 0, 90);
-                Mesh3.Cyl(car, 0.07f, 0.07f, 0.11f, new Vector3(wx, 0.15f, wz), chrome.Darkened(0.2f), 10).RotationDegrees = new Vector3(0, 0, 90);
+                Mesh3.Cyl(paint, 0.15f, 0.15f, 0.1f, new Vector3(wx, 0.15f, wz), tyre, 16).RotationDegrees = new Vector3(0, 0, 90);
+                Mesh3.Cyl(paint, 0.07f, 0.07f, 0.11f, new Vector3(wx, 0.15f, wz), chrome.Darkened(0.2f), 10).RotationDegrees = new Vector3(0, 0, 90);
             }
         foreach (float sx in new[] { -1f, 1f })
         {
             // Wings over each wheel, joined by the running board
-            var front = Mesh3.Cyl(car, 0.17f, 0.17f, 0.42f, new Vector3(sx * 0.31f, 0.2f, 0.58f), black, 14);
+            var front = Mesh3.Cyl(paint, 0.17f, 0.17f, 0.42f, new Vector3(sx * 0.31f, 0.2f, 0.58f), black, 14);
             front.RotationDegrees = new Vector3(90, 0, 0);
             front.Scale = new Vector3(0.7f, 1, 0.75f);
-            var rear = Mesh3.Cyl(car, 0.17f, 0.17f, 0.36f, new Vector3(sx * 0.31f, 0.2f, -0.52f), black, 14);
+            var rear = Mesh3.Cyl(paint, 0.17f, 0.17f, 0.36f, new Vector3(sx * 0.31f, 0.2f, -0.52f), black, 14);
             rear.RotationDegrees = new Vector3(90, 0, 0);
             rear.Scale = new Vector3(0.7f, 1, 0.75f);
-            Mesh3.Box(car, new Vector3(0.12f, 0.025f, 0.62f), new Vector3(sx * 0.33f, 0.17f, 0.02f), trim);
+            Mesh3.Box(paint, new Vector3(0.12f, 0.025f, 0.62f), new Vector3(sx * 0.33f, 0.17f, 0.02f), trim);
             // Headlamps on the wings, chrome-rimmed
-            Mesh3.Sphere(car, 0.06f, new Vector3(sx * 0.21f, 0.42f, 0.78f), black);
-            Mesh3.Cyl(car, 0.05f, 0.05f, 0.02f, new Vector3(sx * 0.21f, 0.42f, 0.83f), new Color("e8e0c0"), 12).RotationDegrees = new Vector3(90, 0, 0);
+            Mesh3.Sphere(paint, 0.06f, new Vector3(sx * 0.21f, 0.42f, 0.78f), black);
+            Mesh3.Cyl(paint, 0.05f, 0.05f, 0.02f, new Vector3(sx * 0.21f, 0.42f, 0.83f), new Color("e8e0c0"), 12).RotationDegrees = new Vector3(90, 0, 0);
         }
         // Bonnet and the tall chrome radiator grille
-        Mesh3.Box(car, new Vector3(0.4f, 0.26f, 0.6f), new Vector3(0, 0.37f, 0.5f), black);
-        Mesh3.Box(car, new Vector3(0.36f, 0.3f, 0.03f), new Vector3(0, 0.39f, 0.81f), chrome);
+        Mesh3.Box(paint, new Vector3(0.4f, 0.26f, 0.6f), new Vector3(0, 0.37f, 0.5f), black);
+        Mesh3.Box(paint, new Vector3(0.36f, 0.3f, 0.03f), new Vector3(0, 0.39f, 0.81f), chrome);
         for (int i = -3; i <= 3; i++)
-            Mesh3.Box(car, new Vector3(0.012f, 0.25f, 0.02f), new Vector3(i * 0.045f, 0.39f, 0.825f), trim);
-        Mesh3.Box(car, new Vector3(0.62f, 0.04f, 0.04f), new Vector3(0, 0.16f, 0.86f), chrome);   // bumper
+            Mesh3.Box(paint, new Vector3(0.012f, 0.25f, 0.02f), new Vector3(i * 0.045f, 0.39f, 0.825f), trim);
+        Mesh3.Box(paint, new Vector3(0.62f, 0.04f, 0.04f), new Vector3(0, 0.16f, 0.86f), chrome);   // bumper
         // The cabin: body, a domed roof, glass all round
-        Mesh3.Box(car, new Vector3(0.58f, 0.24f, 0.98f), new Vector3(0, 0.37f, -0.24f), black);
-        Mesh3.Box(car, new Vector3(0.54f, 0.2f, 0.7f), new Vector3(0, 0.59f, -0.2f), black);
-        var roof = Mesh3.Cyl(car, 0.27f, 0.27f, 0.7f, new Vector3(0, 0.69f, -0.2f), black, 16);
+        Mesh3.Box(paint, new Vector3(0.58f, 0.24f, 0.98f), new Vector3(0, 0.37f, -0.24f), black);
+        Mesh3.Box(paint, new Vector3(0.54f, 0.2f, 0.7f), new Vector3(0, 0.59f, -0.2f), black);
+        var roof = Mesh3.Cyl(paint, 0.27f, 0.27f, 0.7f, new Vector3(0, 0.69f, -0.2f), black, 16);
         roof.RotationDegrees = new Vector3(90, 0, 0);
         roof.Scale = new Vector3(1, 1, 0.22f);
         Mesh3.Box(car, new Vector3(0.46f, 0.15f, 0.02f), new Vector3(0, 0.6f, 0.16f), Mesh3.Glass);
@@ -1414,10 +1419,11 @@ public partial class Park3D : Node3D
                 Mesh3.Box(car, new Vector3(0.02f, 0.14f, 0.28f), new Vector3(sx * 0.275f, 0.6f, wz), Mesh3.Glass);
         Mesh3.Box(car, new Vector3(0.36f, 0.12f, 0.02f), new Vector3(0, 0.6f, -0.56f), Mesh3.Glass);
         // Boot and the spare wheel on it
-        Mesh3.Box(car, new Vector3(0.5f, 0.2f, 0.18f), new Vector3(0, 0.33f, -0.8f), black);
-        Mesh3.Cyl(car, 0.14f, 0.14f, 0.08f, new Vector3(0, 0.36f, -0.93f), tyre, 16).RotationDegrees = new Vector3(90, 0, 0);
-        Mesh3.Cyl(car, 0.1f, 0.1f, 0.09f, new Vector3(0, 0.36f, -0.93f), black, 14).RotationDegrees = new Vector3(90, 0, 0);
-        Mesh3.Box(car, new Vector3(0.6f, 0.04f, 0.04f), new Vector3(0, 0.16f, -0.85f), chrome);
+        Mesh3.Box(paint, new Vector3(0.5f, 0.2f, 0.18f), new Vector3(0, 0.33f, -0.8f), black);
+        Mesh3.Cyl(paint, 0.14f, 0.14f, 0.08f, new Vector3(0, 0.36f, -0.93f), tyre, 16).RotationDegrees = new Vector3(90, 0, 0);
+        Mesh3.Cyl(paint, 0.1f, 0.1f, 0.09f, new Vector3(0, 0.36f, -0.93f), black, 14).RotationDegrees = new Vector3(90, 0, 0);
+        Mesh3.Box(paint, new Vector3(0.6f, 0.04f, 0.04f), new Vector3(0, 0.16f, -0.85f), chrome);
+        car.AddChild(Mesh3.MergePainted(paint, "Body"));
     }
 
     /// <summary>Raises the barrier (0 down, 1 up) and the sentry's arm with it.</summary>

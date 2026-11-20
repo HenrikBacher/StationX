@@ -181,6 +181,10 @@ Then (user requests, 2026-11-19):
 - Chimney smoke (`Smoke.cs`, CPU particles, one draw each): on the Mansion's chimneys (`Park3D.Chimney`) and the huts'
   back-eaves stove pipes, parented to the same wall-side node so it hides with them. `Park3D.SetSmoke`: October–April, the
   Mansion always, a hut only with a stove in it; the wind bends it.
+- Draw-call notes: Godot already instances identical mesh+material draws, so many copies of one mesh cost little; distinct
+  boxes each cost a draw. `STX_COUNT=1` with `--shot` prints visible surfaces by owner (Stations by type, Buildings by
+  kind). Bombe drums are two MultiMeshes per Bombe (`StationModel.TurnDrums`); the sentry, barrier pole and staff car
+  body are merged with `Mesh3.MergePainted`.
 
 ### Graphics overhaul: period realism, CC0 assets allowed
 

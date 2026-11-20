@@ -451,6 +451,25 @@ public partial class Main : Node3D
             else
             {
                 GetViewport().GetTexture().GetImage().SavePng(_shotPath!);
+                if (System.Environment.GetEnvironmentVariable("STX_COUNT") != null)
+                {
+                    var counts = new System.Collections.Generic.Dictionary<string, int>();
+                    void Walk(Node n, string owner, bool vis)
+                    {
+                        foreach (var c in n.GetChildren())
+                        {
+                            bool v = vis && (c is not Node3D n3 || n3.Visible);
+                            string o = owner;
+                            if (n == this || n == _park) o = owner + "/" + c.Name;
+                            if (n == _stationRoot && c is StationModel sm) o = "/Stations/" + sm.Type;
+                            if (n.Name == "Buildings") o = "/Park/Buildings/" + c.GetType().Name + (c is Node3D { } cc && cc.GetChildCount() > 0 ? "(container)" : "");
+                            if (c is GeometryInstance3D gi && v) { int surf = gi is MeshInstance3D mi && mi.Mesh != null ? mi.Mesh.GetSurfaceCount() : 1; counts[o] = counts.GetValueOrDefault(o) + surf; }
+                            Walk(c, o, v);
+                        }
+                    }
+                    Walk(this, "", true);
+                    foreach (var (k, v) in counts.OrderByDescending(x => x.Value).Take(25)) GD.Print($"COUNT {v,5} {k}");
+                }
                 GD.Print($"Saved screenshot to {_shotPath} ({Performance.GetMonitor(Performance.Monitor.RenderTotalDrawCallsInFrame)} draw calls, " +
                          $"{Performance.GetMonitor(Performance.Monitor.RenderTotalObjectsInFrame)} objects, {Performance.GetMonitor(Performance.Monitor.RenderTotalPrimitivesInFrame) / 1000:0}k primitives)");
                 QuitGame();

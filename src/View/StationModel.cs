@@ -723,17 +723,37 @@ public partial class StationModel : Node3D
         int cols = 9;
         float sx = (w - 0.2f) / cols, sy = (height - 0.25f) / rows;
         float r = Math.Min(sx, sy) * 0.4f;
+        // The drums, each with a white index mark so the turning shows: drawn as instances, two draws for the lot
+        // (bodies coloured by row, and the marks) rather than two for every drum.
+        int n = rows * cols;
+        _drumBase = new Transform3D[n];
+        _drumSpeed = new float[n];
+        _drumAngle = new float[n];
+        _markLocal = new Transform3D(Basis.Identity, new Vector3(0, 0.03f, -r * 0.45f));
+        var bodies = new MultiMesh
+        {
+            TransformFormat = MultiMesh.TransformFormatEnum.Transform3D, UseColors = true, InstanceCount = n,
+            Mesh = new CylinderMesh { TopRadius = r, BottomRadius = r, Height = 0.05f, RadialSegments = 12, Rings = 1, Material = Mesh3.PaintMat(false) },
+        };
+        var marks = new MultiMesh
+        {
+            TransformFormat = MultiMesh.TransformFormatEnum.Transform3D, InstanceCount = n,
+            Mesh = new BoxMesh { Size = new Vector3(r * 0.25f, 0.01f, r * 0.9f), Material = Mesh3.Mat(Gfx.Cream) },
+        };
         for (int row = 0; row < rows; row++)
             for (int col = 0; col < cols; col++)
             {
+                int i = row * cols + col;
                 var c = new Vector3(-w / 2 + 0.1f + sx * (col + 0.5f), height - 0.12f - sy * (row + 0.5f), z0 + d + 0.025f);
-                var drum = Mesh3.Cyl(this, r, r, 0.05f, c, drumColors[row % drumColors.Length], 12);
-                drum.RotationDegrees = new Vector3(90, 0, 0);
-                // A white index mark so the turning is visible
-                var mark = Mesh3.Box(drum, new Vector3(r * 0.25f, 0.01f, r * 0.9f), new Vector3(0, 0.03f, -r * 0.45f), Gfx.Cream);
-                drum.SetMeta("speed", (rows - row) * 2.2f);
-                _spinners.Add(drum);
+                _drumBase[i] = new Transform3D(new Basis(Vector3.Right, Mathf.Pi / 2), c);
+                _drumSpeed[i] = (rows - row) * 2.2f;
+                bodies.SetInstanceColor(i, drumColors[row % drumColors.Length]);
             }
+        _drums = new MultiMeshInstance3D { Multimesh = bodies };
+        _drumMarks = new MultiMeshInstance3D { Multimesh = marks };
+        AddChild(_drums);
+        AddChild(_drumMarks);
+        TurnDrums(0);
         _glow = Mesh3.Sphere(this, 0.04f, new Vector3(w / 2 - 0.1f, height + 0.08f, z0 + 0.1f), new Color("554a30"));
         // A small table for the menus in front
         Mesh3.BoxAt(this, -w / 2 + 0.05f, 0, H / 2 - 0.05f, 0.35f, 0.42f, 0.25f, Gfx.Oak);
@@ -866,6 +886,26 @@ public partial class StationModel : Node3D
     readonly List<int> _pileIds = new();
     Material?[] _inShown = System.Array.Empty<Material?>(), _outShown = System.Array.Empty<Material?>();
 
+    /// <summary>A Bombe's drums (see <see cref="Bombe"/>): where each rests, how fast it turns, and how far it has.</summary>
+    MultiMeshInstance3D? _drums, _drumMarks;
+    Transform3D[] _drumBase = System.Array.Empty<Transform3D>();
+    float[] _drumSpeed = System.Array.Empty<float>(), _drumAngle = System.Array.Empty<float>();
+    Transform3D _markLocal;
+
+    void TurnDrums(float dt)
+    {
+        if (_drums == null || _drumMarks == null) return;
+        var bodies = _drums.Multimesh;
+        var marks = _drumMarks.Multimesh;
+        for (int i = 0; i < _drumBase.Length; i++)
+        {
+            _drumAngle[i] = (_drumAngle[i] + _drumSpeed[i] * dt) % Mathf.Tau;
+            var xf = _drumBase[i] * new Transform3D(new Basis(Vector3.Up, _drumAngle[i]), Vector3.Zero);
+            bodies.SetInstanceTransform(i, xf);
+            marks.SetInstanceTransform(i, xf * _markLocal);
+        }
+    }
+
     public void Sync(Station st, GameState g, float dt)
     {
         _time += dt;
@@ -884,6 +924,7 @@ public partial class StationModel : Node3D
                     _spinAxis[i] = _spinners[i].HasMeta("axis");
                 }
             }
+            TurnDrums(dt);
             for (int i = 0; i < _spinners.Count; i++)
             {
                 var s = _spinners[i];
