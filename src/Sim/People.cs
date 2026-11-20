@@ -478,6 +478,8 @@ public sealed partial class GameState
         MaybeCallUp();
         MaybeRuthless();
         MaybeMatapan();
+        MaybeBrusa();
+        DailyAmericans();
         SpreadIllness();
         _heads = HeadsToday(inNow: false);
         DailyStrain();

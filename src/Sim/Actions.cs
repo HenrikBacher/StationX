@@ -231,7 +231,7 @@ public sealed partial class GameState
 
     void RefreshCandidates()
     {
-        Candidates.RemoveAll(c => c.Notable == null && !c.Crossword);
+        Candidates.RemoveAll(c => c.Notable == null && !c.Crossword && !c.American);
         foreach (var r in IntakeFor(ActIndex)) AddCandidate(r);
         FitterCandidates();
     }

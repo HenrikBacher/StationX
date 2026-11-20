@@ -102,7 +102,10 @@ public partial class Hud
                                  "when your own Bombes are busy, menus go down the line instead.", 12, UiTheme.TextDim));
         var names = S.OutstationNames.ToList();
         v.AddChild(UiTheme.Label(names.Count == 0 ? "No outstation Bombes yet." : $"{names.Count} Bombe(s): {string.Join(", ", names)} · {S.RemoteJobs.Count} job(s) running", 12, UiTheme.Text));
-        if (names.Count > 0 && !S.Stations.Any(s => s.Type == StationType.OutstationLink))
+        if (S.DaytonBombes > 0)
+            v.AddChild(UiTheme.Label($"US Navy Bombes at Dayton: {S.DaytonBombes} take four-rotor menus by cable (about {Defs.DaytonCableMinutes / 60} hours more) · " +
+                                     $"{S.DaytonJobs} running · {S.Stats.DaytonStops} stops sent back", 12, UiTheme.Text));
+        if ((names.Count > 0 || S.DaytonBombes > 0) && !S.Stations.Any(s => s.Type == StationType.OutstationLink))
             v.AddChild(UiTheme.Label("No outstation teleprinter: they have nothing to do.", 12, Gfx.Warn));
         var info = UiTheme.Label($"£{Defs.OutstationBombeCost:N0} each, upkeep £{Defs.OutstationUpkeep} a week", 12, UiTheme.TextDim);
         info.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
@@ -327,6 +330,9 @@ public partial class Hud
         yield return ("fitters", S.FittersOpen && !S.Staff.Any(s => s.Role == Role.Fitter) && S.Stats.Breakdowns > 0,
             $"Machines break down, and the outside fitters take hours and charge £{Defs.RepairCost}. RAF fitters of our own (Staff, H: post them to the Bombe hut) " +
             $"mend a breakdown in a third of the time for the parts alone, and service worn machines between jobs. One on each watch where the Bombes are.");
+        yield return ("dayton", S.DaytonBombes > 0 && !S.HasStation(StationType.OutstationLink),
+            $"Washington's Bombes at Dayton will run our four-rotor menus whenever our own are busy ({S.DaytonBombes} of them now, more each month), " +
+            "but the menus go by the outstation teleprinter and the cable. Build an outstation teleprinter (Build).");
         yield return ("japanese", S.JapanOpen && S.JapanWanted && (!S.HasStation(StationType.Japanese) || S.JapaneseReaders < (S.WatchesAvailable ? 3 : 1)),
             "JN-25, the Japanese navy's code, comes in overnight. A hand-cipher desk strips its additive; then it needs a Japanese desk (Build), " +
             $"and only linguists who've been on the Bedford Japanese course can work that: select a linguist, Learns → Japanese ({Defs.JapaneseCourseHours / 24:0} days away, " +
@@ -447,6 +453,11 @@ public partial class Hud
             case "matapan":
                 S.Dilemmas.Clear();
                 S.DebugMatapan();
+                if (S.Dilemmas.Count > 0) ShowDilemma(S.Dilemmas[0]);
+                break;
+            case "brusa":
+                S.Dilemmas.Clear();
+                S.DebugBrusa();
                 if (S.Dilemmas.Count > 0) ShowDilemma(S.Dilemmas[0]);
                 break;
             case "dilemma" when S.Dilemmas.Count > 0: ShowDilemma(S.Dilemmas[0]); break;
@@ -707,7 +718,7 @@ public partial class Hud
         v.AddChild(Letterhead());
         v.AddChild(new HSeparator());
         v.AddChild(Ink($"{S.Date:d MMMM yyyy}, {(int)S.MinuteOfDay / 60:00}:{(int)S.MinuteOfDay % 60:00}", 13));
-        v.AddChild(Ink(d.Service == Service.Security ? "SECURITY" : d.Tag == "matapan" ? "ULTRA · REGIA MARINA" : $"ULTRA · {Defs.ServiceNames[d.Service].ToUpperInvariant()}", 13, Fonts.BodyBold, UiTheme.Stamp));
+        v.AddChild(Ink(d.Service == Service.Security ? "SECURITY" : d.Tag == "matapan" ? "ULTRA · REGIA MARINA" : d.Tag == "brusa" ? "MOST SECRET · WASHINGTON" : $"ULTRA · {Defs.ServiceNames[d.Service].ToUpperInvariant()}", 13, Fonts.BodyBold, UiTheme.Stamp));
         v.AddChild(Ink(d.Title, 26, Fonts.Heading));
         v.AddChild(Ink(d.Text, 15));
         if (d.Context.Length > 0)

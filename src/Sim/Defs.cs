@@ -162,6 +162,22 @@ public static partial class Defs
     public const double OshimaPer = 0.015, OshimaMax = 0.09;
     public const int OshimaReward = 700, OshimaDays = 7;
     public const int MatapanPoints = 3;
+    /// <summary>BRUSA (17 May 1943): the decision, Dayton's Bombes (at first, a month more each, at most) and the cable's delay.</summary>
+    public static readonly DateOnly BrusaFrom = new(1943, 5, 17);
+    public const double BrusaRep = 3, BrusaSuspicion = 4;
+    public const int BrusaAfterDays = 3;
+    public const int BrusaPoints = 3;
+    public const int DaytonStart = 2, DaytonGrowDays = 30, DaytonMax = 6, DaytonCableMinutes = 240;
+    /// <summary>The US Army's 6813th detachment: how many come in all, and the days between later arrivals.</summary>
+    public const int UsArmyMax = 6, UsArmyEveryDays = 21;
+    public static readonly (string name, Role role, string bio)[] UsArmyNotables =
+    {
+        ("William Bundy", Role.Cryptanalyst, "US Army officer, Harvard lawyer. Works the Bombe menus in Hut 6 and later runs the detachment there."),
+        ("Telford Taylor", Role.Linguist, "US Army Special Branch's man at the Park. Works in Hut 3, later chief prosecutor at Nuremberg."),
+        ("Arthur Levenson", Role.Cryptanalyst, "Mathematician from New York, in Hut 6 and then on TUNNY. Stays in the trade after the war."),
+    };
+    public static readonly string[] UsFirst = { "Robert", "James", "Charles", "George", "Walter", "Edward", "Selmer", "Lewis", "Howard", "Donald", "Paul", "Richard" };
+    public static readonly string[] UsSurnames = { "Norland", "Calvocoressi", "Whitaker", "Kirby", "McCormack", "Dunning", "Hayes", "Bancroft", "Sheldon", "Prescott", "Rourke", "Lindqvist" };
     public const double RuthlessSuccess = 0.4;
     public const int RuthlessPoints = 80;
     public const double RuthlessSuspicion = 18;

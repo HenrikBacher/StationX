@@ -838,10 +838,12 @@ public sealed partial class GameState
                 // The menu goes by teleprinter to the outstations; the stop comes back later.
                 m.Loc = Loc.Remote;
                 m.LocId = st.Id;
+                bool dayton = ToDayton(net.FourRotor);
                 RemoteJobs.Add(new RemoteJob
                 {
-                    Msg = m.Id, Link = st.Id, FourRotor = net.FourRotor,
-                    Done = Now + Defs.Station(StationType.Bombe).Minutes * BombeFactor(m) * 1.1 + 30,
+                    Msg = m.Id, Link = st.Id, FourRotor = net.FourRotor, Dayton = dayton,
+                    Done = dayton ? Now + Defs.Station(StationType.Bombe4).Minutes * BombeFactor(m) + Defs.DaytonCableMinutes
+                                  : Now + Defs.Station(StationType.Bombe).Minutes * BombeFactor(m) * 1.1 + 30,
                 });
                 return;
             case StationType.Testery:
@@ -920,6 +922,7 @@ public sealed partial class GameState
             var link = StationById(j.Link) ?? Stations.FirstOrDefault(s => s.Type == StationType.OutstationLink && !s.PendingRemoval)
                                            ?? Stations.FirstOrDefault(s => s.Type == StationType.Inbox && !s.PendingRemoval);
             if (link == null) continue;
+            if (j.Dayton) Stats.DaytonStops++;
             BombeStop(m);
             m.Loc = Loc.Output;
             m.LocId = link.Id;
@@ -1040,7 +1043,7 @@ public sealed partial class GameState
         }
         bool cribOk = HasStation(StationType.Crib) &&
                       (!nd.FourRotor || Researched.Contains(ResearchId.ShortWeatherCipher));
-        bool remote = OutstationBombes > 0 && HasStation(StationType.OutstationLink);
+        bool remote = (OutstationBombes > 0 || (nd.FourRotor && DaytonBombes > 0)) && HasStation(StationType.OutstationLink);
         bool bombeOk = nd.FourRotor
             ? Researched.Contains(ResearchId.FourRotorBombe) && (HasStation(StationType.Bombe4) || remote)
             : Researched.Contains(ResearchId.Bombe) && (HasStation(StationType.Bombe) || remote);

@@ -74,7 +74,7 @@ public sealed class AutoPlayer
             StationType.CommonRoom => a >= 1 ? 1 + g.Staff.Count / 20 : 0,
             StationType.Rounders => a >= 2 ? 1 : 0,
             StationType.Checking => a >= 9 ? 2 : a >= 3 ? 1 : 0,
-            StationType.OutstationLink => a >= 9 && g.OutstationBombes > 0 ? 1 : 0,
+            StationType.OutstationLink => (a >= 9 && g.OutstationBombes > 0) || g.DaytonBombes > 0 ? 1 : 0,
             StationType.Testery => a >= 12 ? 2 : 0,
             StationType.TunnyMachine => a >= 12 ? 1 : 0,
             StationType.Colossus => a >= 13 ? 1 : 0,

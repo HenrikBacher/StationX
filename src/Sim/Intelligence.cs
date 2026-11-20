@@ -232,8 +232,14 @@ public sealed partial class GameState
         RemoteJobs.Count + Stations.Where(s => s.Type == StationType.OutstationLink)
             .Sum(s => s.Input.Count + s.ReservedInputs + (s.Current != null ? 1 : 0));
 
-    bool OutstationTakes(StationType next) =>
-        next is StationType.Bombe or StationType.Bombe4 &&
-        (next == StationType.Bombe || Researched.Contains(ResearchId.FourRotorBombe)) &&
-        OutstationQueued < OutstationBombes;
+    /// <summary>
+    /// Whether the outstation teleprinter can take a menu: our outstations' Bombes, and for four-rotor menus Dayton's too.
+    /// Three-rotor menus don't count what's gone to Dayton.
+    /// </summary>
+    bool OutstationTakes(StationType next)
+    {
+        if (next is not (StationType.Bombe or StationType.Bombe4)) return false;
+        if (next == StationType.Bombe4 && !Researched.Contains(ResearchId.FourRotorBombe)) return false;
+        return next == StationType.Bombe4 ? OutstationQueued < OutstationBombes + DaytonBombes : OutstationQueued - DaytonJobs < OutstationBombes;
+    }
 }

@@ -325,13 +325,16 @@ public partial class Main : Node3D
                 }
             }
             if (args.ContainsKey("raid")) State.RaidUntil = State.Now + 120;
+            // --usarmy : the first three cryptanalysts are the US Army's detachment, to see their uniform.
+            if (args.ContainsKey("usarmy"))
+                foreach (var st in State.Staff.Where(x => x.Role == Role.Cryptanalyst && !x.Away).Take(3)) st.American = true;
             // --lineup=x,y : stand everyone on duty in rows by role, for checking how people look (screenshots only).
             if (args.TryGetValue("lineup", out var lu))
             {
                 var xy0 = lu.Split(',');
                 float lx0 = float.Parse(xy0[0]), ly0 = float.Parse(xy0[1]);
                 int row = -1; Role? last = null; int col = 0;
-                foreach (var st in State.Staff.Where(x => !x.Away).OrderBy(x => x.Role).ThenBy(x => x.Id))
+                foreach (var st in State.Staff.Where(x => !x.Away).OrderBy(x => x.Role).ThenBy(x => x.American).ThenBy(x => x.Id))
                 {
                     if (st.Role != last || col >= 10) { row++; col = 0; last = st.Role; }
                     st.Task = null;

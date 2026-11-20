@@ -282,6 +282,16 @@ Then (user requests, 2026-11-19):
   no posting row until there's a second building for the role or the watches begin; tip wording (accept as soon as one
   comes; hire into the desk's building) and the Build intro (riders before the teleprinter).
 
+### Since v0.38.0 (2026-11-20; user: "do all of them": Americans, mid-game help, Double Cross, mole, flu, record vs history, custom games, notables)
+
+- The Americans (`Americans.cs`): BRUSA dilemma (`Tag` "brusa", `ScriptedDone`) `BrusaAfterDays` (3) into the Testery (or from
+  `Defs.BrusaFrom` 17 May 1943); `Action` "brusa1"/"brusa2" (`CrisisAction` → `AgreeBrusa`). `Brusa` 1/2 (−1 kept), `DaytonBombes`
+  (`DaytonStart` 2 + 1 per `DaytonGrowDays` 30, max 6, needs the four-rotor research) take four-rotor menus through the outstation link
+  (`OutstationTakes`, `ToDayton` after our outstations, `RemoteJob.Dayton`, + `DaytonCableMinutes` 240); `KeyRoute` counts them.
+  The 6813th (`SendUsArmy`, own dice salt 0x05A1): 2 at once then 1 per `UsArmyEveryDays` 21, up to 6, `Staff.American`, salary 0,
+  kept by `RefreshCandidates`; first three are `Defs.UsArmyNotables`. Olive drab and a garrison cap (no scarf). Tip `dayton`,
+  `--modal=brusa`, `--usarmy` (with `--lineup`). Balance 40/22/1.
+
 ### Graphics overhaul: period realism, CC0 assets allowed
 
 The user chose realism (not a tabletop diorama or poster art) and allowed CC0 assets. Use Poly Haven 1K JPG maps

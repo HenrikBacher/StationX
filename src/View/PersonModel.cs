@@ -106,6 +106,8 @@ public partial class PersonModel : Node3D
         Color Vary(Color c) => shade >= 0 ? c.Lightened(shade) : c.Darkened(-shade);
         var tie = PickFor(s, 2, Ties);
         var shirt = PickFor(s, 3, new[] { new Color("e9e4d6"), new Color("e4ddca"), new Color("dfe3e6"), new Color("e8dccf") });
+        // US Army officers' olive drab: a wool service coat, khaki shirt and tie.
+        if (s.American) return (Vary(new Color("5a5638")), Vary(new Color("6e6648")), new Color("b9a97f"), new Color("8a7a52"));
         return s.Role switch
         {
             Role.Wren => (Gfx.RoleColor(Role.Wren), Gfx.RoleColor(Role.Wren).Darkened(0.05f), new Color("e9e4d6"), new Color("15161a")),
@@ -178,7 +180,7 @@ public partial class PersonModel : Node3D
             Mesh3.Box(_torso, new Vector3(0.022f, 0.1f, 0.01f), new Vector3(0, ShoulderY - 0.09f, 0.089f), t);
         if (shirtSleeves)   // a watch chain across the waistcoat
             Mesh3.Box(_torso, new Vector3(0.09f, 0.006f, 0.006f), new Vector3(0, 0.1f, 0.093f), Gfx.Brass);
-        if (s.Role == Role.Cryptanalyst)
+        if (s.Role == Role.Cryptanalyst && !s.American)
         {
             // The long striped college scarf: round the neck, both ends hanging down the front
             var (main, stripe) = PickFor(s, 5, Scarves);
@@ -415,6 +417,17 @@ public partial class PersonModel : Node3D
             Mesh3.Cyl(_head, 0.082f, 0.078f, 0.045f, new Vector3(0, 0.07f, -0.008f), new Color("1a2238"), 16);
             Mesh3.Cyl(_head, 0.079f, 0.079f, 0.015f, new Vector3(0, 0.05f, -0.008f), new Color("101318"), 16);
             Mesh3.Box(_head, new Vector3(0.025f, 0.014f, 0.004f), new Vector3(0, 0.05f, 0.072f), Gfx.Brass);
+            return;
+        }
+        if (s.American)
+        {
+            // An army crop under the olive drab garrison cap, worn tilted to the right.
+            var crop = Mesh3.Sphere(_head, 0.075f, new Vector3(0, 0.018f, -0.012f), hair);
+            crop.Scale = new Vector3(0.95f, 0.98f, 1f);
+            var garrison = Mesh3.Box(_head, new Vector3(0.075f, 0.04f, 0.16f), new Vector3(0.012f, 0.088f, -0.004f), new Color("4e4b31"));
+            garrison.Rotation = new Vector3(0, 0, -0.18f);
+            var crease = Mesh3.Box(_head, new Vector3(0.08f, 0.008f, 0.162f), new Vector3(0.012f, 0.074f, -0.004f), new Color("3b3925"));
+            crease.Rotation = new Vector3(0, 0, -0.18f);
             return;
         }
         if (s.Role == Role.Messenger && Trait(s, 44) < 0.6f)

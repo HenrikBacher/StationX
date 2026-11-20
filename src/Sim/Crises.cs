@@ -120,6 +120,12 @@ public sealed partial class GameState
             case "generator" when PowerCut:
                 Generator = true;
                 break;
+            case "brusa1":
+                AgreeBrusa(false);
+                break;
+            case "brusa2":
+                AgreeBrusa(true);
+                break;
             case "overtime":
                 OvertimeUntil = Now + Defs.OvertimeDays * Defs.MinutesPerDay;
                 break;

@@ -391,7 +391,7 @@ public partial class Hud
             var name = UiTheme.Label(c.Name, 15, UiTheme.Text, Fonts.BodyBold);
             name.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
             v.AddChild(Row(name, UiTheme.Label(Stars(c.Skill), 14, UiTheme.Accent)));
-            var role = UiTheme.Label($"{Defs.Roles[c.Role].Name} · £{c.Salary}/week", 12, UiTheme.TextDim);
+            var role = UiTheme.Label($"{Defs.Roles[c.Role].Name} · {(c.American ? "US Army, paid by the Army" : $"£{c.Salary}/week")}", 12, UiTheme.TextDim);
             role.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
             var traits = c.KnownTraits().ToList();
             if (traits.Count > 0)

@@ -137,6 +137,8 @@ public sealed class Staff
     public string? Bio { get; set; }
     /// <summary>A candidate found through the Telegraph crossword: kept until hired or the next competition.</summary>
     public bool Crossword { get; set; }
+    /// <summary>An officer of the US Army's detachment, paid by the Army.</summary>
+    public bool American { get; set; }
     public List<StationType> Specialties { get; set; } = new();
     public List<Trait> Traits { get; set; } = new();
     /// <summary>Careless talkers aren't known to be one until MI5 notices.</summary>
@@ -260,6 +262,8 @@ public sealed class RemoteJob
     public int Link { get; set; }
     public double Done { get; set; }
     public bool FourRotor { get; set; }
+    /// <summary>Run on a US Navy Bombe at Dayton: the menu went by cable.</summary>
+    public bool Dayton { get; set; }
 }
 
 public enum ContractState { Offered, Active, Completed, Failed, Expired }
@@ -340,6 +344,7 @@ public sealed class Stats
     /// <summary>Breakdowns our own fitters mended, and machines they serviced.</summary>
     public int FitterRepairs { get; set; }
     public int FitterServices { get; set; }
+    public int DaytonStops { get; set; }
     /// <summary>Messages passed straight across between neighbouring desks, no runner needed.</summary>
     public int HandOvers { get; set; }
 
@@ -357,6 +362,7 @@ public sealed class Stats
         Breakdowns = Breakdowns,
         FitterRepairs = FitterRepairs,
         FitterServices = FitterServices,
+        DaytonStops = DaytonStops,
     };
 
     public static int Get(Dictionary<Net, int> d, Net n) => d.TryGetValue(n, out var v) ? v : 0;
