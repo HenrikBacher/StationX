@@ -1256,11 +1256,15 @@ public partial class Park3D : Node3D
         Mesh3.BoxAt(_buildings, cx + 1.02f, 0, cy + 0.9f, 0.08f, 0.9f, 0.08f, Gfx.OakDark);
         Mesh3.BoxAt(_buildings, cx - 1.25f, 0.55f, cy + 0.85f, 2.5f, 0.6f, 0.06f, new Color("cfc6ad"));
         var text = z.Available ? $"{z.Name.ToUpperInvariant()}\nOpen for £{z.Cost:N0}" : $"{z.Name.ToUpperInvariant()}\nNot yet authorised";
-        var l = Mesh3.Text(_buildings, text, new Vector3(cx, 0.86f, cy + 1.0f), 56, z.Available ? Gfx.Ink : Gfx.Ink.Lightened(0.3f), Fonts.Heading);
-        l.PixelSize = 0.0045f;
-        l.OutlineSize = 14;
-        l.OutlineModulate = Gfx.Cream;
-        l.NoDepthTest = true;
+        // Signwritten on the board, front and back, so it reads from either side and never floats over anything.
+        foreach (var (face, yaw) in new[] { (cy + 0.912f, 0f), (cy + 0.848f, Mathf.Pi) })
+        {
+            var l = Mesh3.Text(_buildings, text, new Vector3(cx, 0.85f, face), 52, z.Available ? Gfx.Ink : Gfx.Ink.Lightened(0.15f), Fonts.Heading, billboard: false);
+            l.PixelSize = 0.0036f;
+            l.DoubleSided = false;
+            l.Shaded = true;
+            l.Rotation = new Vector3(0, yaw, 0);
+        }
     }
 
     /// <summary>A plot that's only been surveyed: pegs round the footprint, string between them, a ranging pole.</summary>
