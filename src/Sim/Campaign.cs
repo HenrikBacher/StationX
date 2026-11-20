@@ -87,8 +87,8 @@ public static class Campaign
                 "The despatch box is already in the Mansion. The Y-station at Denmark Hill is taking down German police messages " +
                 "in a hand cipher that we can read, given time, and its dispatch riders will bring them up the drive to the " +
                 "registration desk.\n\n" +
-                "Set up a registration desk, a hand-cipher desk and a translation desk. Then accept a request from the War Office " +
-                "and get the traffic moving.",
+                "First accept a request from the War Office: Denmark Hill sends nothing until a ministry has asked for it, and " +
+                "the first rider takes a while. Meanwhile set up a registration desk, a hand-cipher desk and a translation desk.",
             Goals = new[]
             {
                 new Goal(GoalKind.Build, 1, "Build a registration desk", Station: StationType.Registration),
