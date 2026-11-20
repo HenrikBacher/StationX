@@ -49,7 +49,7 @@ public sealed partial class GameState
     public double Readiness()
     {
         if (CurrentOp is not { } op) return 0;
-        return Math.Clamp(Defs.OpIntelWeight * OpIntel() + Defs.OpSecrecyWeight * OpSecrecy(op) + Defs.OpBase + OpBonus + OshimaBonus, 0, 1);
+        return Math.Clamp(Defs.OpIntelWeight * OpIntel() + Defs.OpSecrecyWeight * OpSecrecy(op) + Defs.OpBase + OpBonus + OshimaBonus + FortitudeBonus, 0, 1);
     }
 
     public static OpOutcome OutcomeFor(double readiness) =>

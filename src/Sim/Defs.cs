@@ -166,6 +166,14 @@ public static partial class Defs
     public static readonly DateOnly BrusaFrom = new(1943, 5, 17);
     public const double BrusaRep = 3, BrusaSuspicion = 4;
     public const int BrusaAfterDays = 3;
+    /// <summary>
+    /// Double Cross (from the Colossus chapter): each agent's standing at first, what an Abwehr decrypt adds to the least sure,
+    /// the daily drift, the standing below which an agent may be blown (the chance a day, the reputation lost), readiness per
+    /// unit of standing on D-Day, ARTIST's day into the D-Day chapter and the doubt he leaves on TRICYCLE.
+    /// </summary>
+    public const double XxStartTrust = 0.6, XxPerDecrypt = 0.12, XxDrift = 0.04, XxBlownBelow = 0.15, XxBlownChance = 0.25, XxBlownRep = 3,
+                        XxReadiness = 0.016, XxArtistDoubt = 0.3;
+    public const int XxArtistDay = 2;
     /// <summary>The Wicked Uncles' early letter: offered below this reputation from Claymore; what it brings, and the proper channels instead.</summary>
     public const double UnclesAt = 25, UnclesRep = 10, UnclesMorale = 0.04, UnclesChannelsRep = 4;
     public const int UnclesFunds = 2000, UnclesChannelsFunds = 500, UnclesWrens = 3;

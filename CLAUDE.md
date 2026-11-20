@@ -296,6 +296,11 @@ Then (user requests, 2026-11-19):
   candidates on own dice, Wren intake at the later rate) +10 rep +£2000; option 0 proper channels +4 +£500. Action This Day's `OnStart`
   then gives `UnclesLaterFunds`/`UnclesLaterRep`. Dilemma header by tag; the suspicion line only when an option moves suspicion.
   `--modal=uncles`. Balance 40/23/1; Normal losses now spread over acts 4–14 (only one in 7–9).
+- Double Cross (`DoubleCross.cs`): `Agents` (`XxAgent`: Trust, Blown, Dropped) from the Colossus `OnStart` (`StartDoubleCross`; Abwehr
+  added to Colossus's pool). Daily `XxDrift` 0.04 (own dice 0x0DC5), below `XxBlownBelow` 0.15 a `XxBlownChance` 0.25 of blown
+  (−3 rep); each Abwehr delivery (`ReadAbwehr`) +`XxPerDecrypt` 0.12 to `LeastSure`; runs until D-Day. `FortitudeBonus` = Σ trust ×
+  `XxReadiness` 0.016 in `Readiness`. ARTIST (`Tag` "artist", `XxArtistDay` 2 into D-Day; `Action` "artist-drop"/"artist-keep").
+  Intelligence card, tip `doublecross`, readiness tooltip, war record line, `--modal=artist`. Balance 40/24/2.
 
 ### Graphics overhaul: period realism, CC0 assets allowed
 

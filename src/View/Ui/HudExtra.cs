@@ -50,6 +50,8 @@ public partial class Hud
                 tooltip: why ?? $"Desks cleared, safes checked, a word in every ear: Abwehr and SD suspicion −{Defs.SweepRelief:0}. Everyone on duty loses an hour's energy and a little morale. Once every {Defs.SweepCooldownDays} days.")));
         }
 
+        if (S.DoubleCrossOn) DoubleCrossCard();
+
         _sideBox.AddChild(UiTheme.Caps("Policy on using ULTRA", 12, UiTheme.Accent));
         var pol = new HBoxContainer();
         pol.AddThemeConstantOverride("separation", 4);
@@ -90,6 +92,38 @@ public partial class Hud
             }
         }
         OutstationCard();
+    }
+
+    /// <summary>MI5's double agents and how far the Abwehr believes them, as the last Abwehr decrypts showed.</summary>
+    void DoubleCrossCard()
+    {
+        _sideBox.AddChild(UiTheme.Caps("Double Cross", 12, UiTheme.Accent));
+        _sideBox.AddChild(UiTheme.Label("MI5's double agents, feeding Berlin FORTITUDE's army in Kent. Each Abwehr decrypt shows how one of them is received, " +
+                                        "the least certain first; an agent left unread for long may be blown." +
+                                        (S.FortitudeBonus > 0 ? $" Adds {S.FortitudeBonus * 100:0}% to D-Day's readiness." : " On D-Day, what Berlin still believes adds to its readiness."), 12, UiTheme.TextDim));
+        foreach (var a in S.Agents)
+        {
+            var name = UiTheme.Label(a.Name, 13, a.Active ? UiTheme.Text : UiTheme.TextDim, Fonts.BodyBold);
+            name.CustomMinimumSize = new Vector2(100, 0);
+            Control mid;
+            if (a.Active)
+            {
+                var bar = new ProgressBar { MinValue = 0, MaxValue = 1, Step = 0.01, Value = a.Trust, ShowPercentage = false, CustomMinimumSize = new Vector2(150, 10), SizeFlagsVertical = Control.SizeFlags.ShrinkCenter };
+                bar.AddThemeStyleboxOverride("fill", UiTheme.Box(a.Trust < Defs.XxBlownBelow * 2 ? Gfx.Bad : a.Trust < 0.5 ? Gfx.Warn : Gfx.Good, new Color(0, 0, 0, 0), 2, 0));
+                bar.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+                mid = bar;
+            }
+            else
+            {
+                mid = UiTheme.Label(a.Blown ? "blown" : "stood down", 12, a.Blown ? Gfx.Bad : UiTheme.TextDim);
+                mid.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+            }
+            var state = UiTheme.Label(a.Active ? (a.Trust >= 0.7 ? "believed" : a.Trust >= 0.4 ? "in doubt" : "in danger") : "", 12, UiTheme.TextDim);
+            state.CustomMinimumSize = new Vector2(64, 0);
+            var row = Row(name, mid, state);
+            row.TooltipText = $"{a.Name}: {a.Who}.";
+            _sideBox.AddChild(row);
+        }
     }
 
     void OutstationCard()
@@ -330,6 +364,9 @@ public partial class Hud
         yield return ("fitters", S.FittersOpen && !S.Staff.Any(s => s.Role == Role.Fitter) && S.Stats.Breakdowns > 0,
             $"Machines break down, and the outside fitters take hours and charge £{Defs.RepairCost}. RAF fitters of our own (Staff, H: post them to the Bombe hut) " +
             $"mend a breakdown in a third of the time for the parts alone, and service worn machines between jobs. One on each watch where the Bombes are.");
+        yield return ("doublecross", S.LeastSure() is { Trust: < 0.35 } && S.Act.Op == "overlord" || S.LeastSure() is { Trust: < 0.3 },
+            $"{S.LeastSure()?.Name} is in danger: we haven't seen how the Abwehr takes its reports for days, and an agent left in doubt may be blown. " +
+            "Abwehr decrypts (take Abwehr requests, and keep a hand-cipher desk going) show how they're received. Intelligence (I) shows each agent.");
         yield return ("dayton", S.DaytonBombes > 0 && !S.HasStation(StationType.OutstationLink),
             $"Washington's Bombes at Dayton will run our four-rotor menus whenever our own are busy ({S.DaytonBombes} of them now, more each month), " +
             "but the menus go by the outstation teleprinter and the cable. Build an outstation teleprinter (Build).");
@@ -453,6 +490,11 @@ public partial class Hud
             case "matapan":
                 S.Dilemmas.Clear();
                 S.DebugMatapan();
+                if (S.Dilemmas.Count > 0) ShowDilemma(S.Dilemmas[0]);
+                break;
+            case "artist":
+                S.Dilemmas.Clear();
+                S.DebugArtist();
                 if (S.Dilemmas.Count > 0) ShowDilemma(S.Dilemmas[0]);
                 break;
             case "uncles":
@@ -728,6 +770,7 @@ public partial class Hud
             "matapan" => "ULTRA · REGIA MARINA",
             "brusa" => "MOST SECRET · WASHINGTON",
             "uncles" => "MOST SECRET · DOWNING STREET",
+            "artist" => "MOST SECRET · MI5 · DOUBLE CROSS",
             _ => d.Service == Service.Security ? "SECURITY" : $"ULTRA · {Defs.ServiceNames[d.Service].ToUpperInvariant()}",
         };
         v.AddChild(Ink(header, 13, Fonts.BodyBold, UiTheme.Stamp));

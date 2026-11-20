@@ -120,6 +120,12 @@ public sealed partial class GameState
             case "generator" when PowerCut:
                 Generator = true;
                 break;
+            case "artist-drop":
+                ArtistAction(true);
+                break;
+            case "artist-keep":
+                ArtistAction(false);
+                break;
             case "uncles":
                 LetterSent();
                 break;

@@ -518,7 +518,9 @@ public static class Campaign
                 "It reads punched tape at five thousand characters a second and finds the chi-wheel settings far faster than any " +
                 "Testery desk. We call it Colossus. Wrens will run it.\n\n" +
                 "The invasion of France is coming. General Eisenhower needs to know whether Hitler believes the landings will " +
-                "come at Calais. The answer will be in TUNNY.",
+                "come at Calais. The answer will be in TUNNY.\n\n" +
+                "MI5's double agents, GARBO and the rest, are feeding the Abwehr the story of an army group in Kent. Only the Abwehr's own " +
+                "traffic tells us whether Berlin believes them: keep reading it.",
             Goals = new[]
             {
                 new Goal(GoalKind.Research, 1, "Research Colossus", Research: ResearchId.Colossus),
@@ -532,12 +534,14 @@ public static class Campaign
                 new ContractTemplate(Net.Tunny, 5, 8, 4, 6, 3),
                 new ContractTemplate(Net.Shark, 5, 8, 3, 5, 1),
                 new ContractTemplate(Net.Chaffinch, 5, 8, 3, 5, 1),
+                new ContractTemplate(Net.Abwehr, 3, 5, 3, 5, 1),
             },
             OnStart = g =>
             {
                 g.ResearchAvailable.Add(ResearchId.Colossus);
                 g.Funds += 4000;
                 g.Emit(EventKind.Good, "Colossus is approved: +£4000.");
+                g.StartDoubleCross();
                 g.Candidates.Add(Notable(g, "Max Newman", Role.Cryptanalyst, false,
                     "Mathematician. His section, the Newmanry, runs the machines.", Trait.Tireless, StationType.Testery));
                 g.AddScripted(Net.Tunny, 10, 6, 2500, 12, "dday", "Hitler's view of the invasion",

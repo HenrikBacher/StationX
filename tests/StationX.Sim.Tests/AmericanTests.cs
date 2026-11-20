@@ -112,3 +112,41 @@ public class UnclesTests
         Assert.DoesNotContain(g.Dilemmas, d => d.Tag == "uncles");
     }
 }
+
+public class DoubleCrossTests
+{
+    [Fact]
+    public void AbwehrDecryptsKeepTheAgentsBelievedAndAddToDDay()
+    {
+        var g = GameState.NewGame(3);
+        Assert.False(g.DoubleCrossOn);
+        g.DebugSkipToAct(Campaign.IndexOf("Colossus"));
+        Assert.Equal(5, g.Agents.Count);
+        Assert.All(g.Agents, a => Assert.Equal(Defs.XxStartTrust, a.Trust, 6));
+        // Each decrypt goes to the least sure.
+        g.Agents[2].Trust = 0.3;
+        g.DebugReadAbwehr();
+        Assert.Equal(0.3 + Defs.XxPerDecrypt, g.Agents[2].Trust, 6);
+        // Unread, they drift and in the end may be blown.
+        for (int i = 0; i < 30; i++) { g.Advance(Defs.MinutesPerDay); g.Reputation = 100; g.Dilemmas.Clear(); g.Events.Clear(); if (g.ActCompletePending) break; }
+        Assert.Contains(g.Agents, a => a.Blown || a.Trust < Defs.XxStartTrust - 0.2);
+        // On D-Day's chapter what's believed counts.
+        g.DebugSkipToAct(Campaign.IndexOf("D-Day"));
+        foreach (var a in g.Agents) { a.Blown = false; a.Trust = 1; }
+        Assert.Equal(5 * Defs.XxReadiness, g.FortitudeBonus, 6);
+    }
+
+    [Fact]
+    public void ArtistAsksAboutTricycle()
+    {
+        var g = GameState.NewGame(3);
+        g.DebugSkipToAct(Campaign.IndexOf("D-Day"));
+        g.Dilemmas.Clear();
+        g.DebugArtist();
+        var d = Assert.Single(g.Dilemmas, x => x.Tag == "artist");
+        Assert.True(g.ResolveDilemma(d.Id, 0));
+        var t = g.Agents.Single(a => a.Name == "TRICYCLE");
+        Assert.True(t.Dropped);
+        Assert.False(t.Active);
+    }
+}

@@ -345,6 +345,7 @@ public sealed class Stats
     public int FitterRepairs { get; set; }
     public int FitterServices { get; set; }
     public int DaytonStops { get; set; }
+    public int XxChecks { get; set; }
     /// <summary>Messages passed straight across between neighbouring desks, no runner needed.</summary>
     public int HandOvers { get; set; }
 
@@ -363,6 +364,7 @@ public sealed class Stats
         FitterRepairs = FitterRepairs,
         FitterServices = FitterServices,
         DaytonStops = DaytonStops,
+        XxChecks = XxChecks,
     };
 
     public static int Get(Dictionary<Net, int> d, Net n) => d.TryGetValue(n, out var v) ? v : 0;
