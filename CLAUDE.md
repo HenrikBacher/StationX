@@ -190,6 +190,10 @@ Then (user requests, 2026-11-19):
   time; the sim reclaiming the person ends a trip. `PersonModel.SyncCommute` (poses `Ride`, `ShowPass`, a shared
   `Bikes.Single` mesh); racks count cyclists present plus `Commuters.Parked`; the barrier lifts for them (`AtBarrier`).
   Walk 0.42 and bike 1.05 tiles a game minute (sim walkers do 0.28: a sim-side commute would cost hours of watch).
+- The billets bus (`Bus.cs`): the far-billeted ride it (`Commuters.BusWanted`: passengers about to step off, someone
+  walking out to it, a far-billeted watch ending within `BusDrive` or anyone of them off watch but still on site). It
+  stops with its door at `Commuters.StopPoint`, turns in the gateway to leave. Its passengers' pass checks are one block
+  (`BusGap` 1.6 apart, `BusCheck` 1.2 each) that others' checks are scheduled round. Shots: `--farbillet=N`.
 - Draw-call notes: Godot already instances identical mesh+material draws, so many copies of one mesh cost little; distinct
   boxes each cost a draw. `STX_COUNT=1` with `--shot` prints visible surfaces by owner (Stations by type, Buildings by
   kind). Bombe drums are two MultiMeshes per Bombe (`StationModel.TurnDrums`); the sentry, barrier pole and staff car

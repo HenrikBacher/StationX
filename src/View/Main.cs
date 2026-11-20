@@ -40,6 +40,7 @@ public partial class Main : Node3D
     double _snowClock = double.NaN;
     WorldEnvironment _env = null!;
     Commuters _commuters = null!;
+    Bus _bus = null!;
     MeshInstance3D _selRing = null!;
 
     public readonly Dictionary<int, StationModel> StationModels = new();
@@ -218,6 +219,8 @@ public partial class Main : Node3D
         _bikes = new Bikes { Name = "Bikes" };
         AddChild(_bikes);
         _commuters = new Commuters();
+        _bus = new Bus { Name = "Bus" };
+        AddChild(_bus);
         _geese = new Geese { Name = "Geese" };
         AddChild(_geese);
         _music = new Music { Name = "Music" };
@@ -380,6 +383,8 @@ public partial class Main : Node3D
             if (args.ContainsKey("flows")) ShowFlows = true;
             if (args.TryGetValue("modal", out var modal)) Hud.ShowNamed(modal);
             if (args.ContainsKey("visitor")) State.DebugVisitor();
+            if (args.TryGetValue("farbillet", out var fb))   // --farbillet=N : the N newest on the staff bussed in, to see the bus
+                foreach (var p in State.Staff.OrderByDescending(p => p.Id).Take(int.Parse(fb))) p.FarBillet = true;
             if (args.ContainsKey("rider") && State.Stations.FirstOrDefault(s => s.Type == StationType.Registration) is { } reg) State.DebugRider(reg.Id);
             _shotFrames = 30;
             if (args.TryGetValue("film", out var fm)) _film = int.Parse(fm);
@@ -418,6 +423,7 @@ public partial class Main : Node3D
         _furniture.Clear();
         _bikes.Clear();
         _commuters.Clear();
+        _bus.Clear();
         Rig.LookAtTile(11, 8);
         Rig.Cam.Size = 16;
         Paused = false;
@@ -500,6 +506,7 @@ public partial class Main : Node3D
         SyncStations(running ? dt : 0);
         BenchMark(2);
         _commuters.Update(State);
+        _bus.Sync(State, _commuters.BusWanted(State));
         SyncPeople(dt);
         BenchMark(3);
         _riders.Sync(State, running ? dt : 0, Speed, _park, _commuters.AtBarrier(State.Now));

@@ -29,9 +29,15 @@ public sealed class Commuters
     /// <summary>Game minutes: arrivals reach their door between Early.min and Early.max before the watch begins.</summary>
     static readonly (double min, double max) Early = (3, 30);
 
+    /// <summary>Bus passengers file past the sentry one after another: this far apart, each showing a pass this long.</summary>
+    const double BusGap = 1.6, BusCheck = 1.2;
+    /// <summary>Game minutes the bus takes to come up the road or to turn and go.</summary>
+    public const double BusDrive = 10;
+
     sealed class Trip
     {
-        public bool In, Bike;
+        public bool In, Bike, Bus;
+        public double Check = CheckMinutes;
         public List<Vector3> Pts = null!;
         public float[] Cum = null!;
         public float Total, GateDist;
@@ -51,6 +57,8 @@ public sealed class Commuters
     static Vector3 CheckPoint => new(0.32f, 0, Grid.Gate.y - 0.42f);
     static Vector3 GatePoint => new(Grid.Gate.x + 0.5f, 0, Grid.Gate.y + 0.5f);
     static Vector3 RoadPoint => new(RoadX, 0, Grid.Gate.y + 0.5f);
+    /// <summary>Where the bus's door opens at the stop short of the gate (see <see cref="Bus"/>).</summary>
+    public static Vector3 StopPoint => new(-3.9f, 0, Grid.Gate.y - 0.62f);
 
     /// <summary>Most of the Park cycled in from billets in the town and villages; the far-billeted came by bus.</summary>
     public static bool Cycles(Staff s) => !s.FarBillet && Gfx.Rand01(s.Id, 11, 5) < 0.6f;
@@ -84,7 +92,7 @@ public sealed class Commuters
         List<int>? done = null;
         foreach (var (id, t) in _trips)
         {
-            double end = t.In ? t.CheckFrom + CheckMinutes + (t.Total - t.GateDist) / t.Speed : t.Start + t.Total / t.Speed;
+            double end = t.In ? t.CheckFrom + t.Check + (t.Total - t.GateDist) / t.Speed : t.Start + t.Total / t.Speed;
             // Arrivals stay (inside, unseen) until the sim brings them on watch; give up on them an hour after.
             if (g.Now > end + (t.In ? 60 : 0) || g.StaffById(id) == null) (done ??= new()).Add(id);
         }
@@ -100,10 +108,10 @@ public sealed class Commuters
         var pts = new List<Vector3> { new((float)s.X, 0, (float)s.Y) };
         AddCorners(pts, from, path);
         pts.Add(GatePoint);
-        pts.Add(RoadPoint);
+        pts.Add(s.FarBillet ? StopPoint : RoadPoint);   // the far-billeted to the bus, the rest off down the road
         // Not all out of the door at once: some gather their things, finish a chat, or wait for a friend.
         double linger = Gfx.Rand01(s.Id, g.Day, 13) * Linger;
-        var t = new Trip { In = false, Bike = Cycles(s), Pts = pts, Start = g.Now + linger, Home = from };
+        var t = new Trip { In = false, Bike = Cycles(s), Bus = s.FarBillet, Pts = pts, Start = g.Now + linger, Home = from };
         Measure(t);
         _trips[s.Id] = t;
     }
@@ -119,6 +127,7 @@ public sealed class Commuters
     {
         // Each distinct watch start within reach gets planned once, for everyone then due.
         var due = new Dictionary<double, List<(Staff s, List<Vector3> route, double latest)>>();
+        var bus = new Dictionary<double, List<(Staff s, List<Vector3> route, double latest)>>();
         foreach (var s in g.Staff)
         {
             if (!s.Away || s.Leaving || _trips.ContainsKey(s.Id)) continue;
@@ -127,8 +136,10 @@ public sealed class Commuters
             if (s.IsSick(start) || s.Arriving(start)) continue;
             var home = ((int)Math.Floor(s.HomeX), (int)Math.Floor(s.HomeY));
             if (home == Grid.Gate || !g.Grid.Walkable(home.Item1, home.Item2)) continue;   // the sim brings them in at the gate itself
-            if (RouteIn(g, home) is not { } route) continue;
-            if (!due.TryGetValue(start, out var list)) due[start] = list = new();
+            if (RouteIn(g, home, s.FarBillet) is not { } route) continue;
+            var lists = s.FarBillet ? bus : due;
+            if (!lists.TryGetValue(start, out var list)) lists[start] = list = new();
+            if (!due.ContainsKey(start)) due[start] = new();
             // On the doorstep a little before the watch: a few minutes, or up to half an hour for the keen.
             double margin = Early.min + Gfx.Rand01(s.Id, g.Day, 9) * (Early.max - Early.min);
             double after = (Length(route) - Length(route, 2)) / (Cycles(s) ? BikeSpeed : WalkSpeed);
@@ -137,12 +148,30 @@ public sealed class Commuters
         foreach (var (start, list) in due)
         {
             _planned.Add(start);
+            // The bus's passengers file past the sentry together, through by the time the earliest of them must be.
+            double blockFrom = double.MaxValue, blockTo = double.MinValue;
+            if (bus.TryGetValue(start, out var riders) && riders.Count > 0)
+            {
+                riders.Sort((a, b) => a.s.Id.CompareTo(b.s.Id));
+                blockTo = double.MaxValue;
+                foreach (var r in riders) blockTo = Math.Min(blockTo, r.latest);
+                blockFrom = blockTo - riders.Count * BusGap;
+                for (int k = 0; k < riders.Count; k++)
+                {
+                    var (s, route, _) = riders[k];
+                    var t = new Trip { In = true, Bus = true, Check = BusCheck, Pts = route, CheckFrom = blockFrom + k * BusGap, Home = ((int)Math.Floor(s.HomeX), (int)Math.Floor(s.HomeY)) };
+                    Measure(t);
+                    t.Start = t.CheckFrom - t.GateDist / t.Speed;   // stepping off the bus
+                    _trips[s.Id] = t;
+                }
+            }
             // Work back from the latest: each check ends by when that person must be through, and before the next begins.
             list.Sort((a, b) => b.latest.CompareTo(a.latest));
             double next = double.MaxValue;
             foreach (var (s, route, latest) in list)
             {
                 double checkEnd = Math.Min(latest, next);
+                if (checkEnd > blockFrom && checkEnd - CheckMinutes < blockTo) checkEnd = blockFrom;   // not while the bus empties
                 double checkFrom = checkEnd - CheckMinutes;
                 next = checkFrom;
                 var t = new Trip { In = true, Bike = Cycles(s), Pts = route, CheckFrom = checkFrom, Home = ((int)Math.Floor(s.HomeX), (int)Math.Floor(s.HomeY)) };
@@ -155,18 +184,23 @@ public sealed class Commuters
     }
 
     /// <summary>Road, the barrier, through the gate and along the paths to a door. Shared by everyone going there today.</summary>
-    List<Vector3>? RouteIn(GameState g, (int x, int y) home)
+    List<Vector3>? RouteIn(GameState g, (int x, int y) home, bool byBus)
     {
-        if (_routesIn.TryGetValue(home, out var r)) return r;
-        var path = Pathfinder.Find(g.Grid, Grid.Gate, home);
-        if (path != null)
+        if (!_routesIn.TryGetValue(home, out var r))
         {
-            r = new List<Vector3> { RoadPoint, CheckPoint, GatePoint };
-            AddCorners(r, Grid.Gate, path);
-            r.Add(new Vector3(home.x + 0.5f, 0, home.y + 0.5f));
+            var path = Pathfinder.Find(g.Grid, Grid.Gate, home);
+            if (path != null)
+            {
+                r = new List<Vector3> { RoadPoint, CheckPoint, GatePoint };
+                AddCorners(r, Grid.Gate, path);
+                r.Add(new Vector3(home.x + 0.5f, 0, home.y + 0.5f));
+            }
+            _routesIn[home] = r;
         }
-        _routesIn[home] = r;
-        return r;
+        if (r == null || !byBus) return r;
+        var fromBus = new List<Vector3>(r);
+        fromBus[0] = StopPoint;
+        return fromBus;
     }
 
     /// <summary>Only the turns of a tile path, so the figure walks diagonally between them rather than in steps.</summary>
@@ -206,8 +240,8 @@ public sealed class Commuters
         float d;
         if (!t.In) d = (float)((now - t.Start) * t.Speed);
         else if (now < t.CheckFrom) d = Math.Min(t.GateDist, (float)((now - t.Start) * t.Speed));
-        else if (now < t.CheckFrom + CheckMinutes) { d = t.GateDist; checking = true; }
-        else d = t.GateDist + (float)((now - t.CheckFrom - CheckMinutes) * t.Speed);
+        else if (now < t.CheckFrom + t.Check) { d = t.GateDist; checking = true; }
+        else d = t.GateDist + (float)((now - t.CheckFrom - t.Check) * t.Speed);
         if (d >= t.Total) return false;   // in at the door, or off down the road
         int i = 1;
         while (i < t.Cum.Length - 1 && t.Cum[i] < d) i++;
@@ -222,7 +256,7 @@ public sealed class Commuters
             var dir = (b - a) / seg;
             var left = new Vector3(dir.Z, 0, -dir.X);
             float ease = Mathf.Clamp(Math.Min(d, Math.Min(t.Total - d, t.In ? Math.Abs(d - t.GateDist) : float.MaxValue)) / 1.2f, 0, 1);
-            at += left * ((t.Bike ? -0.12f : 0.24f) * ease);
+            at += left * ((t.Bike ? -0.28f : 0.3f) * ease);
         }
         heading = checking ? Sentry - at : b - a;
         // On the bicycle out of doors; wheeled through a building's door and out again.
@@ -237,7 +271,7 @@ public sealed class Commuters
     public Vector3? Checking(double now)
     {
         foreach (var t in _trips.Values)
-            if (t.In && now >= t.CheckFrom && now < t.CheckFrom + CheckMinutes) return CheckPoint;
+            if (t.In && now >= t.CheckFrom && now < t.CheckFrom + t.Check) return CheckPoint;
         return null;
     }
 
@@ -252,12 +286,35 @@ public sealed class Commuters
         return false;
     }
 
+    /// <summary>
+    /// The bus is wanted at the stop: passengers are about to step off (it comes up the road ahead of them), someone is
+    /// walking out to it, or a far-billeted watch is about to end.
+    /// </summary>
+    public bool BusWanted(GameState g)
+    {
+        double now = g.Now;
+        foreach (var t in _trips.Values)
+        {
+            if (!t.Bus) continue;
+            if (t.In ? now >= t.Start - BusDrive - 1 && now < t.Start + 0.5 : now < t.Start + t.Total / t.Speed) return true;
+        }
+        foreach (var s in g.Staff)
+        {
+            if (!s.FarBillet || s.Away || s.Leaving) continue;
+            if (!g.OnDuty(s)) return true;   // off watch and on their way out: the bus waits for them
+            double end = g.Day * Defs.MinutesPerDay + Defs.Shifts[s.Shift].EndHour * 60;
+            if (end <= now) end += Defs.MinutesPerDay;
+            if (end - now <= BusDrive + 1) return true;
+        }
+        return false;
+    }
+
     /// <summary>Cyclists who've arrived and gone in, but aren't on watch in the sim yet: their bicycles are in the rack.</summary>
     public int Parked(GameState g, Zone z)
     {
         int n = 0;
         foreach (var (id, t) in _trips)
-            if (t.In && t.Bike && g.Now >= t.CheckFrom + CheckMinutes + (t.Total - t.GateDist) / t.Speed && g.Grid.ZoneAt(t.Home.x, t.Home.y) == z) n++;
+            if (t.In && t.Bike && g.Now >= t.CheckFrom + t.Check + (t.Total - t.GateDist) / t.Speed && g.Grid.ZoneAt(t.Home.x, t.Home.y) == z) n++;
         return n;
     }
 }
