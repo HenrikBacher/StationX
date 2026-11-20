@@ -228,7 +228,7 @@ public sealed partial class GameState
 
     void RefreshCandidates()
     {
-        Candidates.RemoveAll(c => c.Notable == null);
+        Candidates.RemoveAll(c => c.Notable == null && !c.Crossword);
         foreach (var r in IntakeFor(ActIndex)) AddCandidate(r);
     }
 

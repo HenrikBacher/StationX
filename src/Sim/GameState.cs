@@ -208,6 +208,7 @@ public sealed partial class GameState
         DailyPeople();
         DailyIntelligence();
         DailySupplies();
+        DailyCrossword();
         DailySecurity();
         PlanFrequencyChanges();
         foreach (var k in Flows.Keys.ToList())

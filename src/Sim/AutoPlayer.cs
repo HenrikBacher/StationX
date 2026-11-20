@@ -333,6 +333,10 @@ public sealed class AutoPlayer
         if (g.WatchesAvailable)
             foreach (var r in want.Keys.ToList())
                 if (want[r] > 0) want[r] = Math.Max(3, want[r]);   // one per watch at least
+        // The crossword tip: run the competition when short of cryptanalysts.
+        if (g.CantHoldCrossword() == null && g.Funds > Defs.CrosswordCost + 400 &&
+            g.Staff.Count(s => s.Role == Role.Cryptanalyst && !s.Leaving) < want[Role.Cryptanalyst])
+            g.HoldCrossword();
         int before = g.Staff.Count;
         // The visits tip: the Treasury counts heads, so hire no more of a role the Workload panel shows standing idle
         // (unless its desks also go unstaffed).

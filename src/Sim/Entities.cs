@@ -131,6 +131,8 @@ public sealed class Staff
     public int Look { get; set; }
     public string? Notable { get; set; }
     public string? Bio { get; set; }
+    /// <summary>A candidate found through the Telegraph crossword: kept until hired or the next competition.</summary>
+    public bool Crossword { get; set; }
     public List<StationType> Specialties { get; set; } = new();
     public List<Trait> Traits { get; set; } = new();
     /// <summary>Careless talkers aren't known to be one until MI5 notices.</summary>

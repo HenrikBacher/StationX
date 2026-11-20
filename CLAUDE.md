@@ -158,6 +158,13 @@ Then (user requests, 2026-11-19):
   (`TelegraphLine`, `Wire`: sagging segments, a terminal post by the Mansion); nothing indoors shows under solid roofs.
   Shots hold reputation ≥ 25 so `--days` always reaches the date (seed 7 now loses on Normal around day 60).
 
+### Since v0.34.0 (2026-11-20)
+
+- Telegraph crossword (`Crossword.cs`, from `Defs.CrosswordFrom` 13 Jan 1942): `HoldCrossword` (£75, every 28 days) sends
+  `CrosswordRecruits` (3) skilled cryptanalysts with `CrosswordFiend` after 3 days (`DailyCrossword`, own dice); they carry
+  `Staff.Crossword` so the weekly refresh keeps them. Staff panel row, tip `crossword`, the autoplayer runs one when short
+  of cryptanalysts. Balance: Easy 40, Normal 22, Hard 4.
+
 ### Graphics overhaul: period realism, CC0 assets allowed
 
 The user chose realism (not a tabletop diorama or poster art) and allowed CC0 assets. Use Poly Haven 1K JPG maps

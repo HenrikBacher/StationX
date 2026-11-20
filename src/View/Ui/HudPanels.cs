@@ -59,7 +59,7 @@ public partial class Hud
         string sig = _panel switch
         {
             "build" => $"{S.Funds / 50}|{S.ActIndex}|{string.Join(",", S.Researched)}|{S.IndicatorChanged}",
-            "staff" => string.Join(",", S.Staff.Select(s => $"{s.Id}{s.Task?.Kind}{s.Leaving}{s.Away}{s.Shift}{(int)(s.Energy * 5)}{(int)(s.Morale * 5)}{s.FarBillet}{s.IsSick(S.Now)}{s.Arriving(S.Now)}{s.HeadOf}")) + $"|{S.Billets}{S.Funds >= Defs.BilletCost}{S.AllHands}{S.CanCallAllHands() == null}|{(int)S.Stores}{S.StoresOnOrder}{S.StandingOrder}{S.CanOrderStores() == null}|" +
+            "staff" => string.Join(",", S.Staff.Select(s => $"{s.Id}{s.Task?.Kind}{s.Leaving}{s.Away}{s.Shift}{(int)(s.Energy * 5)}{(int)(s.Morale * 5)}{s.FarBillet}{s.IsSick(S.Now)}{s.Arriving(S.Now)}{s.HeadOf}")) + $"|{S.Billets}{S.Funds >= Defs.BilletCost}{S.AllHands}{S.CanCallAllHands() == null}{S.CantHoldCrossword() == null}{S.CrosswordPending}|{(int)S.Stores}{S.StoresOnOrder}{S.StandingOrder}{S.CanOrderStores() == null}|" +
                        string.Join(",", S.Candidates.Select(c => c.Id)) + $"|{S.Funds / 25}|{(int)(S.Now / 30)}|{_idleFirst}",
             "requests" => string.Join(",", S.Contracts.Select(c => $"{c.Id}{c.State}{c.Priority}{c.Delivered}{c.Spawned}{c.MilestonesChecked}{(int)((c.State == ContractState.Offered ? c.OfferExpires : c.Due) - S.Now) / 60}")) +
                           $"|{string.Join(",", S.KeyBoardNets().Select(n => S.KeyRoute(n)))}",
@@ -248,6 +248,15 @@ public partial class Hud
             _sideBox.AddChild(Row(ah, UiTheme.Button("Call all hands", () => { S.CallAllHands(); _sideSig = ""; }, why == null,
                 tooltip: why ?? $"Call everyone off watch back in for {Defs.AllHandsHours:0} hours, at £{Defs.AllHandsPay} overtime each. Morale falls for all, those called in tire half as fast again, and you can't do it again for {Defs.AllHandsCooldownDays:0} days.")));
         }
+        if (S.CrosswordOpen)
+        {
+            string? why = S.CantHoldCrossword();
+            var cw = UiTheme.Label(S.CrosswordPending ? "Crossword competition under way" : "Short of cryptanalysts?", 13, S.CrosswordPending ? UiTheme.Text : UiTheme.TextDim);
+            cw.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+            _sideBox.AddChild(Row(cw, UiTheme.Button($"Telegraph crossword (£{Defs.CrosswordCost})", () => { S.HoldCrossword(); _sideSig = ""; }, why == null,
+                tooltip: why ?? $"The Daily Telegraph sets a puzzle and times the fastest solvers at its offices. {Defs.CrosswordRecruits} skilled cryptanalysts, crossword fiends all " +
+                               $"(faster, better cribs), join the candidates in {Defs.CrosswordDays} days and stay until hired or the next competition. Once every {Defs.CrosswordEveryDays:0} days.")));
+        }
         if (S.WatchesAvailable)
         {
             var v = Card(UiTheme.Accent);
@@ -358,7 +367,7 @@ public partial class Hud
             if (c.Bio != null)
             {
                 v.AddChild(UiTheme.Label(c.Bio, 12, UiTheme.Text));
-                v.AddChild(UiTheme.Label("Specialist: " + string.Join(", ", c.Specialties.Select(t => Defs.Station(t).Name.ToLowerInvariant())), 12, UiTheme.Accent));
+                if (c.Specialties.Count > 0) v.AddChild(UiTheme.Label("Specialist: " + string.Join(", ", c.Specialties.Select(t => Defs.Station(t).Name.ToLowerInvariant())), 12, UiTheme.Accent));
             }
             var id = c.Id;
             v.AddChild(Row(role, UiTheme.Button("Hire", () => S.Hire(id), S.Funds >= c.Salary,
