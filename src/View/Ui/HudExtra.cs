@@ -455,6 +455,11 @@ public partial class Hud
                 S.DebugMatapan();
                 if (S.Dilemmas.Count > 0) ShowDilemma(S.Dilemmas[0]);
                 break;
+            case "uncles":
+                S.Dilemmas.Clear();
+                S.DebugUncles();
+                if (S.Dilemmas.Count > 0) ShowDilemma(S.Dilemmas[0]);
+                break;
             case "brusa":
                 S.Dilemmas.Clear();
                 S.DebugBrusa();
@@ -718,7 +723,14 @@ public partial class Hud
         v.AddChild(Letterhead());
         v.AddChild(new HSeparator());
         v.AddChild(Ink($"{S.Date:d MMMM yyyy}, {(int)S.MinuteOfDay / 60:00}:{(int)S.MinuteOfDay % 60:00}", 13));
-        v.AddChild(Ink(d.Service == Service.Security ? "SECURITY" : d.Tag == "matapan" ? "ULTRA · REGIA MARINA" : d.Tag == "brusa" ? "MOST SECRET · WASHINGTON" : $"ULTRA · {Defs.ServiceNames[d.Service].ToUpperInvariant()}", 13, Fonts.BodyBold, UiTheme.Stamp));
+        string header = d.Tag switch
+        {
+            "matapan" => "ULTRA · REGIA MARINA",
+            "brusa" => "MOST SECRET · WASHINGTON",
+            "uncles" => "MOST SECRET · DOWNING STREET",
+            _ => d.Service == Service.Security ? "SECURITY" : $"ULTRA · {Defs.ServiceNames[d.Service].ToUpperInvariant()}",
+        };
+        v.AddChild(Ink(header, 13, Fonts.BodyBold, UiTheme.Stamp));
         v.AddChild(Ink(d.Title, 26, Fonts.Heading));
         v.AddChild(Ink(d.Text, 15));
         if (d.Context.Length > 0)
@@ -730,8 +742,9 @@ public partial class Hud
         double now = S.SuspicionOf(d.Service);
         var keys = S.ActiveNets.Where(n => Defs.NetOf(n).Service == d.Service).Select(n => Defs.NetOf(n).Name).ToList();
         string lose = keys.Count == 0 ? "" : $" At {(int)Defs.SuspicionLimit} it tightens its procedures and {(keys.Count == 1 ? keys[0] : string.Join(", ", keys.Take(keys.Count - 1)) + " and " + keys[^1])} can't be broken for {Defs.LockdownDays + 1} days.";
-        v.AddChild(Ink($"{Defs.ServiceNames[d.Service]} suspicion is {(int)now} of {(int)Defs.SuspicionLimit}.{lose}", 12, Fonts.Body,
-            now >= Defs.SuspicionWarn ? UiTheme.Stamp : null));
+        if (d.Options.Any(o => o.Suspicion != 0))
+            v.AddChild(Ink($"{Defs.ServiceNames[d.Service]} suspicion is {(int)now} of {(int)Defs.SuspicionLimit}.{lose}", 12, Fonts.Body,
+                now >= Defs.SuspicionWarn ? UiTheme.Stamp : null));
         for (int i = 0; i < d.Options.Count; i++)
         {
             var o = d.Options[i];

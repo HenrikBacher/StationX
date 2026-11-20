@@ -211,7 +211,7 @@ public sealed partial class GameState
         var roles = new List<Role> { Role.Clerk, Role.Cryptanalyst, Role.Linguist, Role.Clerk };
         if (act >= 1) roles.Add(Role.Messenger);
         // The WRNS could spare few women for Bletchley until Churchill's 'Action this day' in October 1941.
-        int wrens = act < 2 ? 0 : Mode == GameMode.FreePlay ? 2 : act < Defs.WrenShortageFrom ? 2 : act < Campaign.ActionThisDay ? 1 : 3;
+        int wrens = act < 2 ? 0 : Mode == GameMode.FreePlay ? 2 : act < Defs.WrenShortageFrom ? 2 : act < Campaign.ActionThisDay && !UnclesWrote ? 1 : 3;
         for (int i = 0; i < wrens; i++) roles.Add(Role.Wren);
         if (act >= 5) roles.Add(Role.Messenger);
         return roles;

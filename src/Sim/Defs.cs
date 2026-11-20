@@ -166,6 +166,12 @@ public static partial class Defs
     public static readonly DateOnly BrusaFrom = new(1943, 5, 17);
     public const double BrusaRep = 3, BrusaSuspicion = 4;
     public const int BrusaAfterDays = 3;
+    /// <summary>The Wicked Uncles' early letter: offered below this reputation from Claymore; what it brings, and the proper channels instead.</summary>
+    public const double UnclesAt = 25, UnclesRep = 10, UnclesMorale = 0.04, UnclesChannelsRep = 4;
+    public const int UnclesFunds = 2000, UnclesChannelsFunds = 500, UnclesWrens = 3;
+    /// <summary>What 'Action this day' still brings when the letter went early.</summary>
+    public const int UnclesLaterFunds = 2000;
+    public const double UnclesLaterRep = 4;
     public const int BrusaPoints = 3;
     public const int DaytonStart = 2, DaytonGrowDays = 30, DaytonMax = 6, DaytonCableMinutes = 240;
     /// <summary>The US Army's 6813th detachment: how many come in all, and the days between later arrivals.</summary>

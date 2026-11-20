@@ -385,9 +385,18 @@ public static class Campaign
             },
             OnStart = g =>
             {
-                g.Funds += 4000;
-                g.AdjustRep(10, "The Prime Minister");
-                g.Emit(EventKind.Good, "Action this day: +£4000 and the Prime Minister's backing.");
+                if (g.UnclesWrote)
+                {
+                    g.Funds += Defs.UnclesLaterFunds;
+                    g.AdjustRep(Defs.UnclesLaterRep, "The Prime Minister");
+                    g.Emit(EventKind.Good, $"The last of the Prime Minister's promises arrives: +£{Defs.UnclesLaterFunds}.");
+                }
+                else
+                {
+                    g.Funds += 4000;
+                    g.AdjustRep(10, "The Prime Minister");
+                    g.Emit(EventKind.Good, "Action this day: +£4000 and the Prime Minister's backing.");
+                }
                 g.Candidates.Add(Notable(g, "Hugh Alexander", Role.Cryptanalyst, false,
                     "British chess champion. Takes over Hut 8 and runs it superbly.", Trait.ChessPlayer, StationType.Banburismus, StationType.Crib));
             },

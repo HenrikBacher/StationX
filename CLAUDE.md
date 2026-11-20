@@ -291,6 +291,11 @@ Then (user requests, 2026-11-19):
   The 6813th (`SendUsArmy`, own dice salt 0x05A1): 2 at once then 1 per `UsArmyEveryDays` 21, up to 6, `Staff.American`, salary 0,
   kept by `RefreshCandidates`; first three are `Defs.UsArmyNotables`. Olive drab and a garrison cap (no scarf). Tip `dayton`,
   `--modal=brusa`, `--usarmy` (with `--lineup`). Balance 40/22/1.
+- Mid-game help (`Uncles.cs`): below `UnclesAt` (25) reputation from `Campaign.KissesFrom` (Claymore) to before `ActionThisDay`, once
+  (`ScriptedDone` "uncles", checked in the 2-minute schedule block): option 1 (`Action` "uncles" → `LetterSent`: `UnclesWrote`, 3 Wren
+  candidates on own dice, Wren intake at the later rate) +10 rep +£2000; option 0 proper channels +4 +£500. Action This Day's `OnStart`
+  then gives `UnclesLaterFunds`/`UnclesLaterRep`. Dilemma header by tag; the suspicion line only when an option moves suspicion.
+  `--modal=uncles`. Balance 40/23/1; Normal losses now spread over acts 4–14 (only one in 7–9).
 
 ### Graphics overhaul: period realism, CC0 assets allowed
 

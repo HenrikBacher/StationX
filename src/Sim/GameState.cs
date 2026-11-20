@@ -194,6 +194,7 @@ public sealed partial class GameState
             Schedule();
             FinishRemovals();
             CheckGoals();
+            if (Reputation < Defs.UnclesAt) MaybeUncles();
         }
         TrackUsage(dt);
     }
