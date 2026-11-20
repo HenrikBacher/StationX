@@ -185,6 +185,12 @@ Then (user requests, 2026-11-19):
   boxes each cost a draw. `STX_COUNT=1` with `--shot` prints visible surfaces by owner (Stations by type, Buildings by
   kind). Bombe drums are two MultiMeshes per Bombe (`StationModel.TurnDrums`); the sentry, barrier pole and staff car
   body are merged with `Mesh3.MergePainted`.
+- Performance review (2026-11-20, Intel Panther Lake iGPU, 1600x900, late Park at 6x): the main script ~1.4 ms a frame
+  (people 0.5, stations 0.35, sim 0.3), the sim ~47 ms per game day; the frame is GPU- and fill-bound (half resolution
+  halves it). `--bench=N` (with a shot's flags) runs N frames and prints ms per part, render CPU/GPU and draws;
+  `--nofx=ssao,ssil,glow,fog,sky,shadow,msaa,half,adjust,orth,split2,4k,2k` switches effects off to price them;
+  `--graphics=0|1|2`. Settings → Graphics (`Main.ApplyGraphics`): High (default) ~10 ms GPU, Balanced (no SSIL, FXAA,
+  4k shadows) ~8, Low (also no SSAO/glow, 2k shadows, 0.75 scale FSR) ~5. The sun uses 2 cascades (4 looked the same).
 
 ### Graphics overhaul: period realism, CC0 assets allowed
 

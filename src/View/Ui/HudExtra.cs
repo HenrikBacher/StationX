@@ -519,7 +519,7 @@ public partial class Hud
             sl.AddThemeStyleboxOverride("grabber_area", filled);
             sl.AddThemeStyleboxOverride("grabber_area_highlight", new StyleBoxLine { Color = UiTheme.Stamp, Thickness = 4 });
             var val = Ink(show(value), 13, Fonts.Typewriter, wrap: false);
-            val.CustomMinimumSize = new Vector2(52, 0);
+            val.CustomMinimumSize = new Vector2(72, 0);
             sl.ValueChanged += x => { set((float)x); val.Text = show((float)x); Settings.Apply(); Settings.Save(); };
             row.AddChild(sl);
             row.AddChild(val);
@@ -543,6 +543,7 @@ public partial class Hud
         Slider("Ambience", Settings.AmbienceVolume, 0, 1, 0.05f, x => Settings.AmbienceVolume = x, P);
         Slider("Music", Settings.MusicVolume, 0, 1, 0.05f, x => Settings.MusicVolume = x, P);
         Slider("Interface size", Settings.UiScale, 0.75f, 1.75f, 0.05f, x => Settings.UiScale = x, P);
+        Slider("Graphics", Settings.Graphics, 0, 2, 1, x => Settings.Graphics = (int)x, x => Settings.GraphicsNames[(int)x]);
         Toggle("Scroll at screen edges", Settings.EdgeScroll, x => Settings.EdgeScroll = x);
         Toggle("Hints and tips", Settings.Hints, x => { Settings.Hints = x; _hintsDone.Clear(); });
         Toggle("Film grain and vignette", Settings.FilmGrain, x => Settings.FilmGrain = x);

@@ -170,7 +170,7 @@ The game autosaves every morning. It also has three save slots and a quicksave.
 | F9 (debug builds) | +£5000, +50 breakthroughs |
 | F10 (debug builds) | skip to the next act |
 
-The settings (in the pause menu or on the title screen) cover volume, interface size (in a small window the interface keeps to a readable size), edge scrolling, hints and tips (a chapter-1 walkthrough, then one tip the first time each later system comes up), film grain and fullscreen. They are saved to `user://settings.cfg`. Saves go in `user://saves/`.
+The settings (in the pause menu or on the title screen) cover volume, interface size (in a small window the interface keeps to a readable size), edge scrolling, hints and tips (a chapter-1 walkthrough, then one tip the first time each later system comes up), graphics (High, Balanced or Low: Low draws the world at about half the cost, for older laptops), film grain and fullscreen. They are saved to `user://settings.cfg`. Saves go in `user://saves/`.
 
 ## Layout
 
@@ -211,7 +211,7 @@ godot --path . --resolution 1600x900 -- --selftest      # exits 1 on any failure
 Optional flags:
 
 - `--panel=requests|build|staff|research|huts|intel|stats|workload`
-- `--modal=pause|settings|save|load|newgame|dilemma|update|end` `--place=Type@x,y;...` puts stations down (free, building unlocked) for a visual check. `--lineup=x,y` stands everyone on duty in rows by role, to check how people look. `--age=H` makes every message H hours older; `--inspect=Type` opens the busiest station of that type (`--inspect=Clerk` or another role: someone of that role on duty).
+- `--modal=pause|settings|save|load|newgame|dilemma|update|end` `--place=Type@x,y;...` puts stations down (free, building unlocked) for a visual check. `--lineup=x,y` stands everyone on duty in rows by role, to check how people look. `--age=H` makes every message H hours older; `--inspect=Type` opens the busiest station of that type (`--inspect=Clerk` or another role: someone of that role on duty). `--bench=N` runs N frames at 6x after the warm-up and prints where each frame's time went (script parts, render CPU and GPU, draw calls); `--nofx=ssao,ssil,shadow,msaa,...` switches effects off to price them, `--graphics=0|1|2` picks the quality.
 - `--select=bombe`, `--briefing`, `--title`, `--build=Registration`
 - `--weather=fine|overcast|rain|fog|snow|storm`, `--raid`, `--head=hut6` (appoints the best cryptanalyst head of that hut)
 - `--quarter=0..3`, `--flows`, `--breakdown` (breaks the first machine and wears another)

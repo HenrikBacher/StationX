@@ -11,6 +11,13 @@ public static class Settings
     public static float UiScale = 1f;
     public static bool EdgeScroll = true, Hints = true, Fullscreen, FilmGrain = true, CheckUpdates = true;
 
+    /// <summary>0 Low, 1 Balanced, 2 High: what the 3D view spends on looks (see <c>Main.ApplyGraphics</c>).</summary>
+    public static int Graphics = 2;
+    public static readonly string[] GraphicsNames = { "Low", "Balanced", "High" };
+
+    /// <summary>Set by the game's main node: puts <see cref="Graphics"/> into effect.</summary>
+    public static System.Action? ApplyGraphics;
+
     public static void Load()
     {
         if (!Persist) return;
@@ -23,6 +30,7 @@ public static class Settings
         UiScale = (float)cfg.GetValue("display", "ui_scale", UiScale);
         Fullscreen = (bool)cfg.GetValue("display", "fullscreen", Fullscreen);
         FilmGrain = (bool)cfg.GetValue("display", "film_grain", FilmGrain);
+        Graphics = System.Math.Clamp((int)cfg.GetValue("display", "graphics", Graphics), 0, 2);
         EdgeScroll = (bool)cfg.GetValue("controls", "edge_scroll", EdgeScroll);
         Hints = (bool)cfg.GetValue("controls", "hints", Hints);
         CheckUpdates = (bool)cfg.GetValue("updates", "check", CheckUpdates);
@@ -42,6 +50,7 @@ public static class Settings
         cfg.SetValue("display", "ui_scale", UiScale);
         cfg.SetValue("display", "fullscreen", Fullscreen);
         cfg.SetValue("display", "film_grain", FilmGrain);
+        cfg.SetValue("display", "graphics", Graphics);
         cfg.SetValue("controls", "edge_scroll", EdgeScroll);
         cfg.SetValue("controls", "hints", Hints);
         cfg.SetValue("updates", "check", CheckUpdates);
@@ -52,6 +61,7 @@ public static class Settings
     public static void Apply()
     {
         Sound.SetVolumes(MasterVolume, SfxVolume, AmbienceVolume, MusicVolume);
+        ApplyGraphics?.Invoke();
         var mode = Fullscreen ? DisplayServer.WindowMode.Fullscreen : DisplayServer.WindowMode.Windowed;
         if (DisplayServer.GetName() != "headless" && DisplayServer.WindowGetMode() != mode
             && !(mode == DisplayServer.WindowMode.Windowed && DisplayServer.WindowGetMode() == DisplayServer.WindowMode.Maximized))

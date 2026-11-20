@@ -248,6 +248,7 @@ public partial class Main : Node3D
         overlayLayer.AddChild(new Overlay { Main = this, Name = "Overlay" });
         Hud = new Hud(this) { Name = "Hud" };
         AddChild(Hud);
+        Settings.ApplyGraphics = ApplyGraphics;
         Settings.Apply();
 
         var args = OS.GetCmdlineUserArgs().Select(a => a.Split('=', 2)).ToDictionary(a => a[0].TrimStart('-'), a => a.Length > 1 ? a[1] : "");
@@ -265,6 +266,7 @@ public partial class Main : Node3D
             if (Saves.Read(slot, out var err) is { } loaded) LoadState(loaded);
             else GD.PrintErr($"Could not load {slot}: {err}");
         }
+        if (args.TryGetValue("graphics", out var gq)) { Settings.Graphics = int.Parse(gq); ApplyGraphics(); }
         if (_selfTest)
         {
             // Don't wait on vsync: a window behind others gets its frames throttled by the compositor, and the
@@ -378,6 +380,34 @@ public partial class Main : Node3D
             if (args.TryGetValue("film", out var fm)) _film = int.Parse(fm);
             if (args.TryGetValue("every", out var ev)) _filmEvery = int.Parse(ev);
             if (args.TryGetValue("speed", out var spd)) Speed = int.Parse(spd);
+            if (args.TryGetValue("bench", out var bn))
+            {
+                _bench = int.Parse(bn);
+                if (!args.ContainsKey("speed")) Speed = 6;
+                DisplayServer.WindowSetVsyncMode(DisplayServer.VSyncMode.Disabled);
+                RenderingServer.ViewportSetMeasureRenderTime(GetViewport().GetViewportRid(), true);
+            }
+            if (args.TryGetValue("nofx", out var nofx))   // switch effects off to see what each costs: --nofx=ssao,ssil,...
+                foreach (var fx in nofx.Split(','))
+                {
+                    var e = _env.Environment;
+                    switch (fx)
+                    {
+                        case "ssao": e.SsaoEnabled = false; break;
+                        case "ssil": e.SsilEnabled = false; break;
+                        case "glow": e.GlowEnabled = false; break;
+                        case "fog": e.FogEnabled = false; break;
+                        case "sky": e.AmbientLightSource = Godot.Environment.AmbientSource.Color; e.ReflectedLightSource = Godot.Environment.ReflectionSource.Disabled; break;
+                        case "shadow": _sun.ShadowEnabled = false; break;
+                        case "msaa": GetViewport().Msaa3D = Viewport.Msaa.Disabled; break;
+                        case "half": GetViewport().Scaling3DScale = 0.5f; break;
+                        case "orth": _sun.DirectionalShadowMode = DirectionalLight3D.ShadowMode.Orthogonal; break;
+                        case "split2": _sun.DirectionalShadowMode = DirectionalLight3D.ShadowMode.Parallel2Splits; break;
+                        case "4k": RenderingServer.DirectionalShadowAtlasSetSize(4096, true); break;
+                        case "2k": RenderingServer.DirectionalShadowAtlasSetSize(2048, true); break;
+                        case "adjust": e.AdjustmentEnabled = false; break;
+                    }
+                }
         }
     }
 
@@ -447,7 +477,8 @@ public partial class Main : Node3D
         float dt = (float)delta;
         if (_shotFrames >= 0 && _shotFrames-- == 0)
         {
-            if (_film > 0) _filming = true;
+            if (_bench > 0) _benching = true;
+            else if (_film > 0) _filming = true;
             else
             {
                 GetViewport().GetTexture().GetImage().SavePng(_shotPath!);
@@ -482,8 +513,11 @@ public partial class Main : Node3D
             if (++_filmIdx >= _film) QuitGame();
         }
 
-        bool running = (!Paused && !Hud.ModalOpen && _shotPath == null) || _filming;
-        if (running) State.Advance(delta * Defs.GameMinutesPerRealSecond * Speed);
+        bool running = (!Paused && !Hud.ModalOpen && _shotPath == null) || _filming || _benching;
+        BenchMark(-1);
+        // A bench runs the clock at a steady 60 frames a second of game time, whatever the machine manages.
+        if (running) State.Advance((_benching ? 1 / 60.0 : delta) * Defs.GameMinutesPerRealSecond * Speed);
+        BenchMark(0);
         foreach (var e in State.Events)
         {
             Hud.OnEvent(e);
@@ -498,10 +532,13 @@ public partial class Main : Node3D
         State.Events.Clear();
         Soundscape(dt);
         Autosave();
+        BenchMark(1);
 
         _park.SetRoofs(Rig.Cam.Size);
         SyncStations(running ? dt : 0);
+        BenchMark(2);
         SyncPeople(dt);
+        BenchMark(3);
         _riders.Sync(State, running ? dt : 0, Speed, _park);
         _park.SetVisitor(State.VisitorHere);
         _bikes.Sync(State, dt, _park.PolesAt);
@@ -510,7 +547,75 @@ public partial class Main : Node3D
         UpdateHover();
         UpdateGhost();
         UpdateSelectionRing();
+        BenchMark(4);
         UpdateDayNight();
+        BenchMark(5);
+        if (_benching) BenchFrame();
+    }
+
+    /// <summary>
+    /// What the 3D view spends on looks, from the Graphics setting. High is the full picture. Balanced drops the bounce
+    /// light (SSIL) and swaps 2x MSAA for FXAA, with a smaller shadow map. Low also drops ambient occlusion and glow,
+    /// takes a smaller shadow map still, and renders the world at three-quarter resolution, upscaled with FSR (the HUD
+    /// stays sharp). On this project's integrated-GPU laptop at 1600x900: High ~12 ms a frame on the GPU, Balanced ~9, Low ~5.
+    /// </summary>
+    void ApplyGraphics()
+    {
+        if (_selfTest || _env == null || _sun == null) return;   // the self-test draws the world cheaply its own way
+        int q = Settings.Graphics;
+        var e = _env.Environment;
+        var vp = GetViewport();
+        e.SsilEnabled = q >= 2;
+        e.SsaoEnabled = q >= 1;
+        e.GlowEnabled = q >= 1;
+        vp.Msaa3D = q >= 2 ? Viewport.Msaa.Msaa2X : Viewport.Msaa.Disabled;
+        vp.ScreenSpaceAA = q >= 2 ? Viewport.ScreenSpaceAAEnum.Disabled : Viewport.ScreenSpaceAAEnum.Fxaa;
+        vp.Scaling3DMode = q >= 1 ? Viewport.Scaling3DModeEnum.Bilinear : Viewport.Scaling3DModeEnum.Fsr;
+        vp.Scaling3DScale = q >= 1 ? 1f : 0.75f;
+        // Two cascades look the same as Godot's default four under this fixed orthographic camera, and cost less;
+        // one loses thin shadows (the telegraph poles') altogether.
+        _sun.DirectionalShadowMode = DirectionalLight3D.ShadowMode.Parallel2Splits;
+        RenderingServer.DirectionalShadowAtlasSetSize(q switch { >= 2 => 8192, 1 => 4096, _ => 2048 }, true);
+    }
+
+    // ------------------------------------------------------------- --bench=N
+    // Runs N frames at 6x (or --speed) after the shot's warm-up and prints where the time went, per frame:
+    // the sim, events and the HUD's reaction, stations, people, the rest of the world, and the light and weather;
+    // then the engine's own process and physics times and the measured render time on CPU and GPU.
+
+    int _bench, _benchFrame;
+    bool _benching;
+    long _benchAt;
+    readonly double[] _benchMs = new double[6];
+    double _benchProcess, _benchCpu, _benchGpu, _benchDraws, _benchWall;
+    long _benchStart;
+    static readonly string[] BenchParts = { "sim", "events", "stations", "people", "world", "daylight" };
+
+    void BenchMark(int part)
+    {
+        if (!_benching) return;
+        long now = System.Diagnostics.Stopwatch.GetTimestamp();
+        if (part >= 0) _benchMs[part] += (now - _benchAt) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+        _benchAt = now;
+    }
+
+    void BenchFrame()
+    {
+        if (_benchFrame == 0) _benchStart = System.Diagnostics.Stopwatch.GetTimestamp();
+        var vp = GetViewport().GetViewportRid();
+        _benchProcess += Performance.GetMonitor(Performance.Monitor.TimeProcess) * 1000;
+        _benchCpu += RenderingServer.ViewportGetMeasuredRenderTimeCpu(vp) + RenderingServer.GetFrameSetupTimeCpu();
+        _benchGpu += RenderingServer.ViewportGetMeasuredRenderTimeGpu(vp);
+        _benchDraws += Performance.GetMonitor(Performance.Monitor.RenderTotalDrawCallsInFrame);
+        if (++_benchFrame < _bench) return;
+        int n = _benchFrame;
+        _benchWall = (System.Diagnostics.Stopwatch.GetTimestamp() - _benchStart) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+        GD.Print($"BENCH {n} frames at {Speed}x, {State.Staff.Count} staff, {State.Stations.Count} stations, day {State.Day}");
+        for (int i = 0; i < BenchParts.Length; i++) GD.Print($"BENCH {BenchParts[i],-10} {_benchMs[i] / n,7:0.000} ms");
+        GD.Print($"BENCH {"main",-10} {_benchMs.Sum() / n,7:0.000} ms (of process {_benchProcess / n:0.000} ms)");
+        GD.Print($"BENCH {"render cpu",-10} {_benchCpu / n,7:0.000} ms, gpu {_benchGpu / n:0.000} ms, {_benchDraws / n:0} draws");
+        GD.Print($"BENCH {"frame",-10} {_benchWall / n,7:0.000} ms wall ({n * 1000 / _benchWall:0} fps)");
+        QuitGame();
     }
 
     // ------------------------------------------------------------- syncing
