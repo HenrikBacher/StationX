@@ -304,7 +304,9 @@ public partial class Hud
             var head = UiTheme.Label(spareByRole.Count == 0
                     ? S.UseHours < 8 ? "Who is idle shows here once there's most of a day on record." : "Nobody stood idle most of their watch over the last day."
                     : "Idle most of their watch over the last day: " + string.Join(", ", spareByRole.Select(x => $"{x.n} {(x.n == 1 ? RoleWord(x.ro) : GameState.PluralWord(x.ro))}")) +
-                      ". Move them to a short watch, or dismiss some (click one).",
+                      (S.CourseAdvice() is var (cf, ct)
+                          ? $". Send some {GameState.PluralWord(cf)} on a course to work as {GameState.PluralWord(ct)} too (click one, then Learns), move them to a short watch, or dismiss some."
+                          : ". Move them to a short watch, or dismiss some (click one)."),
                 12, spareByRole.Count == 0 ? UiTheme.TextDim : Gfx.Warn);
             head.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
             var sort = new CheckBox { Text = "Idlest first", ButtonPressed = _idleFirst, TooltipText = "List each role by how idle they were on watch over the last day, the idlest first." };

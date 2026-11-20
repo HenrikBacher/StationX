@@ -636,7 +636,7 @@ public sealed partial class GameState
                     if (f.Kind == "unstaffed" && f.Role is Role short_ && Defs.Course(ro.Role, short_) != null) { learn = short_; break; }
                 list.Add(new UseFinding("idle",
                     $"{Defs.Roles[ro.Role].Plural} stood idle {P(idle)} of their time on watch: there's more of them than work for them." +
-                    (learn is Role l ? $" Send some on a course to work as {Defs.Roles[l].Plural.ToLowerInvariant()} too (Staff, pick one, Learn)." : ""),
+                    (learn is Role l ? $" Send some on a course to work as {PluralWord(l)} too (Staff, pick one, Learns)." : ""),
                     2 + idle * 4, Role: ro.Role));
             }
         }
