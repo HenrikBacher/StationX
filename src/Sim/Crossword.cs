@@ -48,7 +48,7 @@ public sealed partial class GameState
         CrosswordDueDay = -1;
         Candidates.RemoveAll(c => c.Crossword);
         var shared = Rng;
-        Rng = new Rng((ulong)Mix(Seed, Day, 0xC205) | 1);
+        Rng = Rng.Seeded(Mix(Seed, Day, 0xC205));
         for (int i = 0; i < Defs.CrosswordRecruits; i++)
         {
             var p = NewPerson(Role.Cryptanalyst, Rng.Chance(0.4) ? 3 : 2);

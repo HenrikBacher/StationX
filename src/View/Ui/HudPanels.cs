@@ -59,7 +59,7 @@ public partial class Hud
         string sig = _panel switch
         {
             "build" => $"{S.Funds / 50}|{S.ActIndex}|{string.Join(",", S.Researched)}|{S.IndicatorChanged}",
-            "staff" => string.Join(",", S.Staff.Select(s => $"{s.Id}{s.Task?.Kind}{s.Leaving}{s.Away}{s.Shift}{(int)(s.Energy * 5)}{(int)(s.Morale * 5)}{s.FarBillet}{s.IsSick(S.Now)}{s.Arriving(S.Now)}{s.HeadOf}")) + $"|{S.Billets}{S.Funds >= Defs.BilletCost}{S.AllHands}{S.CanCallAllHands() == null}{S.CantHoldCrossword() == null}{S.CrosswordPending}|{(int)S.Stores}{S.StoresOnOrder}{S.StandingOrder}{S.CanOrderStores() == null}|" +
+            "staff" => string.Join(",", S.Staff.Select(s => $"{s.Id}{s.Task?.Kind}{s.Leaving}{s.Away}{s.Shift}{(int)(s.Energy * 5)}{(int)(s.Morale * 5)}{s.FarBillet}{s.IsSick(S.Now)}{s.Arriving(S.Now)}{s.HeadOf}")) + $"|{S.Billets}{S.Funds >= Defs.BilletCost}{S.AllHands}{S.CanCallAllHands() == null}{S.CantHoldCrossword() == null}{S.CrosswordPending}{S.CantHoldSocial() == null}{S.SocialPending}{(int)(S.AverageMorale * 100)}|{(int)S.Stores}{S.StoresOnOrder}{S.StandingOrder}{S.CanOrderStores() == null}|" +
                        string.Join(",", S.Candidates.Select(c => c.Id)) + $"|{S.Funds / 25}|{(int)(S.Now / 30)}|{_idleFirst}",
             "requests" => string.Join(",", S.Contracts.Select(c => $"{c.Id}{c.State}{c.Priority}{c.Delivered}{c.Spawned}{c.MilestonesChecked}{(int)((c.State == ContractState.Offered ? c.OfferExpires : c.Due) - S.Now) / 60}")) +
                           $"|{string.Join(",", S.KeyBoardNets().Select(n => S.KeyRoute(n)))}",
@@ -256,6 +256,16 @@ public partial class Hud
             _sideBox.AddChild(Row(cw, UiTheme.Button($"Telegraph crossword (£{Defs.CrosswordCost})", () => { S.HoldCrossword(); _sideSig = ""; }, why == null,
                 tooltip: why ?? $"The Daily Telegraph sets a puzzle and times the fastest solvers at its offices. {Defs.CrosswordRecruits} skilled cryptanalysts, crossword fiends all " +
                                $"(faster, better cribs), join the candidates in {Defs.CrosswordDays} days and stay until hired or the next competition. Once every {Defs.CrosswordEveryDays:0} days.")));
+        }
+        if (S.SocialOpen)
+        {
+            string? why = S.CantHoldSocial();
+            var so = UiTheme.Label(S.SocialPending ? $"{char.ToUpper(S.NextSocial.name[0])}{S.NextSocial.name[1..]} at 19:30" : "Recreational Club", 13,
+                                   S.SocialPending ? UiTheme.Text : S.AverageMorale < Defs.MoraleBaseline - 0.15 ? Gfx.Warn : UiTheme.TextDim);
+            so.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+            _sideBox.AddChild(Row(so, UiTheme.Button($"Arrange an evening (£{Defs.SocialCost})", () => { S.HoldSocial(); _sideSig = ""; }, why == null,
+                tooltip: why ?? $"The Recreational Club puts on {S.NextSocial.name} at half past seven: everyone's spirits rise ({Defs.SocialMorale * 100:0} points), " +
+                               $"and quarrels are often made up. Once every {Defs.SocialEveryDays:0} days.")));
         }
         if (S.WatchesAvailable)
         {

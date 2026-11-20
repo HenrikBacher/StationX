@@ -307,6 +307,16 @@ public static partial class Defs
     public const int CrosswordDays = 3;
     public const double CrosswordEveryDays = 28;
     public const int CrosswordRecruits = 3;
+
+    // ---- The Recreational Club (Social.cs) ----
+    public const int SocialFromAct = 1;
+    public const int SocialCost = 50;
+    public const double SocialEveryDays = 10;
+    /// <summary>Half past seven in the evening.</summary>
+    public const double SocialHour = 19.5;
+    public const double SocialMorale = 0.08;
+    /// <summary>Chance each quarrel is made up at an evening.</summary>
+    public const double SocialMend = 0.5;
     // ---- Illness ----
     public const double SickChanceSummer = 0.002;
     public const double SickChanceWinter = 0.008;
@@ -705,6 +715,18 @@ public sealed class Rng
     public Rng() : this(0x9E3779B97F4A7C15UL) { }
 
     public Rng(ulong seed) { State = seed == 0 ? 0x9E3779B97F4A7C15UL : seed; }
+
+    /// <summary>
+    /// A system's own dice from a small seed (<c>GameState.Mix</c> is 31 bits), stirred through splitmix64 first: raw
+    /// xorshift's first draws from a small seed are tiny, so a fresh die's first <c>Chance</c> nearly always came up true.
+    /// </summary>
+    public static Rng Seeded(int seed)
+    {
+        ulong z = (ulong)(uint)seed + 0x9E3779B97F4A7C15UL;
+        z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9UL;
+        z = (z ^ (z >> 27)) * 0x94D049BB133111EBUL;
+        return new Rng(z ^ (z >> 31));
+    }
 
     public ulong Next()
     {

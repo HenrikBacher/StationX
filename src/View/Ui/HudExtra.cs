@@ -315,6 +315,9 @@ public partial class Hud
         yield return ("chiefs", S.ResearchDone() && S.CantReport() == null,
             $"There's nothing new to research for now, and the breakthroughs are piling up. Research (T) → Report to the Chiefs of Staff turns {S.ReportCost} of them into " +
             $"+{Defs.ReportRep:0} reputation, once a fortnight; each report costs more than the last. Keep enough back for the methods the war will bring.");
+        yield return ("social", S.CantHoldSocial() == null && S.AverageMorale < Defs.MoraleBaseline - 0.15,
+            $"Spirits are low across the Park ({S.AverageMorale:P0}), and unhappy people work slower and in the end leave. Staff (H) → Arrange an evening " +
+            $"(£{Defs.SocialCost}): the Recreational Club puts on a concert, a revue or a dance, and everyone's spirits rise. Once every {Defs.SocialEveryDays:0} days.");
         yield return ("crossword", S.CantHoldCrossword() == null && S.CrosswordAt < 0,
             $"The Daily Telegraph will run a crossword competition for us. Staff (H) → Telegraph crossword (£{Defs.CrosswordCost}): in {Defs.CrosswordDays} days " +
             $"{Defs.CrosswordRecruits} skilled cryptanalysts join the candidates, crossword fiends with faster, better cribs. Run one when you're short of cryptanalysts.");

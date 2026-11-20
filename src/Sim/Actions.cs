@@ -242,7 +242,7 @@ public sealed partial class GameState
         var before = IntakeFor(act - 1);
         // Their own dice, so the rest of the game rolls as it did before.
         var shared = Rng;
-        Rng = new Rng((ulong)Mix(Seed, act, 0x1A7A) | 1);
+        Rng = Rng.Seeded(Mix(Seed, act, 0x1A7A));
         foreach (var g in IntakeFor(act).GroupBy(r => r))
             for (int i = before.Count(r => r == g.Key); i < g.Count(); i++) AddCandidate(g.Key);
         Rng = shared;

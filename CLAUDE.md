@@ -208,6 +208,21 @@ Then (user requests, 2026-11-19):
   `--graphics=0|1|2`. Settings → Graphics (`Main.ApplyGraphics`): High (default) ~10 ms GPU, Balanced (no SSIL, FXAA,
   4k shadows) ~8, Low (also no SSAO/glow, 2k shadows, 0.75 scale FSR) ~5. The sun uses 2 cascades (4 looked the same).
 
+### Since v0.36.0 (2026-11-20)
+
+- Smoother frames: the save serializer warms up on a worker thread (`SaveGame.WarmUp`, first save 178 → 24 ms), toasts go
+  up one a frame (`Hud.ShowNextToast`), GC in `SustainedLowLatency`; `--bench` lists the five worst frames, slow event
+  handlers and collections. The measuring tools live in `MainBench.cs`. v0.35.0 installs match v0.36.0's base lists
+  (patch path checked).
+- The Recreational Club (`Social.cs`, from act `SocialFromAct` 1): Staff panel "Arrange an evening" (£50, every 10 days)
+  puts on the next of five kinds at 19:30 (`TickSocial`): morale +`SocialMorale` 0.08 for all, each quarrel mended with
+  `SocialMend` 0.5. Tip `social` (average morale < baseline − 0.15); the autoplayer follows it. Balance: 40/24/2.
+- `Rng.Seeded(int)`: a system's own dice go through splitmix64. Raw xorshift from a small `Mix` seed made a fresh die's
+  first `Chance` nearly always true (crossword winners, new-chapter intake). Use it for any new per-system dice; the main
+  game `Rng` is unchanged (existing seeds and tests keep their games).
+- Watches: measured in autoplayer games, shortages are spread evenly over the three watches (clerks, linguists at
+  peaks); nights are not specially unstaffed any more.
+
 ### Graphics overhaul: period realism, CC0 assets allowed
 
 The user chose realism (not a tabletop diorama or poster art) and allowed CC0 assets. Use Poly Haven 1K JPG maps
