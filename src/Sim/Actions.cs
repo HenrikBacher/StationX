@@ -19,6 +19,7 @@ public sealed partial class GameState
             return false;
         }
         if (t == StationType.Zygalski && IndicatorChanged) { reason = "Obsolete since 1 May 1940"; return false; }
+        if (t == StationType.Japanese && !JapanOpen) { reason = "From February 1942"; return false; }
         reason = "";
         return true;
     }
@@ -185,7 +186,7 @@ public sealed partial class GameState
             if (role == Role.Linguist) { options.Add(Trait.NativeGerman); options.Add(Trait.NativeGerman); }
             traits.Add(Rng.Pick(options));
         }
-        return new Staff
+        var p = new Staff
         {
             Traits = traits,
             Energy = 1,
@@ -197,6 +198,8 @@ public sealed partial class GameState
             Look = Rng.Range(0, 1000),
             Salary = baseSalary + (skill - 1) * baseSalary / 3,
         };
+        MaybeJapanese(p);
+        return p;
     }
 
     /// <summary>For tests.</summary>
@@ -518,6 +521,7 @@ public sealed partial class GameState
             : Enumerable.Range(0, c.Quantity)
             .Select(_ => Now + 20 + Rng.NextDouble() * window)
             .OrderBy(t => t).ToList();
+        NightTraffic(c);
     }
 
     public Contract MakeContract(ContractTemplate tpl)

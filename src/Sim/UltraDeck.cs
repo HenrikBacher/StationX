@@ -81,6 +81,7 @@ public sealed partial class GameState
         {
             Service.Kriegsmarine => t.Fill("Hut 8 broke the day's key {this morning|before lunch|in the small hours|after a long night}, and Hut 4 had it translated {within the hour|by teatime|before the watch changed}."),
             Service.Security => t.Fill("{The section that reads the Abwehr's ciphers|Oliver Strachey's section} {broke it this morning|had it out overnight|read it within hours}."),
+            Service.Japan => t.Fill("The night watch stripped the additive {in the small hours|before dawn|soon after midnight}, and the Japanese desk had the code groups in English {by breakfast|before the watch changed|within the hour}."),
             _ => t.Fill("Hut 6 broke the key {this afternoon|before lunch|in the small hours|after a long night}, and Hut 3 had it translated {within the hour|by teatime|before the watch changed}."),
         };
         t["sure"] = t.Pick("The text is clean and complete.", "Two groups are corrupt, but the meaning is plain.",
@@ -103,6 +104,7 @@ public sealed partial class GameState
             Service.Luftwaffe => LuftwaffeDeck(nd),
             Service.Heer => HeerDeck(),
             Service.Kriegsmarine => NavalDeck(),
+            Service.Japan => JapanDeck(),
             _ => SecurityDeck(nd),
         };
     }
@@ -399,6 +401,80 @@ public sealed partial class GameState
     }
 
     // ------------------------------------------------------------------ Abwehr and police
+
+    // ------------------------------------------------------------------ Japan
+
+    static readonly string[] IndianOceanConvoys = { "WS 19", "WS 21", "WS 24", "AP 12", "CM 31", "BM 46", "PA 8" };
+
+    IEnumerable<Scenario> JapanDeck()
+    {
+        yield return new Scenario("jsubs", t => true, t =>
+        {
+            HowRead(t, Service.Japan);
+            t["convoy"] = t.Pick(IndianOceanConvoys);
+            t["area"] = t.Pick("the Mozambique Channel", "the approaches to Bombay", "the Gulf of Aden", "the waters off Ceylon");
+            t["n"] = t.Range(2, 5).ToString();
+            return Dil(Service.Japan, t, "Submarines in {area}",
+                "JN-25 gives the patrol lines of {n} Japanese submarines in {area}, across the route of convoy {convoy}.",
+                "The Sixth Fleet's orders to its boats, read overnight. {read} {sure} Convoy {convoy} carries troops and stores for the Eighth Army and " +
+                "the Eastern Fleet. The Japanese believe JN-25 safe; a hunting group sent straight to each patrol line would test that belief.",
+                Opt("Send a hunting group to the patrol lines", "Two of the boats are caught on the surface. Tokyo orders a review of its code books.", rep: t.S(5), suspicion: t.S(16)),
+                Opt("Route {convoy} wide, as routine evasion", "The convoy passes well clear. The submarines report an empty sea, and nobody wonders why.", rep: t.S(3), suspicion: t.S(3), funds: -120),
+                Opt("Keep {convoy} on its course", "The submarines find the convoy. A troopship is torpedoed; the code stays safe.", rep: -t.S(2), suspicion: -3, tonnage: 9000));
+        }, 2);
+
+        yield return new Scenario("jsupply", t => true, t =>
+        {
+            HowRead(t, Service.Japan);
+            t["ship"] = t.Pick("Hokoku Maru", "Aikoku Maru", "Brake", "Charlotte Schliemann", "Kyokuto Maru");
+            t["port"] = t.Pick("Penang", "Singapore", "Batavia");
+            return Dil(Service.Japan, t, "A tanker for the raiders",
+                "JN-25 gives the {ship}'s rendezvous south of Mauritius, where she will fuel submarines out of {port}.",
+                "A signal fixing the time and place, read the night it was sent. {read} {sure} A cruiser at the rendezvous would catch her and " +
+                "the boats she feeds, but a rendezvous in empty ocean is a hard place to arrive by chance.",
+                Opt("Send a cruiser straight to the rendezvous", "The {ship} is caught refuelling and scuttles herself. Tokyo and Berlin both wonder how.", rep: t.S(5), suspicion: t.S(15)),
+                Opt("Fly a 'routine' search over the area first", "A Catalina 'happens' on her a day early. The cruiser follows the sighting, and the cover holds.", rep: t.S(3), suspicion: t.S(4), funds: -150),
+                Opt("File it for the plot", "The rendezvous goes on the Admiralty's plot of the Indian Ocean.", points: t.S(4)));
+        });
+
+        yield return new Scenario("jorbat", t => true, t =>
+        {
+            HowRead(t, Service.Japan);
+            t["force"] = t.Pick("a cruiser squadron", "two destroyer flotillas", "a seaplane tender and its aircraft", "a convoy escort group");
+            t["where"] = t.Pick("Singapore", "Penang", "Rangoon", "the Andaman Islands");
+            return Dil(Service.Japan, t, "Ships for {where}",
+                "JN-25 shows {force} moving to {where}.",
+                "A movement order and the fuelling that goes with it. {read} {sure} The Eastern Fleet would like to know at once; but it is the " +
+                "kind of thing a coastwatcher or a photograph might also have shown, given time.",
+                Opt("Warn the Eastern Fleet at once", "Admiral Somerville redisposes overnight. The Japanese notice how quickly.", rep: t.S(4), suspicion: t.S(10)),
+                Opt("Send it as a 'reconnaissance report'", "The fleet hears of it a little later, by way of a photographic sortie.", rep: t.S(2), suspicion: t.S(3), funds: -80),
+                Opt("File it for the order of battle", "The Japanese naval order of battle gains a page.", points: t.S(4)));
+        });
+
+        yield return new Scenario("ceylon", t => t.Between(1942, 3, 20, 1942, 4, 9), t =>
+        {
+            HowRead(t, Service.Japan);
+            return Dil(Service.Japan, t, "Carriers for Ceylon",
+                "JN-25 gives Admiral Nagumo's carriers a date in the Indian Ocean: an air raid on Colombo on 5 April.",
+                "The striking force's orders, read in pieces over several nights. {read} {sure} Colombo harbour is full of merchant ships and the " +
+                "Eastern Fleet is far weaker than five carriers. Emptying the harbour the day before would save them, and tell Tokyo what we know.",
+                Opt("Empty the harbour and hide the fleet", "The raiders find an empty harbour and wonder why.", rep: t.S(6), suspicion: t.S(18)),
+                Opt("Fly searches to the south-east and wait for a sighting", "A Catalina sights the carriers and is shot down. The warning comes in time for most of the ships.", rep: t.S(3), suspicion: t.S(4), funds: -150),
+                Opt("Leave things as they are", "The raid falls on a full harbour. Ships are lost, and Tokyo suspects nothing.", rep: -t.S(4), suspicion: -3, tonnage: 20000));
+        }, 3);
+
+        yield return new Scenario("yamamoto", t => t.Between(1943, 4, 10, 1943, 4, 18), t =>
+        {
+            HowRead(t, Service.Japan);
+            return Dil(Service.Japan, t, "Yamamoto's tour",
+                "JN-25 gives Admiral Yamamoto's timetable for a tour of the front: Rabaul to Ballale and Buin on the 18th, by bomber, with fighters.",
+                "The Americans have read the same signal. {read} Shooting down the man who planned Pearl Harbor would be a blow; it would also be " +
+                "an ambush no amount of luck could explain, unless the cover story is very good.",
+                Opt("Urge Washington to intercept him", "Lightnings meet the bombers over Bougainville. Tokyo changes its code books, and blames the coastwatchers.", rep: t.S(6), suspicion: t.S(18)),
+                Opt("Agree, if a coastwatcher story covers it", "The interception is put down to Australian coastwatchers. Tokyo half believes it.", rep: t.S(4), suspicion: t.S(6), funds: -100),
+                Opt("Advise against it, for the code's sake", "Yamamoto completes his tour. JN-25 stays open.", rep: -t.S(2), suspicion: -4));
+        }, 3);
+    }
 
     IEnumerable<Scenario> SecurityDeck(NetDef nd)
     {

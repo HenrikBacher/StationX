@@ -402,7 +402,10 @@ public static class Campaign
                 "Today the U-boats in the Atlantic switched to a new key we call SHARK, on an Enigma with four wheels. " +
                 "Our Bombes can't break it. We are blind in the Atlantic.\n\n" +
                 "The tonnage counter in the corner is ships sunk while we can't read SHARK. There's nothing we can do about it yet " +
-                "except keep every other key flowing, so that when the chance comes, we're ready for it.",
+                "except keep every other key flowing, so that when the chance comes, we're ready for it.\n\n" +
+                "Since Pearl Harbor we are at war with Japan too. The Far East Combined Bureau cables us the Japanese navy's code, JN-25: " +
+                "five-figure groups under an additive. A hand-cipher desk strips the additive, then a Japanese desk puts it into English, " +
+                "and only linguists back from the Bedford Japanese course can work that. Tokyo's day is our night: the traffic comes in after dark.",
             Goals = new[]
             {
                 new Goal(GoalKind.Deliver, 35, "Deliver 35 decrypts"),
@@ -410,6 +413,7 @@ public static class Campaign
             },
             Pool = new[]
             {
+                new ContractTemplate(Net.Jn25, 4, 7, 4, 6, 2),
                 new ContractTemplate(Net.Dolphin, 6, 10, 3, 5, 2),
                 new ContractTemplate(Net.Chaffinch, 6, 10, 3, 5, 2),
                 new ContractTemplate(Net.Red, 6, 10, 3, 4, 1),
@@ -438,6 +442,7 @@ public static class Campaign
             },
             Pool = new[]
             {
+                new ContractTemplate(Net.Jn25, 4, 7, 4, 6, 1),
                 new ContractTemplate(Net.Shark, 5, 8, 4, 6, 3, ResearchId.ShortWeatherCipher),
                 new ContractTemplate(Net.Dolphin, 5, 9, 3, 5, 1),
                 new ContractTemplate(Net.Chaffinch, 5, 9, 3, 5, 1),
@@ -475,6 +480,7 @@ public static class Campaign
             },
             Pool = new[]
             {
+                new ContractTemplate(Net.Jn25, 4, 7, 4, 6, 1),
                 new ContractTemplate(Net.Tunny, 4, 6, 4, 6, 3, ResearchId.Turingery),
                 new ContractTemplate(Net.Shark, 5, 8, 3, 5, 1),
                 new ContractTemplate(Net.Dolphin, 5, 8, 3, 5, 1),
@@ -509,6 +515,7 @@ public static class Campaign
             },
             Pool = new[]
             {
+                new ContractTemplate(Net.Jn25, 4, 7, 4, 6, 1),
                 new ContractTemplate(Net.Tunny, 5, 8, 4, 6, 3),
                 new ContractTemplate(Net.Shark, 5, 8, 3, 5, 1),
                 new ContractTemplate(Net.Chaffinch, 5, 8, 3, 5, 1),
@@ -546,6 +553,7 @@ public static class Campaign
             },
             Pool = new[]
             {
+                new ContractTemplate(Net.Jn25, 4, 7, 4, 6, 1),
                 new ContractTemplate(Net.Tunny, 4, 6, 2, 4, 3),
                 new ContractTemplate(Net.Abwehr, 3, 6, 2, 4, 2),
                 new ContractTemplate(Net.Shark, 4, 7, 2, 4, 2),
@@ -575,6 +583,7 @@ public static class Campaign
             },
             Pool = new[]
             {
+                new ContractTemplate(Net.Jn25, 4, 7, 4, 6, 1),
                 new ContractTemplate(Net.Red, 5, 8, 2, 4, 3),
                 new ContractTemplate(Net.Tunny, 4, 6, 2, 4, 2),
                 new ContractTemplate(Net.Shark, 4, 7, 3, 5, 1),
@@ -597,6 +606,7 @@ public static class Campaign
             },
             Pool = new[]
             {
+                new ContractTemplate(Net.Jn25, 4, 7, 4, 6, 1),
                 new ContractTemplate(Net.Red, 5, 8, 2, 4, 3),
                 new ContractTemplate(Net.Tunny, 4, 6, 2, 4, 2),
                 new ContractTemplate(Net.Shark, 4, 7, 3, 5, 1),
@@ -618,6 +628,7 @@ public static class Campaign
             },
             Pool = new[]
             {
+                new ContractTemplate(Net.Jn25, 4, 7, 4, 6, 1),
                 new ContractTemplate(Net.Tunny, 4, 7, 3, 5, 2),
                 new ContractTemplate(Net.Shark, 4, 7, 3, 5, 2),
                 new ContractTemplate(Net.Red, 5, 8, 3, 5, 1),
@@ -636,6 +647,8 @@ public static class Campaign
     public static readonly int OffizierFrom = Array.FindIndex(Acts, a => a.Title == "U-110");
     /// <summary>From Operation Claymore, Hut 8 can read the dockyard cipher (WERFT) for kisses.</summary>
     public static readonly int KissesFrom = IndexOf("Operation Claymore");
+    /// <summary>From the Blackout (February 1942, after Pearl Harbor), JN-25 traffic comes to the Park.</summary>
+    public static readonly int JapanFrom = IndexOf("The Blackout");
 
     public const string TunnyEpilogue =
         "On 1 June 1944 the improved Colossus Mark 2 started work. On 5 June, as the invasion fleet waited for the weather, " +

@@ -318,6 +318,10 @@ public partial class Hud
         yield return ("social", S.CantHoldSocial() == null && S.AverageMorale < Defs.MoraleBaseline - 0.15,
             $"Spirits are low across the Park ({S.AverageMorale:P0}), and unhappy people work slower and in the end leave. Staff (H) → Arrange an evening " +
             $"(£{Defs.SocialCost}): the Recreational Club puts on a concert, a revue or a dance, and everyone's spirits rise. Once every {Defs.SocialEveryDays:0} days.");
+        yield return ("japanese", S.JapanOpen && S.JapanWanted && (!S.HasStation(StationType.Japanese) || S.JapaneseReaders < (S.WatchesAvailable ? 3 : 1)),
+            "JN-25, the Japanese navy's code, comes in overnight. A hand-cipher desk strips its additive; then it needs a Japanese desk (Build), " +
+            $"and only linguists who've been on the Bedford Japanese course can work that: select a linguist, Learns → Japanese ({Defs.JapaneseCourseHours / 24:0} days away, " +
+            $"£{Defs.JapaneseCourseCost}). One reader per watch keeps the night's traffic moving.");
         yield return ("crossword", S.CantHoldCrossword() == null && S.CrosswordAt < 0,
             $"The Daily Telegraph will run a crossword competition for us. Staff (H) → Telegraph crossword (£{Defs.CrosswordCost}): in {Defs.CrosswordDays} days " +
             $"{Defs.CrosswordRecruits} skilled cryptanalysts join the candidates, crossword fiends with faster, better cribs. Run one when you're short of cryptanalysts.");

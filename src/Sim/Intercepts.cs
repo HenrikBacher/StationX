@@ -49,7 +49,12 @@ public static class Intercepts
 
         string preamble, cipher, raw;
         var family = Defs.NetOf(net).Family;
-        if (family == Family.Hand)
+        if (net == Net.Jn25)
+        {
+            (cipher, raw, preamble) = Jn25(de, seed, day, r);
+            preamble = $"{hhmm} = {preamble}";
+        }
+        else if (family == Family.Hand)
         {
             var key = new Random(Mix(seed, day, (int)net, 31));
             string k1 = Keyword(key), k2 = Keyword(key);
@@ -98,6 +103,7 @@ public static class Intercepts
             Net.Dolphin or Net.Shark => $"ZTPG/{r.Next(1000, 99999)}",
             Net.Tunny => $"ZTPGU/{r.Next(100, 9999)}",
             Net.Werft => $"NS/W/{r.Next(100, 9999)}",
+            Net.Jn25 => $"JN/{r.Next(1000, 99999)}",
             _ => $"CX/MSS/{r.Next(100, 2999)}/T{r.Next(1, 60)}",
         };
         return new InterceptText(station, log, preamble, cipher, raw, de, en, serial, garbled);
@@ -109,7 +115,7 @@ public static class Intercepts
         if (m.Loc == Loc.Done) return ReadStage.Translated;
         return m.Next switch
         {
-            StationType.Translation => ReadStage.Decrypted,
+            StationType.Translation or StationType.Japanese => ReadStage.Decrypted,
             StationType.Dispatch or StationType.Index => ReadStage.Translated,
             _ => ReadStage.Intercept,
         };
@@ -142,6 +148,7 @@ public static class Intercepts
         Net.Dolphin or Net.Shark or Net.Werft => "ADMIRALTY Y, SCARBOROUGH",
         Net.Abwehr => "R.S.S. ARKLEY",
         Net.Tunny => "FOREIGN OFFICE, KNOCKHOLT",
+        Net.Jn25 => "F.E.C.B. KILINDINI, BY CABLE",
         _ => "METROPOLITAN POLICE, DENMARK HILL",
     };
 
@@ -162,6 +169,45 @@ public static class Intercepts
         for (int i = 0; i < c.Length; i++)
             if (char.IsAsciiLetterUpper(c[i]) && r.NextDouble() < 0.07) c[i] = r.NextDouble() < 0.4 ? '-' : (char)('A' + r.Next(26));
         return new string(c);
+    }
+
+    static readonly string[] JaUnits = { "", "ICHI", "NI", "SAN", "YON", "GO", "ROKU", "NANA", "HACHI", "KYUU" };
+
+    /// <summary>A number in Japanese, as JN-25's book had words for (1 to 99).</summary>
+    static string Ja(int n)
+    {
+        n = Math.Clamp(n, 1, 99);
+        int tens = n / 10, units = n % 10;
+        return ((tens > 1 ? JaUnits[tens] : "") + (tens > 0 ? "JUU" : "") + JaUnits[units]).Trim();
+    }
+
+    /// <summary>
+    /// JN-25: each word a five-figure code group from the book (all divisible by three, the book's own check), then
+    /// an additive from the day's table added figure by figure without carrying. Returns the cipher, the stripped
+    /// code groups, and the preamble's group count and starting point in the additive table.
+    /// </summary>
+    static (string cipher, string raw, string preamble) Jn25(string text, int seed, int day, Random r)
+    {
+        var words = text.Split(' ', StringSplitOptions.RemoveEmptyEntries).Where(w => w != "/").ToList();
+        var code = words.Select(w =>
+        {
+            int h = 0;
+            foreach (char ch in w) h = unchecked(h * 31 + ch);
+            return (int)((uint)h % 33333) * 3;   // 0..99996, divisible by three
+        }).ToList();
+        var table = new Random(Mix(seed, day, (int)Net.Jn25, 25));
+        int start = r.Next(0, 500);
+        for (int i = 0; i < start; i++) table.Next();
+        var outGroups = new List<string>();
+        foreach (int g in code)
+        {
+            int add = table.Next(0, 100000), sum = 0, place = 1;
+            for (int k = 0; k < 5; k++, place *= 10) sum += ((g / place % 10 + add / place % 10) % 10) * place;
+            outGroups.Add(sum.ToString("00000"));
+        }
+        string indicator = $"{start / 100 + 1:00}{start % 100:000}";
+        return (string.Join(" ", outGroups), string.Join(" ", code.Select(g => g.ToString("00000"))),
+                $"{code.Count} = {indicator} =");
     }
 
     static string Pad(string s, Random r) { while (s.Length % 5 != 0) s += (char)('A' + r.Next(26)); return s; }
@@ -227,7 +273,8 @@ public static class Intercepts
             if (!parts.Contains(p)) parts.Add(p);
         }
         var head = Header(net, r);
-        string de = head.de + " X " + string.Join(" X ", parts.Select(p => p.de)) + " X";
+        string stop = net == Net.Jn25 ? " / " : " X ";
+        string de = head.de + stop + string.Join(stop, parts.Select(p => p.de)) + stop.TrimEnd();
         string en = head.en + "\n\n" + string.Join(" ", parts.Select(p => p.en));
         return (de, en);
     }
@@ -289,6 +336,13 @@ public static class Intercepts
             P("AN MARINEGRUPPE WEST VON MARINEWETTERDIENST", "To: Naval Group West. From: Naval weather service."),
             P("AN KRIEGSMARINEWERFT KIEL VON HAFENSCHUTZFLOTTILLE KIEL", "To: Naval dockyard, Kiel. From: Harbour defence flotilla, Kiel."),
             P("AN ADMIRAL NORWEGEN VON MARINEWERFT TRONDHEIM", "To: Admiral Norway. From: Naval dockyard, Trondheim."),
+        }),
+        Net.Jn25 => Pick(r, new[]
+        {
+            P("DAI ICHI NANKEN KANTAI ATE RENGOU KANTAI SHIREIBU YORI", "To: First Southern Expeditionary Fleet. From: Combined Fleet headquarters."),
+            P("DAI ROKU KANTAI ATE PENANG KONKYOCHITAI YORI", "To: Sixth Fleet (submarines). From: Penang base force."),
+            P("KAKU SENSUIKAN ATE DAI HACHI SENSUI SENTAI SHIREI YORI", "To: all submarines. From: 8th Submarine Squadron."),
+            P("SHOUNAN KONKYOCHITAI ATE DAI NI NANKEN KANTAI YORI", "To: Singapore base force. From: Second Southern Expeditionary Fleet."),
         }),
         Net.Tunny => Pick(r, new[]
         {
@@ -374,7 +428,7 @@ public static class Intercepts
         var pool = new List<(string de, string en)>();
         void Add(params (string de, string en)[] xs) => pool.AddRange(xs);
         void Now(params (string de, string en)[] xs) { pool.AddRange(xs); pool.AddRange(xs); pool.AddRange(xs); }   // topical: three times as likely
-        Routine(net, r, d, pool);
+        if (net != Net.Jn25) Routine(net, r, d, pool);   // German procedure; Tokyo's is its own
 
         switch (net)
         {
@@ -625,6 +679,37 @@ public static class Intercepts
                     Now(w.Pair("SCHARNHORST {UND GNEISENAU |}IM DOCK BREST {AUSBESSERUNG|INSTANDSETZUNG} DAUERT AN", "SCHARNHORST {and GNEISENAU |}in dock at Brest. {Repairs|Refit} continuing."));
                 if (In(d, 1942, 1, 16, 1944, 11, 12))
                     Now(w.Pair("TIRPITZ {LIEGEPLATZ|NETZSPERRE} {FAETTENFJORD|KAAFJORD} {UNVERAENDERT|VERSTAERKT}", "TIRPITZ: {berth|anti-torpedo nets} at {Fættenfjord|Kåfjord} {unchanged|strengthened}."));
+                break;
+            }
+            case Net.Jn25:
+            {
+                var port = Pick(r, new[] { P("SHOUNAN", "Singapore"), P("PENANG", "Penang"), P("RANGUUN", "Rangoon"), P("SURABAYA", "Surabaya"), P("BATABIA", "Batavia"), P("MANIRA", "Manila") });
+                var area = Pick(r, new[] { P("SEIRON OKI", "off Ceylon"), P("BENGARU WAN", "in the Bay of Bengal"), P("MOZANBIIKU KAIKYOU", "in the Mozambique Channel"),
+                                           P("ANDAMAN KAI", "in the Andaman Sea"), P("MARAKKA KAIKYOU", "in the Malacca Strait"), P("ARABIA KAI", "in the Arabian Sea") });
+                int boat = r.Next(8, 40);
+                Add(P($"YUSOUSEN {Ja(b % 6 + 2)} SEKI {port.de} YORI SHUPPATSU {Ja(c)} NICHI", $"{b % 6 + 2} transports sail from {port.en} on the {Ord(c)}."),
+                    P($"I {Ja(boat)} GOU SENSUIKAN {area.de} NI TOUCHAKU", $"Submarine I-{boat} has reached its patrol area {area.en}."),
+                    P($"TEKI JUNYOUKAN {Ja(b % 3 + 1)} SEKI {area.de} NI MITOMU", $"{b % 3 + 1} enemy cruiser{(b % 3 == 0 ? "" : "s")} sighted {area.en}."),
+                    P($"TEKI SENDAN {area.de} HOKUJOU CHUU", $"Enemy convoy {area.en}, steering north."),
+                    P($"NENRYOU ZANRYOU {Ja(a)} PAASENTO HOKYUU WO KOU", $"Fuel remaining {a} per cent. Request replenishment."),
+                    P($"KOUKUUKI {Ja(a)} KI {port.de} NI SHINSHUTSU", $"{a} aircraft moving forward to {port.en}."),
+                    P($"{Ja(c)} NICHI YORI SHIN RANSUUHYOU SHIYOU", $"New additive tables in force from the {Ord(c)}."),
+                    P($"{port.de} KOUWAN NI KYUUYUSEN {Ja(b % 4 + 1)} SEKI TAIKI", $"{b % 4 + 1} oilers waiting in {port.en} harbour."),
+                    // Tokyo's own routine: repeats and call-sign changes.
+                    P($"DAI {Ja(a)} GOU DENPOU SAISOU WO KOU", $"Request repeat of signal No. {a}."),
+                    P($"YOBIDASHI FUGOU {Ja(c)} NICHI YORI HENKOU", $"Call signs change from the {Ord(c)}."));
+                if (In(d, 1942, 3, 20, 1942, 4, 9))
+                    Now(P("KIDOU BUTAI SHIGATSU ITSUKA KORONBO KUUSHUU", "The striking force will raid Colombo on 5 April."),
+                        P("KIDOU BUTAI INDO YOU NI SHINNYUU", "The striking force is entering the Indian Ocean."));
+                if (In(d, 1942, 5, 1, 1942, 6, 6))
+                    Now(P("MI SAKUSEN KIDOU BUTAI SHUPPATSU", "Operation MI: the striking force sails."),
+                        P("AF KOURYAKU BUTAI NO JUNBI KANRYOU", "The force to take AF (Midway) is ready."));
+                if (In(d, 1943, 4, 10, 1943, 4, 18))
+                    Now(P("RENGOU KANTAI SHIREI CHOUKAN BUIN SHISATSU JUUHACHI NICHI", "The C-in-C Combined Fleet will inspect Buin on the 18th."));
+                if (In(d, 1944, 3, 1, 1944, 7, 15))
+                    Now(P("U GOU SAKUSEN NO TAME RANGUUN E NO YUSOU WO ISOGU", "For Operation U-GO, hurry the shipping to Rangoon."));
+                if (In(d, 1944, 10, 10, 1944, 10, 26))
+                    Now(P("SHOU ICHI GOU SAKUSEN HATSUDOU ZEN BUTAI REITE WAN E", "Operation SHO-1 is launched. All forces to Leyte Gulf."));
                 break;
             }
             case Net.Tunny:

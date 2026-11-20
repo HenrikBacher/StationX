@@ -179,7 +179,8 @@ public sealed partial class GameState
     public string? CanBuyDf(Service sv)
     {
         if (DirectionFinding.Contains(sv)) return "Working";
-        var y = Defs.YStations.First(s => s.Df == sv);
+        var y = Defs.YStations.FirstOrDefault(s => s.Df == sv);
+        if (y == null) return "No direction-finding stations cover it";
         if (ActIndex < y.DfFromAct) return "Not available yet";
         if (Funds < Defs.DfCost) return $"Needs £{Defs.DfCost}";
         return null;

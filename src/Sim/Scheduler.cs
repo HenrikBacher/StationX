@@ -50,8 +50,8 @@ public sealed partial class GameState
         var cantReach = new HashSet<int>();
         for (int tries = 0; tries < 4 && who == null; tries++)
         {
-            var cand = FindIdle(st.UseTile, s => s.Pinned == st.Id && !cantReach.Contains(s.Id))
-                       ?? FindIdle(st.UseTile, s => s.Role == role && s.Pinned == null && MayWorkAt(s, st.UseTile) && !cantReach.Contains(s.Id))
+            var cand = FindIdle(st.UseTile, s => s.Pinned == st.Id && CanOperate(s, st) && !cantReach.Contains(s.Id))
+                       ?? FindIdle(st.UseTile, s => s.Role == role && s.Pinned == null && CanOperate(s, st) && MayWorkAt(s, st.UseTile) && !cantReach.Contains(s.Id))
                        ?? (_secondRoles ? SecondHand(st, role, cantReach) : null);
             if (cand == null) break;
             if (SendTo(cand, st.UseTile)) who = cand;
@@ -68,7 +68,7 @@ public sealed partial class GameState
 
     /// <summary>Someone who learned this role on a course, free because their own work has nothing waiting.</summary>
     Staff? SecondHand(Station st, Role role, HashSet<int> cantReach) =>
-        FindIdle(st.UseTile, s => s.Second == role && s.Pinned == null && MayWorkAt(s, st.UseTile) && !cantReach.Contains(s.Id) && !RoleNeeded(s.Role));
+        FindIdle(st.UseTile, s => s.Second == role && s.Pinned == null && CanOperate(s, st) && MayWorkAt(s, st.UseTile) && !cantReach.Contains(s.Id) && !RoleNeeded(s.Role));
 
     /// <summary>A runner holding messages with nowhere to go.</summary>
     void Redirect(Staff s, StaffTask t)
@@ -279,7 +279,7 @@ public sealed partial class GameState
 
     /// <summary>A specialist shouldn't wander off to run errands while their machines have work.</summary>
     bool RoleNeeded(Role r) =>
-        Stations.Any(st => st.Def.Operator == r && st.OperatorId == null && !st.Obsolete &&
+        Stations.Any(st => st.Def.Operator == r && st.OperatorId == null && !st.Obsolete && st.Type != StationType.Japanese &&
                            (st.Input.Count > 0 || st.Current != null || st.ReservedInputs > 0));
 
     Station? BestDestination(StationType next, (int x, int y) from, int need)
@@ -305,7 +305,7 @@ public sealed partial class GameState
     {
         if (st.Def.Operator is not Role role) return true;
         foreach (var s in Staff)
-            if (!s.Leaving && s.HeadOf == null && (s.Pinned == st.Id || (s.Pinned == null && (s.Role == role || s.Second == role) && MayWorkAt(s, st.UseTile)))) return true;
+            if (!s.Leaving && s.HeadOf == null && CanOperate(s, st) && (s.Pinned == st.Id || (s.Pinned == null && (s.Role == role || s.Second == role) && MayWorkAt(s, st.UseTile)))) return true;
         return false;
     }
 

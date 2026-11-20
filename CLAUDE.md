@@ -220,6 +220,16 @@ Then (user requests, 2026-11-19):
 - `Rng.Seeded(int)`: a system's own dice go through splitmix64. Raw xorshift from a small `Mix` seed made a fresh die's
   first `Chance` nearly always true (crossword winners, new-chapter intake). Use it for any new per-system dice; the main
   game `Rng` is unchanged (existing seeds and tests keep their games).
+- JN-25 (`Japan.cs`, from `Campaign.JapanFrom` = the Blackout): `Net.Jn25` (hand family, not naval), `Service.Japan`, Y-station
+  "Kilindini cables" (no DF; `CanBuyDf` copes with services without one). Path: registration → hand-cipher (strips the
+  additive) → `StationType.Japanese` (appended last; Linguist, mansion/hut3/hut8) → dispatch. Only staff with
+  `Trait.Japanese` work that desk (`GameState.CanOperate`, used in `FindOperator`, `SecondHand`, `CanBeStaffed`; left out
+  of `RoleNeeded`). The trait comes from the Bedford course (`LearnJapanese`, inspector Learns item `JapaneseItem`, 120 h
+  £90) or a quarter of linguist candidates (`MaybeJapanese`, own dice). `NightTraffic` maps spawn times onto 22:00–08:00.
+  Intercepts: romaji text, code groups divisible by 3 under a non-carrying additive (`Intercepts.Jn25`), its own routine.
+  `JapanDeck` in UltraDeck, a Suez convoy on the war map. Tip `japanese`; the autoplayer builds one desk and sends
+  linguists to Bedford until each watch has a reader. Every act from the Blackout has a JN-25 template (weight 2 in the
+  Blackout, 1 after). Balance: Easy 40, Normal 19, Hard 1.
 - Watches: measured in autoplayer games, shortages are spread evenly over the three watches (clerks, linguists at
   peaks); nights are not specially unstaffed any more.
 

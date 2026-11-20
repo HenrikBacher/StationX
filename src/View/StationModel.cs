@@ -105,6 +105,7 @@ public partial class StationModel : Node3D
             case StationType.HandCipher: Desk(); HandCipher(); break;
             case StationType.Crib: Desk(); Crib(); break;
             case StationType.Translation: Desk(); Translation(); break;
+            case StationType.Japanese: Desk(); Japanese(); break;
             case StationType.Zygalski: Zygalski(); break;
             case StationType.Banburismus: Banburismus(); break;
             case StationType.Bombe: Bombe(3, Gfx.Black, 1.0f); break;
@@ -672,6 +673,22 @@ public partial class StationModel : Node3D
         Mesh3.BoxAt(this, 0.17f, DeskTop + 0.1f, -0.22f, 0.38f, 0.05f, 0.08f, Gfx.Black);
         Mesh3.BoxAt(this, 0.22f, DeskTop + 0.06f, -0.06f, 0.28f, 0.05f, 0.14f, Gfx.Black);
         Mesh3.Box(this, new Vector3(0.2f, 0.18f, 0.01f), new Vector3(0.36f, DeskTop + 0.22f, -0.2f), Gfx.Paper);
+    }
+
+    /// <summary>The Japanese desk: the recovered code book in bound volumes, a sheet of five-figure groups, a dictionary open.</summary>
+    void Japanese()
+    {
+        var bindings = new[] { new Color("7a2b26"), new Color("3e4a5c"), new Color("6b5634"), new Color("7a2b26") };
+        for (int i = 0; i < bindings.Length; i++)
+            Mesh3.BoxAt(this, -0.82f + i * 0.075f, DeskTop, -0.32f, 0.065f, 0.26f, 0.2f, bindings[i]);
+        Paper(-0.25f, -0.02f, 0.3f, 0.36f, 4);
+        for (int i = -3; i <= 3; i++)
+            Mesh3.Box(this, new Vector3(0.24f, 0.004f, 0.006f), new Vector3(-0.25f, DeskTop + 0.012f, -0.02f + i * 0.045f), new Color(0.3f, 0.3f, 0.32f)).RotationDegrees = new Vector3(0, 4, 0);
+        // The dictionary, open, its two halves tilted up a little.
+        Mesh3.Box(this, new Vector3(0.2f, 0.03f, 0.26f), new Vector3(0.22f, DeskTop + 0.02f, -0.05f), Gfx.Paper).RotationDegrees = new Vector3(0, 0, 6);
+        Mesh3.Box(this, new Vector3(0.2f, 0.03f, 0.26f), new Vector3(0.43f, DeskTop + 0.02f, -0.05f), Gfx.Paper).RotationDegrees = new Vector3(0, 0, -6);
+        Mesh3.Box(this, new Vector3(0.43f, 0.02f, 0.28f), new Vector3(0.325f, DeskTop + 0.005f, -0.05f), new Color("4a2e22"));
+        Lamp(W / 2 - 0.3f, -H / 2 + 0.25f);
     }
 
     void Teleprinter()

@@ -61,6 +61,15 @@ public static class Handbook
             {
                 new[] { Opt(StationType.Inbox, "for traffic over a teleprinter line; riders bring the rest to registration"), S(StationType.Registration), S(StationType.HandCipher, "the kiss: a perfect crib"), S(StationType.Crib, "today's naval key"), S(StationType.Bombe, "a shorter run") },
             }),
+        new("JN-25",
+            "From the Blackout. The Japanese navy's fleet code, cabled from the Far East Combined Bureau and coming in overnight. A hand-cipher desk strips the " +
+            "additive; then a Japanese desk looks the code groups up and puts them into English. Only linguists back from the Bedford Japanese course " +
+            "(select a linguist: Learns) can work the Japanese desk; a few new linguists have already been.",
+            new[] { Net.Jn25 },
+            new[]
+            {
+                new[] { Opt(StationType.Inbox, "for traffic over a teleprinter line; riders bring the cables to registration"), S(StationType.Registration), S(StationType.HandCipher, "strips the additive"), S(StationType.Japanese, "Japanese readers only"), S(StationType.Dispatch) },
+            }),
         new("TUNNY",
             "The German high command's teleprinter cipher, the Lorenz machine. The wheel settings are found by hand in the Testery, faster on Newman's " +
             "Heath Robinson, fastest on Colossus. Then a Tunny machine prints the plain text.",

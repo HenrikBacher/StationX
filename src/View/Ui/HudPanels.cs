@@ -8,6 +8,8 @@ namespace StationX.View.Ui;
 
 public partial class Hud
 {
+    /// <summary>The Learns list's id for the Bedford Japanese course (roles use their own numbers).</summary>
+    const int JapaneseItem = 1000;
     PanelContainer _side = null!;
     VBoxContainer _sideBox = null!;
     string? _panel;
@@ -932,6 +934,16 @@ public partial class Hud
             learn.TooltipText = $"Send them on a course to learn a second role. They work it at {Defs.SecondRoleSpeed:P0} speed, and only when their own desks have nothing waiting.";
             learn.AddItem(s.Second is Role had ? $"{Defs.Roles[had].Name} as well" : "Only their own work", -1);
             learn.Select(0);
+            if (S.JapanOpen && s.Role == Role.Linguist && !s.Has(Trait.Japanese))
+            {
+                learn.AddItem($"Learn Japanese at Bedford ({Defs.JapaneseCourseHours:0} h away, £{Defs.JapaneseCourseCost})", JapaneseItem);
+                if (S.CantLearnJapanese(s) is string jwhy)
+                {
+                    learn.SetItemDisabled(learn.ItemCount - 1, true);
+                    learn.SetItemTooltip(learn.ItemCount - 1, jwhy);
+                }
+                else learn.SetItemTooltip(learn.ItemCount - 1, "Captain Tuck's course in naval Japanese. They come back able to work the Japanese desk (JN-25), and keep their own work too.");
+            }
             foreach (Role r in Enum.GetValues<Role>())
             {
                 if (r == s.Second || Defs.Course(s.Role, r) is not var (hours, cost)) continue;
@@ -944,7 +956,13 @@ public partial class Hud
             }
             if (learn.ItemCount > 1)
             {
-                learn.ItemSelected += idx => { int v = learn.GetItemId((int)idx); if (v >= 0) S.Train(id, (Role)v); _inspSig = ""; };
+                learn.ItemSelected += idx =>
+                {
+                    int v = learn.GetItemId((int)idx);
+                    if (v == JapaneseItem) S.LearnJapanese(id);
+                    else if (v >= 0) S.Train(id, (Role)v);
+                    _inspSig = "";
+                };
                 _inspBox.AddChild(Row(UiTheme.Label("Learns", 12, UiTheme.TextDim), learn));
             }
         }

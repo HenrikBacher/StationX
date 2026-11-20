@@ -776,7 +776,7 @@ public sealed partial class GameState
                 if (!Rng.Chance(p)) { Requeue(st, m); return; }
                 if (m.Offizier) Stats.OffizierRead++;
                 if (m.Net == Net.Werft) { Kiss(m); return; }
-                m.Next = StationType.Translation;
+                m.Next = m.Net == Net.Jn25 ? StationType.Japanese : StationType.Translation;
                 break;
             }
             case StationType.Crib:
@@ -862,6 +862,9 @@ public sealed partial class GameState
                 break;
             case StationType.Translation:
                 m.Next = NeedsIndex(m) ? StationType.Index : StationType.Dispatch;
+                break;
+            case StationType.Japanese:
+                m.Next = StationType.Dispatch;
                 break;
             case StationType.Index:
                 m.Next = StationType.Dispatch;

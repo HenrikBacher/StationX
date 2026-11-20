@@ -317,6 +317,11 @@ public static class WarOps
                     d < new DateOnly(1941, 6, 22) ? "Poland" : "Russia", d < new DateOnly(1941, 6, 22) ? 52.2 : 53.9, d < new DateOnly(1941, 6, 22) ? 21.0 : 27.5,
                     "The reports reached the Prime Minister. They are a record of what is being done.", "The reports did not reach London in time."));
                 break;
+            case Net.Jn25:
+                // The Pacific is off our map: the Indian Ocean convoys pass Suez, and that is where the Park sees them.
+                p.Add(new(OpKind.Convoy, $"Convoy WS {r.Next(12, 33)} for the Eastern Fleet: {{n}} ships", "Suez", 29.9, 32.6,
+                    "Routed clear of the Japanese submarines: all {n} ships arrived.", "Japanese submarines found it in the Indian Ocean: {q} ships sunk."));
+                break;
             case Net.Abwehr:
                 p.Add(new(OpKind.Agents, "Agents for Britain", "Lisbon", 38.7, -9.1,
                     "The agents were met on landing: one more for the Double Cross Committee.", "An agent landed unseen."));

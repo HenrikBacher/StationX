@@ -13,17 +13,17 @@ public enum StationType
     Canteen, CommonRoom, Rounders, Checking, Tube, OutstationLink,
     Testery, Colossus, TunnyMachine,
     Stove, SickBay, Index, TrafficAnalysis, HeathRobinson,
-    Fan,
+    Fan, Japanese,
 }
 
 public enum Family { Hand, Enigma, Lorenz }
 
-public enum Net { Police, Abwehr, Red, LightBlue, Chaffinch, Dolphin, Shark, Tunny, Brown, Werft }
+public enum Net { Police, Abwehr, Red, LightBlue, Chaffinch, Dolphin, Shark, Tunny, Brown, Werft, Jn25 }
 
 public enum Issuer { WarOffice, AirMinistry, Admiralty, SIS }
 
 /// <summary>The German organisation whose signals security reacts to suspiciously good Allied luck.</summary>
-public enum Service { Luftwaffe, Heer, Kriegsmarine, Security }
+public enum Service { Luftwaffe, Heer, Kriegsmarine, Security, Japan }
 
 /// <summary>How freely commanders may act on ULTRA intelligence.</summary>
 public enum Policy { Cautious, Standard, Bold }
@@ -37,7 +37,7 @@ public enum Weather { Fine, Overcast, Rain, Fog, Snow, Storm }
 /// <summary>Working hours. Office hours until the watch system starts, then three watches round the clock.</summary>
 public enum Shift { Office, Day, Evening, Night }
 
-public enum Trait { CrosswordFiend, NativeGerman, NightOwl, ChessPlayer, Tireless, Meticulous, CarelessTalker }
+public enum Trait { CrosswordFiend, NativeGerman, NightOwl, ChessPlayer, Tireless, Meticulous, CarelessTalker, Japanese }
 
 public enum ResearchId
 {
@@ -260,7 +260,8 @@ public static partial class Defs
         StationType.Inbox => new[] { StationType.Registration },
         StationType.Registration => new[] { StationType.Inbox, StationType.HandCipher, StationType.Crib, StationType.Typex, StationType.TrafficAnalysis },
         StationType.TrafficAnalysis => new[] { StationType.Registration, StationType.Crib },
-        StationType.HandCipher => new[] { StationType.Registration, StationType.Translation },
+        StationType.HandCipher => new[] { StationType.Registration, StationType.Translation, StationType.Japanese },
+        StationType.Japanese => new[] { StationType.HandCipher, StationType.Dispatch },
         StationType.Crib => new[] { StationType.Registration, StationType.Zygalski, StationType.Banburismus, StationType.Bombe, StationType.Bombe4 },
         StationType.Zygalski or StationType.Banburismus => new[] { StationType.Crib, StationType.Bombe, StationType.Bombe4 },
         StationType.Bombe or StationType.Bombe4 => new[] { StationType.Crib, StationType.Checking },
@@ -268,7 +269,7 @@ public static partial class Defs
         StationType.Typex => new[] { StationType.Registration, StationType.Translation },
         StationType.Translation => new[] { StationType.Typex, StationType.HandCipher, StationType.Index, StationType.Dispatch },
         StationType.Index => new[] { StationType.Translation, StationType.Dispatch },
-        StationType.Dispatch => new[] { StationType.Translation, StationType.Index },
+        StationType.Dispatch => new[] { StationType.Translation, StationType.Index, StationType.Japanese },
         _ => Array.Empty<StationType>(),
     };
     // ---- Traffic growth ----
@@ -307,6 +308,15 @@ public static partial class Defs
     public const int CrosswordDays = 3;
     public const double CrosswordEveryDays = 28;
     public const int CrosswordRecruits = 3;
+
+    // ---- JN-25 (Japan.cs) ----
+    /// <summary>The Bedford Japanese course, squeezed: away five days, and they come back reading naval Japanese.</summary>
+    public const double JapaneseCourseHours = 120;
+    public const int JapaneseCourseCost = 90;
+    /// <summary>Chance a linguist candidate has been through the Bedford course, once JN-25 is in play.</summary>
+    public const double JapaneseCandidateChance = 0.25;
+    /// <summary>Tokyo's working day reaches the Park overnight: JN-25 goes out between 22:00 and 08:00 by our clocks.</summary>
+    public const double JapanNightFrom = 22, JapanNightHours = 10;
 
     // ---- The Recreational Club (Social.cs) ----
     public const int SocialFromAct = 1;
@@ -378,6 +388,7 @@ public static partial class Defs
         new("beaumanor", "Beaumanor", new[] { Net.Chaffinch }, Service.Heer, 7),
         new("scarborough", "Scarborough", new[] { Net.Dolphin, Net.Shark, Net.Werft }, Service.Kriegsmarine, 7),
         new("knockholt", "Knockholt", new[] { Net.Tunny }, null, 0),
+        new("kilindini", "Kilindini cables", new[] { Net.Jn25 }, null, 0),
     };
     /// <summary>Daily chance that a man on the staff is called up (1940-42).</summary>
     public const double CallUpChance = 0.1;
@@ -446,6 +457,7 @@ public static partial class Defs
         [Trait.ChessPlayer] = new(Trait.ChessPlayer, "Chess player", "20% faster at crib desks and Banburismus.", true),
         [Trait.Tireless] = new(Trait.Tireless, "Tireless", "Tires 30% more slowly.", true),
         [Trait.Meticulous] = new(Trait.Meticulous, "Meticulous", "Fewer mistakes on hand ciphers, sheets, checking and Typex settings.", true),
+        [Trait.Japanese] = new(Trait.Japanese, "Reads Japanese", "Back from the Bedford Japanese course: can work the Japanese desk.", true),
         [Trait.CarelessTalker] = new(Trait.CarelessTalker, "Careless talker", "Says too much in the pub. Raises German suspicion and draws MI5's attention.", false),
     };
 
@@ -469,6 +481,7 @@ public static partial class Defs
         [Service.Heer] = "German Army",
         [Service.Kriegsmarine] = "Kriegsmarine",
         [Service.Security] = "Abwehr and SD",
+        [Service.Japan] = "Japanese Navy",
     };
 
     public static readonly Dictionary<Role, RoleDef> Roles = new()
@@ -494,7 +507,7 @@ public static partial class Defs
             "Logs callsigns and frequencies, works out which key net each message belongs to, and spots garbled intercepts.",
             150, 2, 1, Role.Clerk, 25, 6, null, 0),
         [StationType.HandCipher] = new(StationType.HandCipher, "Hand-cipher desk",
-            "Pencil, squared paper and patience. Breaks police and Abwehr hand ciphers.",
+            "Pencil, squared paper and patience. Breaks police and Abwehr hand ciphers, and strips the additive off JN-25.",
             200, 2, 1, Role.Cryptanalyst, 180, 4, null, 0),
         [StationType.Crib] = new(StationType.Crib, "Crib desk",
             "Guesses a stretch of plaintext, such as WETTERVORHERSAGE, and turns it into a menu for the Bombe.",
@@ -544,6 +557,9 @@ public static partial class Defs
         [StationType.Fan] = new(StationType.Fan, "Extractor fan",
             $"The Bombe bays were hot, loud and airless. From May to September, a hut with {HotBombes} or more Bombes running wears out whoever works there and sours their temper, unless a fan draws the air through.",
             80, 1, 1, null, 0, 0, ResearchId.Bombe, 0, Upkeep: 3),
+        [StationType.Japanese] = new(StationType.Japanese, "Japanese desk",
+            "The Japanese naval section. With the additive stripped, JN-25's code groups are looked up in the book recovered so far and put into English. Only linguists back from the Bedford Japanese course can work it.",
+            150, 2, 1, Role.Linguist, 75, 6, null, 0),
         [StationType.SickBay] = new(StationType.SickBay, "Sick bay",
             "Two iron beds, a screen and a nursing sister in the Mansion. The sick get well sooner and pass less on.",
             350, 2, 1, null, 0, 0, null, 2, Upkeep: 15),
@@ -578,6 +594,7 @@ public static partial class Defs
         [Net.Dolphin] = new(Net.Dolphin, "DOLPHIN", "Kriegsmarine home waters key", Family.Enigma, true, false, 3.0, false, Issuer.Admiralty, 2, 55, Service.Kriegsmarine),
         [Net.Shark] = new(Net.Shark, "SHARK", "U-boat Atlantic key, four wheels", Family.Enigma, true, true, 1.6, false, Issuer.Admiralty, 3, 80, Service.Kriegsmarine),
         [Net.Werft] = new(Net.Werft, "WERFT", "Kriegsmarine dockyard and weather hand cipher, read for kisses", Family.Hand, true, false, 1.0, false, Issuer.Admiralty, 0, 0, Service.Kriegsmarine),
+        [Net.Jn25] = new(Net.Jn25, "JN-25", "Imperial Japanese Navy fleet code: five-figure groups under an additive", Family.Hand, false, false, 1.2, false, Issuer.Admiralty, 2, 55, Service.Japan),
         [Net.Tunny] = new(Net.Tunny, "TUNNY", "German high command teleprinter cipher, Lorenz SZ42", Family.Lorenz, false, false, 1.0, false, Issuer.WarOffice, 4, 100, Service.Heer),
     };
 
@@ -633,7 +650,8 @@ public static partial class Defs
     {
         ["mansion"] = new("Headquarters. Any desk work can go here, but no machines: those went into the huts.",
             new[] { StationType.Inbox, StationType.Registration, StationType.HandCipher, StationType.Crib, StationType.Zygalski, StationType.Banburismus,
-                    StationType.Translation, StationType.Dispatch, StationType.CommonRoom, StationType.Testery, StationType.Index, StationType.TrafficAnalysis }),
+                    StationType.Translation, StationType.Dispatch, StationType.CommonRoom, StationType.Testery, StationType.Index, StationType.TrafficAnalysis,
+                    StationType.Japanese }),
         ["hut1"] = new("A small hut beside the Mansion. The first Bombe, 'Victory', was installed here in March 1940.",
             new[] { StationType.Bombe, StationType.Checking }),
         ["hut6"] = new("Army and Luftwaffe Enigma: cribs, Zygalski sheets, and the Typex machines of the decoding room.",
@@ -641,10 +659,10 @@ public static partial class Defs
         ["hut11"] = new("The Bombe hut, built for the machines that followed Victory and run by the Wrens. Hot, loud and smelling of oil.",
             new[] { StationType.Bombe, StationType.Bombe4, StationType.Checking, StationType.OutstationLink }),
         ["hut3"] = new("Intelligence from Hut 6: translation, emendation and despatch to the commands. No machines.",
-            new[] { StationType.Registration, StationType.Translation, StationType.Index, StationType.Dispatch, StationType.CommonRoom }),
+            new[] { StationType.Registration, StationType.Translation, StationType.Index, StationType.Dispatch, StationType.CommonRoom, StationType.Japanese }),
         ["hut8"] = new("Naval Enigma: cribs, Banburismus, the naval decoding room's Typex machines, and naval translation.",
             new[] { StationType.Inbox, StationType.Registration, StationType.Crib, StationType.Banburismus, StationType.Typex,
-                    StationType.Translation, StationType.Index, StationType.Dispatch, StationType.TrafficAnalysis }),
+                    StationType.Translation, StationType.Index, StationType.Dispatch, StationType.TrafficAnalysis, StationType.Japanese }),
         ["blockf"] = new("The Testery and the Newmanry: Tunny by hand and by Colossus.",
             new[] { StationType.Inbox, StationType.Registration, StationType.Testery, StationType.Colossus, StationType.HeathRobinson, StationType.TunnyMachine,
                     StationType.Translation, StationType.Index, StationType.Dispatch }),

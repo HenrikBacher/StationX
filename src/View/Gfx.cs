@@ -92,6 +92,7 @@ public static class Gfx
         Net.Dolphin => new Color("4f8c84"),
         Net.Werft => new Color("7d8a5c"),
         Net.Shark => new Color("3d5a80"),
+        Net.Jn25 => new Color("b5655b"),
         _ => Colors.White,
     };
 

@@ -20,6 +20,7 @@ public sealed class AutoPlayer
     const int SpareRequests = 2;
     double _teaQueueSeenAt = -1e9;
     double _courseAt = -1e9;
+    double _japaneseAt = -1e9;
 
     static readonly Dictionary<StationType, string[]> PreferredZones = new()
     {
@@ -43,6 +44,7 @@ public sealed class AutoPlayer
         [StationType.Colossus] = new[] { "blockf" },
         [StationType.HeathRobinson] = new[] { "blockf" },
         [StationType.TunnyMachine] = new[] { "blockf", "hut3" },
+        [StationType.Japanese] = new[] { "hut3", "mansion", "hut8" },
     };
 
     int Want(StationType t)
@@ -54,6 +56,8 @@ public sealed class AutoPlayer
             // Offizier traffic (the tip) needs a second desk once it appears
             StationType.HandCipher => Campaign.OffizierFrom >= 0 && a >= Campaign.OffizierFrom ? 2 : a >= 5 ? 1 : a >= 1 ? 2 : 1,
             StationType.Translation => a >= 9 ? 5 : a >= 5 ? 4 : a >= 2 ? 2 : 1,
+            // The JN-25 tip: a Japanese desk once its requests come in.
+            StationType.Japanese => g.JapanOpen && (g.JapanWanted || Have(StationType.Japanese) > 0) ? 1 : 0,
             StationType.Dispatch => a >= 5 ? 2 : 1,
             StationType.Index => a >= Defs.IndexFromAct ? Math.Min(Have(StationType.Translation), Have(StationType.Index) + (UnindexedTranslation().Any() ? 1 : 0)) : 0,
             StationType.Typex => a >= 5 ? 2 : a >= 2 ? 1 : 0,
@@ -124,7 +128,7 @@ public sealed class AutoPlayer
 
     static readonly StationType[] BuildOrder =
     {
-        StationType.Registration, StationType.HandCipher, StationType.Translation,
+        StationType.Registration, StationType.HandCipher, StationType.Translation, StationType.Japanese,
         StationType.Typex, StationType.Zygalski, StationType.Crib, StationType.Bombe,
         StationType.Banburismus, StationType.Bombe4, StationType.Dispatch, StationType.Index, StationType.TrafficAnalysis,
         StationType.Checking, StationType.Canteen, StationType.CommonRoom, StationType.Rounders,
@@ -213,6 +217,13 @@ public sealed class AutoPlayer
             var who = g.Staff.Where(s => s.Role == from && s.Second == null && g.CantTrain(s, to) == null && s.Pinned == null && s.Available)
                 .OrderBy(s => s.Skill).FirstOrDefault();
             if (who != null && g.Train(who.Id, to)) _courseAt = g.Now;
+        }
+        // The JN-25 tip: linguists to the Bedford course until each watch has a Japanese reader (one course a day).
+        if (g.JapanOpen && g.JapanWanted && Have(StationType.Japanese) > 0 && g.Now - _japaneseAt > Defs.MinutesPerDay &&
+            g.JapaneseReaders < (g.WatchesAvailable ? 3 : 1) && g.Funds > Defs.JapaneseCourseCost + 300)
+        {
+            var who = g.Staff.Where(s => g.CantLearnJapanese(s) == null && s.Pinned == null && s.Available).OrderBy(s => s.Skill).FirstOrDefault();
+            if (who != null && g.LearnJapanese(who.Id)) _japaneseAt = g.Now;
         }
         if (g.MaxSuspicion > 60) g.SetPolicy(Policy.Cautious);
         else if (g.MaxSuspicion < 30) g.SetPolicy(Policy.Standard);
@@ -330,7 +341,7 @@ public sealed class AutoPlayer
             [Role.Cryptanalyst] = Need(Math.Max(Have(StationType.HandCipher), Want(StationType.HandCipher)) + Have(StationType.Crib) + Have(StationType.Zygalski) + Have(StationType.Banburismus) + Have(StationType.Testery)),
             [Role.Wren] = Need(Have(StationType.Bombe) + Have(StationType.Bombe4) + Have(StationType.Typex) + Have(StationType.Checking) + Have(StationType.HeathRobinson)
                                + Have(StationType.OutstationLink) + Have(StationType.Colossus) + Have(StationType.TunnyMachine)),
-            [Role.Linguist] = Need(Have(StationType.Translation)),
+            [Role.Linguist] = Need(Have(StationType.Translation) + Have(StationType.Japanese)),
         };
         if (g.WatchesAvailable)
             foreach (var r in want.Keys.ToList())
@@ -392,7 +403,8 @@ public sealed class AutoPlayer
             if (nd.Family != Family.Hand &&
                 g.Contracts.Count(x => x.State == ContractState.Active && x.Net == c.Net) >= (readToday ? 3 : 2)) continue;
             if (g.LockedDown(c.Net) || g.SuspicionOf(nd.Service) > 80) continue;
-            bool can = nd.Family == Family.Hand ? Have(StationType.HandCipher) > 0
+            bool can = c.Net == Net.Jn25 ? Have(StationType.HandCipher) > 0 && Have(StationType.Japanese) > 0 && g.JapaneseReaders > 0
+                : nd.Family == Family.Hand ? Have(StationType.HandCipher) > 0
                 : (g.KeyRoute(c.Net) != null || g.KeyBroken(c.Net, g.Day)) && Have(Defs.DecryptStep(c.Net)) > 0;
             if (!can) continue;
             if (nd.Family == Family.Hand && !HandWorkFits(c)) continue;

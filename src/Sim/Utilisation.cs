@@ -189,7 +189,7 @@ public sealed partial class GameState
         StationType.Registration, StationType.TrafficAnalysis, StationType.HandCipher, StationType.Zygalski,
         StationType.Banburismus, StationType.Crib, StationType.Bombe, StationType.Bombe4, StationType.Checking,
         StationType.OutstationLink, StationType.Typex, StationType.Testery, StationType.HeathRobinson,
-        StationType.Colossus, StationType.TunnyMachine, StationType.Translation, StationType.Index, StationType.Dispatch,
+        StationType.Colossus, StationType.TunnyMachine, StationType.Translation, StationType.Japanese, StationType.Index, StationType.Dispatch,
     };
 
     public const int DeskStates = 7;

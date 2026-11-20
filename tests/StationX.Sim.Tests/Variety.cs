@@ -100,7 +100,8 @@ public class Variety
         {
             var date = net == Net.Tunny ? new DateOnly(1943, 6, 1) : new DateOnly(1941, 9, 1);
             var texts = Enumerable.Range(0, 400).Select(i => Intercepts.For(3, i, net, 5, date, 600, false)).ToList();
-            Assert.Contains(texts, x => x.German.Contains("ERBITTE WIEDERHOLUNG") || x.German.Contains("GEBURTSTAG") || x.German.Contains("RUFZEICHEN"));
+            Assert.Contains(texts, x => x.German.Contains("ERBITTE WIEDERHOLUNG") || x.German.Contains("GEBURTSTAG") || x.German.Contains("RUFZEICHEN")
+                                      || x.German.Contains("SAISOU") || x.German.Contains("YOBIDASHI"));
             Assert.All(texts, x => Assert.DoesNotContain("{", x.German + x.English));
             // The network's own traffic still makes up most of it.
             Assert.True(texts.Count(x => x.German.Contains("KEINE BESONDEREN")) < 120, net.ToString());
