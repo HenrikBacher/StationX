@@ -969,7 +969,7 @@ public sealed partial class GameState
         Points += PointsFor(m);
         if (IsStale(m)) Stats.LateDecrypts++;
         OnDecryptUsed(m);
-        if (m.Net == Net.Jn25) RecoverBook();
+        if (m.Net == Net.Jn25) { RecoverBook(); ReadOshima(m); }
         var c = ContractById(m.ContractId);
         if (c != null && c.State == ContractState.Active) c.Delivered++;
     }

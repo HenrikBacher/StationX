@@ -256,6 +256,9 @@ Then (user requests, 2026-11-19):
 - Matapan (`Matapan.cs`): a scripted dilemma (`Tag` "matapan", `ScriptedDone`) the first midnight from `Defs.MatapanFrom`
   (25 Mar 1941) to the end of May with no other dilemma open; option 1 is the Sunderland cover. Header "REGIA MARINA". Balance 39/24/4.
   Shots: `--modal=matapan`.
+- Ōshima (`Oshima.cs`): `OfferOshima` (offered, not tagged, `Contract.Oshima`, War Office, JN-25 path) in the Colossus and
+  D-Day `OnStart`s; each delivered before D-Day is `OshimaRead`, and `OshimaBonus` (`OshimaPer` 0.015, max 0.09) joins
+  `Readiness` for overlord (readiness tooltip). Balance 39/24/4.
 
 ### Graphics overhaul: period realism, CC0 assets allowed
 

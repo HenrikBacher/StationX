@@ -341,7 +341,8 @@ public partial class Hud : CanvasLayer
             string when = hours >= 36 ? $"in {Math.Ceiling(hours / 24):0} days" : $"in {Math.Max(1, Math.Ceiling(hours)):0} hours";
             var l = UiTheme.Label($"{op.Name.ToUpperInvariant()} {when} · readiness {r * 100:0}% · {word}", 13, colour, Fonts.BodyBold);
             l.TooltipText = $"Readiness is the 'before' objectives ({S.OpIntel() * 100:0}% done), how unsuspecting the " +
-                            $"{string.Join(", ", op.Watch.Select(sv => Defs.ServiceNames[sv]))} still are ({S.OpSecrecy(op) * 100:0}%), and the decision " +
+                            $"{string.Join(", ", op.Watch.Select(sv => Defs.ServiceNames[sv]))} still are ({S.OpSecrecy(op) * 100:0}%), " +
+                            (S.OshimaBonus > 0 ? $"Ōshima's reports from Berlin (+{S.OshimaBonus * 100:0}%), " : "") + "and the decision " +
                             $"a few days before. {Defs.OpSuccessAt * 100:0}% or more and it succeeds; under {Defs.OpPartialAt * 100:0}% it fails.";
             l.MouseFilter = Control.MouseFilterEnum.Pass;
             _objBox.AddChild(l);

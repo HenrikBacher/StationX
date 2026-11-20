@@ -529,6 +529,8 @@ public static class Campaign
                     "Mathematician. His section, the Newmanry, runs the machines.", Trait.Tireless, StationType.Testery));
                 g.AddScripted(Net.Tunny, 10, 6, 2500, 12, "dday", "Hitler's view of the invasion",
                     "SHAEF needs to know whether the deception about Calais is believed in Berlin.");
+                g.OfferOshima(3, "Japan's ambassador in Berlin has toured the Atlantic Wall and cabled Tokyo a description of it, division by division, " +
+                                 "battery by battery. His cables come on the Japanese diplomatic machine; the Japanese desk puts them into English.");
             },
         },
         // ------------------------------------------------------------ Chapter 7
@@ -563,6 +565,8 @@ public static class Campaign
             {
                 g.Funds += 3000;
                 g.Emit(EventKind.Good, "Every resource for the invasion: +£3000.");
+                g.OfferOshima(4, "Baron Ōshima has seen Hitler again and cabled Tokyo what the Führer expects: a diversion in Normandy, the real " +
+                                 "blow at Calais. Every report of his we read tells SHAEF the deception is holding.");
             },
         },
         new()

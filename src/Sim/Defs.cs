@@ -156,6 +156,9 @@ public static partial class Defs
     /// <summary>Matapan: Mavis Lever's "X minus 3" of 25 March 1941 (the decision comes the first morning from then, until the end of May).</summary>
     public static readonly DateOnly MatapanFrom = new(1941, 3, 25), MatapanUntil = new(1941, 6, 1);
     public const double MatapanRep = 6;
+    /// <summary>Ōshima's reports: readiness per report read before D-Day, its cap, and the request's terms.</summary>
+    public const double OshimaPer = 0.015, OshimaMax = 0.09;
+    public const int OshimaReward = 700, OshimaDays = 7;
     public const int MatapanPoints = 3;
     public const double RuthlessSuccess = 0.4;
     public const int RuthlessPoints = 80;

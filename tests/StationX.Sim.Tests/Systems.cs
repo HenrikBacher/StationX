@@ -1240,6 +1240,25 @@ public class MatapanTests
     }
 }
 
+public class OshimaTests
+{
+    [Fact]
+    public void HisReportsAreOfferedAndMakeDDayReadier()
+    {
+        var g = GameState.NewGame(3);
+        g.DebugSkipToAct(Campaign.IndexOf("Colossus"));
+        Assert.Contains(g.Contracts, c => c.Oshima && c.State == ContractState.Offered && c.Net == Net.Jn25);
+        g.DebugSkipToAct(Campaign.IndexOf("D-Day"));
+        var offer = g.Contracts.Last(c => c.Oshima && c.State == ContractState.Offered);
+        Assert.Null(offer.Tag);   // not must-do, and a miss isn't sent again
+        double r = g.Readiness();
+        g.OshimaRead = 3;
+        Assert.Equal(r + 3 * Defs.OshimaPer, g.Readiness(), 6);
+        g.OshimaRead = 50;
+        Assert.Equal(Defs.OshimaMax, g.OshimaBonus, 6);
+    }
+}
+
 public class InterceptTests
 {
     [Fact]
