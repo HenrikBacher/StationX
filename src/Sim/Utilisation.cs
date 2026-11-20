@@ -512,6 +512,41 @@ public sealed partial class GameState
     public bool SpareHand(Staff p) =>
         p.Use is { } log && !p.Leaving && log.OnWatch() >= 240 && log.OfWatch(PersonUse.Idle) >= 0.6;
 
+    /// <summary>
+    /// Who of a role could be let go without leaving a watch short: on each watch with hands to spare, the idlest of the
+    /// people rostered on it, keeping what its busiest hour needed and one more. Heads of huts and the famous names stay.
+    /// Empty before the watches, or with less than most of a day on record.
+    /// </summary>
+    public List<Staff> Expendable(Role role)
+    {
+        var list = new List<Staff>();
+        var use = Utilisation();
+        if (use.Hours < 8) return list;
+        foreach (var w in use.Staffing)
+        {
+            if (w.Role != role || !w.Spare) continue;
+            // Counted now, not from the report (cached per game minute): those already let go are gone.
+            var sh = w.Shift;
+            int on = Staff.Count(p => p.Role == role && OnWatch(p, sh) && !p.Leaving && !p.Arriving(Now) && !p.IsSick(Now));
+            int extra = on - Math.Max(w.Needed, 1) - 1;
+            if (extra <= 0) continue;
+            list.AddRange(Staff.Where(p => p.Role == role && p.Shift == w.Shift && SpareHand(p) && p.HeadOf == null && p.Notable == null && !p.IsSick(Now))
+                               .OrderByDescending(p => p.Use!.OfWatch(PersonUse.Idle)).Take(extra));
+        }
+        return list;
+    }
+
+    /// <summary>Dismisses everyone <see cref="Expendable"/> names for a role; returns how many went.</summary>
+    public int LetGo(Role role)
+    {
+        var go = Expendable(role);
+        foreach (var p in go) Fire(p.Id);
+        if (go.Count > 0)
+            Emit(EventKind.Info, $"{go.Count} {(go.Count == 1 ? Defs.Roles[role].Name.ToLowerInvariant() : PluralWord(role))} who stood idle most of their watch " +
+                                 $"have been thanked and let go, saving £{go.Sum(p => p.Salary)} a week.");
+        return go.Count;
+    }
+
     /// <summary>Who covers a watch: its own people, and those on long days (07–22) for the day and evening.</summary>
     static bool OnWatch(Staff p, Shift sh) => p.Shift == sh || (p.Shift == Shift.Office && sh != Shift.Night);
 

@@ -168,6 +168,8 @@ Then (user requests, 2026-11-19):
   Barbarossa for 11:00 next day, before the op decision; `PrimeMinisterLeaves`: morale +`PmMorale` always, rep +5 / +1 / −3,
   no grant cut. Tip `pmvisit`, top bar "PM VISIT". `VisitedAt`/`VisitorHere` show a staff car (`Park3D.StaffCar`, in the
   gate node, `SetVisitor`) from 30 min before a visit to 2 h after; shots: `--visitor`. Balance: Easy 40, Normal 21, Hard 2.
+- Staff panel "Let N go" per role: `Expendable(role)` (watches with `RoleWatch.Spare`; keeps `max(Needed,1)+1` counted live,
+  not from the cached report; idlest `SpareHand`s, no heads or notables), `LetGo`. The autoplayer doesn't use it.
 
 ### Graphics overhaul: period realism, CC0 assets allowed
 

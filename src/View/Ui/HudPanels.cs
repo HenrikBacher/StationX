@@ -345,8 +345,18 @@ public partial class Hud
             var summary = UiTheme.Label(open ? spare > 0 ? $"{spare} spare" : "" : (spare > 0 ? $"{spare} spare · " : "") +
                 string.Join(" · ", people.GroupBy(Doing).OrderByDescending(g => g.Count()).Select(g => $"{g.Count()} {g.Key}")), 11, spare > 0 ? Gfx.Warn : UiTheme.TextDim);
             summary.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-            _sideBox.AddChild(Row(new ColorRect { Color = Gfx.RoleColor(role), CustomMinimumSize = new Vector2(10, 10), SizeFlagsVertical = Control.SizeFlags.ShrinkCenter },
-                toggle, summary));
+            var header = Row(new ColorRect { Color = Gfx.RoleColor(role), CustomMinimumSize = new Vector2(10, 10), SizeFlagsVertical = Control.SizeFlags.ShrinkCenter },
+                toggle, summary);
+            if (spare > 0 && S.Expendable(role) is { Count: > 0 } go)
+            {
+                var r1 = role;
+                var letGo = UiTheme.Button($"Let {go.Count} go", () => { S.LetGo(r1); _sideSig = ""; },
+                    tooltip: $"Dismiss the {(go.Count == 1 ? "one" : go.Count.ToString())} idlest on watches with hands to spare ({string.Join(", ", go.Select(x => x.Name))}), " +
+                             $"keeping every watch what its busiest hour needed and one more. Saves £{go.Sum(x => x.Salary)} a week in wages, and the Treasury counts idle heads.");
+                letGo.AddThemeFontSizeOverride("font_size", 12);
+                header.AddChild(letGo);
+            }
+            _sideBox.AddChild(header);
             if (!open) continue;
             foreach (var p in people) _sideBox.AddChild(PersonRow(p));
         }
