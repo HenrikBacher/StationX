@@ -53,7 +53,8 @@ Then (user requests, 2026-11-19):
   common room 4. Tip `teaqueue` when seats run out (the autoplayer adds a table).
 - Panels only list what's in play: teleprinter filters (`ActiveNets`), roles (`RoleOpen`), services (`ServiceInPlay`).
 - Self-updater (`src/View/Updater.cs`): GitHub latest-release check, download, swap, restart; CI stamps
-  `config/version` on tags. Only testable end to end from the second release that has it. The offer is its own sheet: at launch the title waits up to 4 s
+  `config/version` on tags. v0.33.0 is the first release it can install: every file in v0.32.0's Linux and Windows downloads matches v0.33.0's
+  `*-base.txt`, so the patch applies on both. The offer is its own sheet: at launch the title waits up to 4 s
   for the check (`Hud.ShowStart`) and the offer comes first; a later result opens it at once over the title or the game.
   The download has its own sheet with a bar (`ShowUpdateProgress`; shots: `--modal=update|updating|updatefailed|title`).
 - Patch updates: `export.sh` also makes `<platform>-patch.zip` (StationX.pck + data_*/StationX.*, ~33 MB vs ~100 MB)
