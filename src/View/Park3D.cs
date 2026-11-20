@@ -1694,7 +1694,8 @@ public partial class Park3D : Node3D
             float rr = s * (0.35f + 0.55f * R(140 + k)) * (1 - up * 0.45f);
             var at = new Vector3(Mathf.Cos(a) * rr, crown + (up - 0.35f) * s * 1.1f, Mathf.Sin(a) * rr);
             float size = s * (0.38f + R(160 + k) * 0.25f);
-            var col = greens[up > 0.66f ? 2 : up > 0.3f ? 1 : 0].Lerp(new Color("6b6a3a"), R(180 + k) * 0.15f);
+            // The olive cast in four steps, not a continuum: every distinct tint is its own material, and its own draw.
+            var col = greens[up > 0.66f ? 2 : up > 0.3f ? 1 : 0].Lerp(new Color("6b6a3a"), Mathf.Round(R(180 + k) * 3) * 0.05f);
             var clump = Mesh3.Sphere(root, size, at, col);
             clump.MaterialOverride = Textures.Mat(Surface.Foliage, col, 2.5f);
             clump.Scale = new Vector3(1.1f, 0.85f + R(200 + k) * 0.2f, 1.05f);

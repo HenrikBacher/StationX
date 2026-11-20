@@ -462,7 +462,8 @@ public partial class Main : Node3D
                             string o = owner;
                             if (n == this || n == _park) o = owner + "/" + c.Name;
                             if (n == _stationRoot && c is StationModel sm) o = "/Stations/" + sm.Type;
-                            if (n.Name == "Buildings") o = "/Park/Buildings/" + c.GetType().Name + (c is Node3D { } cc && cc.GetChildCount() > 0 ? "(container)" : "");
+                            if (n.Name == "Buildings") o = "/Park/Buildings/" + c.GetType().Name + (c is Node3D { } cc && cc.GetChildCount() > 0 ? "(container)" : "") +
+                                (c is MeshInstance3D bm && bm.Mesh != null ? $" {(bm.MaterialOverride ?? bm.GetSurfaceOverrideMaterial(0) ?? bm.Mesh.SurfaceGetMaterial(0)) switch { BaseMaterial3D b3 => $"{b3.Transparency} {(b3.AlbedoTexture == null ? "notex" : b3.AlbedoTexture.ResourcePath == "" ? "codetex" + b3.AlbedoTexture.GetRid().Id % 1000 : b3.AlbedoTexture.ResourcePath)} {b3.AlbedoColor.ToHtml()} uv{b3.Uv1Scale.X:0.##} tri{b3.Uv1Triplanar} nm{b3.NormalEnabled}", ShaderMaterial => "shader", _ => "?" }}" : "");
                             if (c is GeometryInstance3D gi && v) { int surf = gi is MeshInstance3D mi && mi.Mesh != null ? mi.Mesh.GetSurfaceCount() : 1; counts[o] = counts.GetValueOrDefault(o) + surf; }
                             Walk(c, o, v);
                         }
