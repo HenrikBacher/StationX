@@ -1389,13 +1389,7 @@ public partial class Park3D : Node3D
         Mesh3.Prism(_buildings, new Vector3(0.75f, 0.3f, 0.75f), box + new Vector3(0, 1.25f, 0), Textures.Mat(Surface.Felt, Colors.White));
         Mesh3.Box(_buildings, new Vector3(0.4f, 0.5f, 0.02f), box + new Vector3(0, 0.65f, 0.31f), new Color("15130f"));
 
-        for (int x = 4; x < Grid.Width - 2; x += 8)
-        {
-            if (g.Get(x, 11) != Tile.Lawn) continue;
-            var p = new Vector3(x + 0.5f, 0, 11.6f);
-            Mesh3.Cyl(_buildings, 0.05f, 0.07f, 2.4f, p + new Vector3(0, 1.2f, 0), new Color("4a3a2a"), 6);
-            Mesh3.Box(_buildings, new Vector3(0.6f, 0.05f, 0.05f), p + new Vector3(0, 2.2f, 0), new Color("4a3a2a"));
-        }
+        TelegraphLine(g);
 
         var lorry = new Node3D { Position = new Vector3(3.2f, 0, 15.6f), RotationDegrees = new Vector3(0, 90, 0) };
         _buildings.AddChild(lorry);
@@ -1414,6 +1408,93 @@ public partial class Park3D : Node3D
         _buildings.AddChild(mound);
         Mesh3.Box(_buildings, new Vector3(0.5f, 0.45f, 0.06f), new Vector3(18.5f, 0.22f, 22.42f), new Color("1d1b18"));
         StaticWaterTank(new Vector3(30.5f, 0, 10.5f));
+    }
+
+    static readonly float[] Insulators = { -0.25f, -0.11f, 0.11f, 0.25f };
+
+    /// <summary>
+    /// The GPO line along the Park: creosoted poles with a crossarm and four porcelain insulators, wires sagging from
+    /// pole to pole, in from the country past the east fence and dropped to the Mansion's wall, where the teleprinter
+    /// and telephone lines came in.
+    /// </summary>
+    void TelegraphLine(Grid g)
+    {
+        var wood = new Color("4a3a2a");
+        var poles = new List<Vector3>();
+        void Pole(Vector3 p)
+        {
+            Mesh3.Cyl(_buildings, 0.05f, 0.07f, 2.4f, p + new Vector3(0, 1.2f, 0), wood, 6);
+            Mesh3.Box(_buildings, new Vector3(0.6f, 0.05f, 0.05f), p + new Vector3(0, 2.2f, 0), wood);
+            foreach (float o in Insulators)
+                Mesh3.Cyl(_buildings, 0.018f, 0.026f, 0.07f, p + new Vector3(o, 2.26f, 0), new Color("d8d4c8"), 6);
+        }
+        for (int x = 4; x < Grid.Width - 2; x += 8)
+        {
+            if (g.Get(x, 11) != Tile.Lawn) { poles.Add(new Vector3(float.NaN, 0, 0)); continue; }
+            var p = new Vector3(x + 0.5f, 0, 11.6f);
+            Pole(p);
+            poles.Add(p);
+        }
+        // The line comes in from the country on a pole just past the east fence.
+        var outside = new Vector3(Grid.Width + 1.5f, 0, 11.6f);
+        Pole(outside);
+        poles.Add(outside);
+        for (int i = 0; i + 1 < poles.Count; i++)
+        {
+            if (float.IsNaN(poles[i].X) || float.IsNaN(poles[i + 1].X)) continue;   // a gap: no wires across a building
+            foreach (float o in Insulators)
+                Wire(poles[i] + new Vector3(o, 2.29f, 0), poles[i + 1] + new Vector3(o, 2.29f, 0), 0.12f);
+        }
+        // Two wires drop from the pole nearest the Mansion to brackets under its eaves, on whichever wall faces it.
+        if (g.Zone("mansion") is { } m)
+        {
+            float mx0 = m.X + 0.5f, mx1 = m.X + m.W - 0.5f, mz0 = m.Y + 0.5f, mz1 = m.Y + m.H - 0.5f;
+            Vector3 Nearest(Vector3 p) => new(Mathf.Clamp(p.X, mx0, mx1), 0, Mathf.Clamp(p.Z, mz0, mz1));
+            Vector3? near = null;
+            foreach (var p in poles)
+                if (!float.IsNaN(p.X) && (near == null || (p - Nearest(p)).Length() < (near.Value - Nearest(near.Value)).Length()))
+                    near = p;
+            if (near is { } n && (n - Nearest(n)).Length() < 4)
+            {
+                var wallAt = Nearest(n);
+                var outward = (n - wallAt).Normalized();
+                var along = new Vector3(-outward.Z, 0, outward.X);
+                if (Mathf.Abs(outward.X) > 0.1f && Mathf.Abs(outward.Z) > 0.1f) wallAt = new Vector3(wallAt.X, 0, Mathf.Clamp(n.Z, mz0 + 0.4f, mz1 - 0.4f));
+                // A terminal box on its own post just off the wall (the cutaway lowers the near walls, so nothing
+                // hangs on them), the line going underground from there.
+                var foot = wallAt + outward * 0.35f;
+                Mesh3.Box(_buildings, new Vector3(0.09f, 1.25f, 0.09f), foot + new Vector3(0, 0.625f, 0), wood);
+                var boxAt = foot + outward * 0.07f + new Vector3(0, 1.05f, 0);
+                var tb = Mesh3.Box(_buildings, new Vector3(0.22f, 0.26f, 0.08f), boxAt, new Color("3d4238"));
+                tb.Basis = Basis.LookingAt(outward, Vector3.Up);
+                Mesh3.Box(_buildings, new Vector3(0.3f, 0.04f, 0.05f), foot + new Vector3(0, 1.22f, 0), wood).Basis = Basis.LookingAt(outward, Vector3.Up);
+                foreach (float o in new[] { -0.11f, 0.11f })
+                {
+                    var ins = foot + along * o + new Vector3(0, 1.26f, 0);
+                    Mesh3.Cyl(_buildings, 0.015f, 0.02f, 0.05f, ins, new Color("d8d4c8"), 6);
+                    Wire(n + new Vector3(o, 2.29f, 0), ins + new Vector3(0, 0.03f, 0), 0.06f);
+                }
+            }
+        }
+    }
+
+    /// <summary>A wire hung from a to b, sagging by sag in the middle: a few straight lengths along a parabola.</summary>
+    void Wire(Vector3 a, Vector3 b, float sag)
+    {
+        const int n = 6;
+        var black = new Color("1e1c1a");
+        Vector3 At(int i)
+        {
+            float t = (float)i / n;
+            return a.Lerp(b, t) - new Vector3(0, 4 * sag * t * (1 - t), 0);
+        }
+        for (int i = 0; i < n; i++)
+        {
+            Vector3 p = At(i), q = At(i + 1), d = q - p;
+            var w = Mesh3.Box(_buildings, new Vector3(0.012f, 0.012f, d.Length()), (p + q) / 2, black);
+            w.Basis = Basis.LookingAt(d.Normalized(), Vector3.Up);
+            w.CastShadow = GeometryInstance3D.ShadowCastingSetting.Off;
+        }
     }
 
     /// <summary>

@@ -142,8 +142,9 @@ Then (user requests, 2026-11-19):
   finding `spare`; the autoplayer takes `SpareRequests` more on networks read today and hires no more of an idle role
   (`UseWorkload`; off in the save-comparing test). Tip `quota`. `ParkDiag` (PARKDIAG=1) reports a game act by act.
   Balance 2026-11-20: Easy 40, Normal 21, Hard 0 of 40 (main before it: 40/26/2).
-- Known, not yet fixed: the Mansion's dormers stick out of its roof; no telegraph wires; progress bars show through
-  roofs at night.
+- Also fixed: the Mansion's gables have cross roofs (`MansionGables`, in `_roofs` so they fade); telegraph wires
+  (`TelegraphLine`, `Wire`: sagging segments, a terminal post by the Mansion); nothing indoors shows under solid roofs.
+  Shots hold reputation ≥ 25 so `--days` always reaches the date (seed 7 now loses on Normal around day 60).
 
 ### Graphics overhaul: period realism, CC0 assets allowed
 
