@@ -1259,6 +1259,26 @@ public class OshimaTests
     }
 }
 
+public class RepForecastTests
+{
+    [Fact]
+    public void AFallingReputationGivesTheDaysLeft()
+    {
+        var g = GameState.NewGame(3);
+        Assert.Null(g.RepRunsOutIn());   // too early to say
+        g.Now = 5 * Defs.MinutesPerDay;
+        g.RepLog.Clear();
+        g.Reputation = 30;
+        g.RepLog.Add(new RepEntry { At = g.Now - 2 * Defs.MinutesPerDay, Delta = -9, Reason = "Missed deadlines" });
+        Assert.Equal(-3, g.RepTrend()!.Value, 6);
+        Assert.Equal(10, g.RepRunsOutIn());
+        g.Reputation = 90;   // a month away: no warning
+        Assert.Null(g.RepRunsOutIn());
+        g.RepLog.Add(new RepEntry { At = g.Now - 60, Delta = 12, Reason = "Requests completed" });
+        Assert.Null(g.RepRunsOutIn());   // rising
+    }
+}
+
 public class InterceptTests
 {
     [Fact]

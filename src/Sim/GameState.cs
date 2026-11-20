@@ -1198,6 +1198,24 @@ public sealed partial class GameState
     /// <summary>Recent reputation changes and their causes, for the player to see why it moves. Kept for a fortnight.</summary>
     public List<RepEntry> RepLog { get; set; } = new();
 
+    /// <summary>Reputation's average change a day over the last few days (null in the game's first day).</summary>
+    public double? RepTrend(double days = Defs.RepTrendDays)
+    {
+        double span = Math.Min(days * Defs.MinutesPerDay, Now);
+        if (span < Defs.MinutesPerDay) return null;
+        double sum = 0;
+        foreach (var e in RepLog) if (Now - e.At <= span) sum += e.Delta;
+        return sum / (span / Defs.MinutesPerDay);
+    }
+
+    /// <summary>At the recent rate, the days until reputation runs out, if it's falling and would within three weeks.</summary>
+    public int? RepRunsOutIn()
+    {
+        if (Mode == GameMode.FreePlay || RepTrend() is not double t || t > -Defs.RepTrendFloor) return null;
+        double d = Reputation / -t;
+        return d <= Defs.RepForecastDays ? Math.Max(1, (int)Math.Ceiling(d)) : null;
+    }
+
     public void AdjustRep(double delta, string reason = "Other")
     {
         if (delta < 0) delta *= Defs.Difficulties[Difficulty].RepLossMult;

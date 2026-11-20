@@ -243,14 +243,24 @@ public partial class Hud : CanvasLayer
                            RepWeek();
         _funds.MouseFilter = Control.MouseFilterEnum.Pass;
         _rep.Value = S.Reputation;
-        _quota.Visible = S.QuotaActive;
+        // At the recent rate, when reputation would run out: in the line under the bar, red.
+        int? runsOut = S.RepRunsOutIn();
+        if (runsOut is int n)
+            _rep.TooltipText += $"\n\nOver the last {Defs.RepTrendDays:0} days reputation has fallen {-(S.RepTrend() ?? 0):0.0} a day. At that rate it runs out " +
+                                $"in about {n} day{(n == 1 ? "" : "s")}: deliver more, and miss no deadlines.";
+        _quota.Visible = S.QuotaActive || runsOut != null;
         if (S.QuotaActive)
         {
             int q = S.IntelQuota;
-            _quota.Text = $"Decrypts {S.IntelRate:0.#} a day of {q} · {S.FreshToday:0} today";
-            _quota.AddThemeColorOverride("font_color", S.IntelRate >= q ? Gfx.Good : S.IntelRate >= q * 0.6 ? UiTheme.TextDim : Gfx.Warn);
-            _quota.TooltipText = _rep.TooltipText;
+            _quota.Text = $"Decrypts {S.IntelRate:0.#} a day of {q} · " + (runsOut is int d ? $"gone in ~{d} day{(d == 1 ? "" : "s")}" : $"{S.FreshToday:0} today");
+            _quota.AddThemeColorOverride("font_color", runsOut != null ? Gfx.Bad : S.IntelRate >= q ? Gfx.Good : S.IntelRate >= q * 0.6 ? UiTheme.TextDim : Gfx.Warn);
         }
+        else if (runsOut is int d)
+        {
+            _quota.Text = $"At this rate, gone in ~{d} day{(d == 1 ? "" : "s")}";
+            _quota.AddThemeColorOverride("font_color", Gfx.Bad);
+        }
+        _quota.TooltipText = _rep.TooltipText;
         var fill = UiTheme.Box(S.Reputation < 25 ? Gfx.Bad : S.Reputation < 45 ? Gfx.Warn : UiTheme.Accent, UiTheme.Accent, 3, 0);
         _rep.AddThemeStyleboxOverride("fill", fill);
         _points.Text = S.Points.ToString();

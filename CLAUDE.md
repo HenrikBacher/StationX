@@ -259,6 +259,9 @@ Then (user requests, 2026-11-19):
 - Ōshima (`Oshima.cs`): `OfferOshima` (offered, not tagged, `Contract.Oshima`, War Office, JN-25 path) in the Colossus and
   D-Day `OnStart`s; each delivered before D-Day is `OshimaRead`, and `OshimaBonus` (`OshimaPer` 0.015, max 0.09) joins
   `Readiness` for overlord (readiness tooltip). Balance 39/24/4.
+- Reputation forecast: `RepTrend()` (RepLog over `RepTrendDays` 3) and `RepRunsOutIn()` (falling more than `RepTrendFloor`
+  0.3 a day and out within `RepForecastDays` 21). The line under the reputation bar ends "gone in ~N days" in red (alone
+  before the quota), with the rate in the tooltip. View only.
 
 ### Graphics overhaul: period realism, CC0 assets allowed
 
