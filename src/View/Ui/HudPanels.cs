@@ -60,7 +60,7 @@ public partial class Hud
         {
             "build" => $"{S.Funds / 50}|{S.ActIndex}|{string.Join(",", S.Researched)}|{S.IndicatorChanged}",
             "staff" => string.Join(",", S.Staff.Select(s => $"{s.Id}{s.Task?.Kind}{s.Leaving}{s.Away}{s.Shift}{(int)(s.Energy * 5)}{(int)(s.Morale * 5)}{s.FarBillet}{s.IsSick(S.Now)}{s.Arriving(S.Now)}{s.HeadOf}")) + $"|{S.Billets}{S.Funds >= Defs.BilletCost}{S.AllHands}{S.CanCallAllHands() == null}|{(int)S.Stores}{S.StoresOnOrder}{S.StandingOrder}{S.CanOrderStores() == null}|" +
-                       string.Join(",", S.Candidates.Select(c => c.Id)) + $"|{S.Funds / 25}",
+                       string.Join(",", S.Candidates.Select(c => c.Id)) + $"|{S.Funds / 25}|{(int)(S.Now / 30)}|{_idleFirst}",
             "requests" => string.Join(",", S.Contracts.Select(c => $"{c.Id}{c.State}{c.Priority}{c.Delivered}{c.Spawned}{c.MilestonesChecked}{(int)((c.State == ContractState.Offered ? c.OfferExpires : c.Due) - S.Now) / 60}")) +
                           $"|{string.Join(",", S.KeyBoardNets().Select(n => S.KeyRoute(n)))}",
             "research" => $"{S.Points}|{string.Join(",", S.Researched)}|{string.Join(",", S.ResearchAvailable)}",
@@ -69,7 +69,7 @@ public partial class Hud
             "ystations" => YSig(),
             "intercepts" => InterceptsSig(),
             "war" => WarMapSig(),
-            "stats" => $"{S.History.Count}|{_statsRange}",
+            "stats" => $"{S.History.Count}|{S.UseDays.Count}|{_statsRange}",
             "handbook" => HandbookSig(),
             "workload" => WorkloadSig(),
             _ => "",
@@ -253,7 +253,9 @@ public partial class Hud
             v.AddChild(UiTheme.Label("Three watches", 15, UiTheme.Text, Fonts.BodyBold));
             v.AddChild(UiTheme.Label("Day 08–16, evening 16–24, night 00–08. People on the long day (07–22) grow weary now the work never stops; " +
                                      "more than a week of nights straight wears anyone but a night owl down twice as fast.", 12, UiTheme.TextDim));
-            // Who is on which watch, by role: one column per role, so nobody has to decode initials.
+            // Who is on which watch against what the work needed, by role; then anyone left on long days.
+            var use = S.Utilisation();
+            if (use.Staffing.Count > 0 && use.Hours >= 8) StaffingTable(use, v);
             var roles = Enum.GetValues<Role>().Where(S.RoleOpen).ToList();
             var table = new GridContainer { Columns = roles.Count + 1 };
             table.AddThemeConstantOverride("h_separation", 4);
@@ -273,7 +275,8 @@ public partial class Hud
                 h.MouseFilter = Control.MouseFilterEnum.Pass;
                 table.AddChild(h);
             }
-            foreach (var sh in new[] { Shift.Day, Shift.Evening, Shift.Night, Shift.Office })
+            bool counts = use.Staffing.Count == 0 || use.Hours < 8;
+            foreach (var sh in counts ? new[] { Shift.Day, Shift.Evening, Shift.Night, Shift.Office } : new[] { Shift.Office })
             {
                 var sd = Defs.Shifts[sh];
                 bool office = sh == Shift.Office;
@@ -287,7 +290,7 @@ public partial class Hud
                     table.AddChild(Cell(n.ToString(), n == 0 ? UiTheme.TextDim : office ? Gfx.Warn : UiTheme.Text));
                 }
             }
-            v.AddChild(table);
+            if (table.GetChildCount() > roles.Count + 1) v.AddChild(table);
             var rota = new CheckBox { Text = "Rotate weekly", ButtonPressed = S.RotateWatches,
                 TooltipText = "Change the watches round every week (day to evening to night), as Hut 6 did, so nobody is stuck on nights. Night owls lose their pick of the night watch." };
             rota.AddThemeFontSizeOverride("font_size", 12);
@@ -295,9 +298,28 @@ public partial class Hud
             v.AddChild(Row(rota, Spacer(), UiTheme.Button("Balance watches", () => { S.BalanceWatches(null); _sideSig = ""; Toast("Everyone is spread across the three watches."); },
                 tooltip: "Spread every role evenly over day, evening and night. Night owls take the night, unless the watches rotate.")));
         }
+        // Who stood about most of their watch: the ones to move or let go, listed first in their role.
+        var spareByRole = Enum.GetValues<Role>().Where(S.RoleOpen).Select(ro => (ro, n: S.Staff.Count(x => x.Role == ro && S.SpareHand(x)))).Where(x => x.n > 0).ToList();
+        {
+            var head = UiTheme.Label(spareByRole.Count == 0
+                    ? S.UseHours < 8 ? "Who is idle shows here once there's most of a day on record." : "Nobody stood idle most of their watch over the last day."
+                    : "Idle most of their watch over the last day: " + string.Join(", ", spareByRole.Select(x => $"{x.n} {(x.n == 1 ? RoleWord(x.ro) : GameState.PluralWord(x.ro))}")) +
+                      ". Move them to a short watch, or dismiss some (click one).",
+                12, spareByRole.Count == 0 ? UiTheme.TextDim : Gfx.Warn);
+            head.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+            var sort = new CheckBox { Text = "Idlest first", ButtonPressed = _idleFirst, TooltipText = "List each role by how idle they were on watch over the last day, the idlest first." };
+            sort.AddThemeFontSizeOverride("font_size", 12);
+            sort.Toggled += on => { _idleFirst = on; _sideSig = ""; };
+            _sideBox.AddChild(head);
+            _sideBox.AddChild(Row(UiTheme.Caps("By role", 11, UiTheme.Accent), Spacer(), sort));
+        }
         foreach (Role role in Enum.GetValues<Role>().Where(S.RoleOpen))
         {
             var people = S.Staff.Where(s => s.Role == role).ToList();
+            if (_idleFirst)
+                people = people.OrderBy(p => p.Use is { } l && l.OnWatch() >= 60 ? 0 : 1)
+                               .ThenByDescending(p => p.Use?.OfWatch(PersonUse.Idle) ?? 0).ToList();
+            int spare = spareByRole.FirstOrDefault(x => x.ro == role).n;
             var rd = Defs.Roles[role];
             // Long lists start folded, with a count of what everyone is doing; click the heading to open one.
             bool open = _rolesOpen.TryGetValue(role, out var o) ? o : people.Count <= 8;
@@ -308,7 +330,8 @@ public partial class Hud
             toggle.Alignment = HorizontalAlignment.Left;
             toggle.AddThemeFontOverride("font", Fonts.BodyBold);
             toggle.AddThemeFontSizeOverride("font_size", 12);
-            var summary = UiTheme.Label(open ? "" : string.Join(" · ", people.GroupBy(Doing).OrderByDescending(g => g.Count()).Select(g => $"{g.Count()} {g.Key}")), 11, UiTheme.TextDim);
+            var summary = UiTheme.Label(open ? spare > 0 ? $"{spare} spare" : "" : (spare > 0 ? $"{spare} spare · " : "") +
+                string.Join(" · ", people.GroupBy(Doing).OrderByDescending(g => g.Count()).Select(g => $"{g.Count()} {g.Key}")), 11, spare > 0 ? Gfx.Warn : UiTheme.TextDim);
             summary.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
             _sideBox.AddChild(Row(new ColorRect { Color = Gfx.RoleColor(role), CustomMinimumSize = new Vector2(10, 10), SizeFlagsVertical = Control.SizeFlags.ShrinkCenter },
                 toggle, summary));
@@ -327,7 +350,7 @@ public partial class Hud
                 b.TooltipText = b.Text;
                 if (p.Away) b.AddThemeColorOverride("font_color", UiTheme.TextDim);
                 b.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-                _sideBox.AddChild(Row(b, Meter(p.Energy, "Energy"), Meter(p.Morale, "Morale")));
+                _sideBox.AddChild(Row(b, DayBar(p), Meter(p.Energy, "Energy"), Meter(p.Morale, "Morale")));
             }
         }
         _sideBox.AddChild(new HSeparator());
@@ -353,6 +376,36 @@ public partial class Hud
             v.AddChild(Row(role, UiTheme.Button("Hire", () => S.Hire(id), S.Funds >= c.Salary,
                 tooltip: c.Notable != null ? "Reports at once." : $"Vetting and travel: reports in about {Math.Round(Defs.VettingHours(c.Role, S.Difficulty))} hours. Hire ahead of need.")));
         }
+    }
+
+    /// <summary>The Staff panel lists each role idlest first (by the last day on watch).</summary>
+    bool _idleFirst = true;
+
+    /// <summary>
+    /// A person's last day on watch in a small bar (working, carrying, walking, on a break, idle), with how idle they
+    /// were beside it when it was most of the time.
+    /// </summary>
+    Control DayBar(Staff p)
+    {
+        var log = p.Use;
+        double duty = log?.OnWatch() ?? 0;
+        var shares = new double[5];
+        if (log != null && duty > 0) for (int k = 0; k < 5; k++) shares[k] = log.In(k) / duty;
+        double idle = shares[(int)PersonUse.Idle];
+        string tip = duty < 30 ? "No time on watch on record in the last day."
+            : $"Last day: {duty / 60:0} h on watch, " + UseLook.Summary(shares, UseLook.PersonWords) + (S.SpareHand(p) ? ".\nIdle most of the watch: move them to a short watch, or let them go." : ".");
+        var bar = new ShareBar { Shares = duty < 30 ? Array.Empty<double>() : shares, Colours = UseLook.Person, TooltipText = tip,
+                                 CustomMinimumSize = new Vector2(44, 7), SizeFlagsVertical = Control.SizeFlags.ShrinkCenter };
+        var idleLabel = UiTheme.Label(duty >= 30 && idle >= 0.5 ? $"{Math.Round(idle * 100):0}%" : "", 11, Gfx.Warn, wrap: false);
+        idleLabel.CustomMinimumSize = new Vector2(28, 0);
+        idleLabel.HorizontalAlignment = HorizontalAlignment.Right;
+        idleLabel.TooltipText = tip;
+        idleLabel.MouseFilter = Control.MouseFilterEnum.Pass;
+        var row = new HBoxContainer();
+        row.AddThemeConstantOverride("separation", 3);
+        row.AddChild(idleLabel);
+        row.AddChild(bar);
+        return row;
     }
 
     /// <summary>Which role lists the player has opened or folded in the Staff panel.</summary>

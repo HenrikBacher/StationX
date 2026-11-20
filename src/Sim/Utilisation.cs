@@ -14,6 +14,8 @@ public enum DeskUse
     Starved,
     /// <summary>Paper waiting (or a message half done) and nobody working it.</summary>
     Unstaffed,
+    /// <summary>Paper waiting and someone given the desk, but still on the way to it (often from another building).</summary>
+    Coming,
     /// <summary>Broken down, being serviced, or stopped by a power cut.</summary>
     Down,
     /// <summary>Nobody at it and nothing for it.</summary>
@@ -73,11 +75,43 @@ public sealed class UseLog
     }
 
     public int DoneTotal() => Done.Sum();
+
+    /// <summary>For a person: minutes on watch (working, carrying, walking, on a break or idle).</summary>
+    public double OnWatch()
+    {
+        double t = 0;
+        for (int k = 0; k <= (int)PersonUse.Idle; k++) t += In(k);
+        return t;
+    }
+
+    /// <summary>For a person: the share of their time on watch in a state.</summary>
+    public double OfWatch(PersonUse u)
+    {
+        double w = OnWatch();
+        return w > 0 ? In((int)u) / w : 0;
+    }
+}
+
+/// <summary>One finished day of the record, kept for the trend lines: percentages, so the save stays small.</summary>
+public sealed class UseDay
+{
+    public int Day { get; set; }
+    /// <summary>All desks and machines: share of their open time spent working.</summary>
+    public int Busy { get; set; }
+    /// <summary>Everyone: share of their time on watch spent idle.</summary>
+    public int Idle { get; set; }
+    public Dictionary<StationType, int> Steps { get; set; } = new();
+    public Dictionary<Role, int> Roles { get; set; } = new();
 }
 
 /// <summary>One kind of desk or machine over the last day.</summary>
+/// <param name="Peak">The most of them worked at once in any hour of the last day: how many the work has needed.</param>
+/// <param name="StuckHours">Hours of the last day in which this step was the bottleneck (busy, paper piling up).</param>
+/// <param name="NobodyHours">Hours of the last day in which paper sat at most of them with nobody to work it.</param>
+/// <param name="NobodyWatch">The watch in which that was worst, and its hours in it.</param>
 public sealed record StepUse(StationType Type, int Count, double[] Share, double Minutes, int Done, int Waiting,
-                             double AvgWait, double OldestWait, int? Worst)
+                             double AvgWait, double OldestWait, int? Worst, int Peak = 0, int StuckHours = 0,
+                             int NobodyHours = 0, Shift? NobodyWatch = null, int NobodyWatchHours = 0)
 {
     /// <summary>The share of the hours it could be worked (not after hours before there are watches) in a state.</summary>
     public double OfOpen(DeskUse u)
@@ -90,13 +124,25 @@ public sealed record StepUse(StationType Type, int Count, double[] Share, double
 }
 
 /// <summary>One role over the last day: shares are of their time on watch.</summary>
-public sealed record RoleUse(Role Role, int Staff, int OnDuty, double[] Share, double Minutes, int? Pick);
+/// <param name="Spare">People idle most of their time on watch over the last day: the ones to move or let go.</param>
+public sealed record RoleUse(Role Role, int Staff, int OnDuty, double[] Share, double Minutes, int? Pick, int Spare = 0);
+
+/// <summary>
+/// One role on one watch over the last day: how many are rostered on it, how many desks they work, how many people
+/// the work needed at its busiest hour (desks with paper, plus paper being carried), and how it went.
+/// </summary>
+public sealed record RoleWatch(Role Role, Shift Shift, int On, int Desks, int Needed, double Nobody, double Idle, double Minutes)
+{
+    public bool Short => Nobody >= 0.2 || (Needed > On && Desks > 0);
+    public bool Spare => On >= 2 && Idle >= 0.5 && On > Needed + 1;
+}
 
 /// <summary>One watch's hours over the last day.</summary>
 public sealed record WatchUse(Shift Shift, int Rostered, double DeskBusy, double DeskUnstaffed, double PeopleWorking, double PeopleIdle);
 
 /// <summary>A plain-English observation about where the Park is stuck or idle, most serious first.</summary>
-public sealed record UseFinding(string Kind, string Text, double Score, StationType? Type = null, Role? Role = null);
+public sealed record UseFinding(string Kind, string Text, double Score, StationType? Type = null, Role? Role = null,
+                               Shift? Shift = null, int Count = 0);
 
 public sealed class UseReport
 {
@@ -105,7 +151,12 @@ public sealed class UseReport
     public List<RoleUse> Roles = new();
     public List<WatchUse> Watches = new();
     public List<UseFinding> Findings = new();
+    /// <summary>Roles by watch, once there are watches.</summary>
+    public List<RoleWatch> Staffing = new();
+    /// <summary>What has held for most of the last day, not just on the whole: for Needs attention.</summary>
+    public List<UseFinding> Lasting = new();
     public UseFinding? Top => Findings.Count > 0 ? Findings[0] : null;
+    public RoleWatch? Watch(Role r, Shift s) => Staffing.Find(x => x.Role == r && x.Shift == s);
 }
 
 /// <summary>
@@ -120,6 +171,15 @@ public sealed partial class GameState
     [JsonIgnore] public double UseSince { get; private set; } = -1;
     int _useHour = -1;
     readonly HashSet<int> _useAtWork = new();
+    /// <summary>Paper waiting for each step at the end of each hour of the last day (slot = hour of day).</summary>
+    readonly Dictionary<StationType, int[]> _useWaiting = new();
+
+    /// <summary>
+    /// The last <see cref="UseDaysKept"/> finished days of the record, for the trend lines. Saved (it is small); only the
+    /// bookkeeping writes it and nothing in the simulation reads it. Older saves simply start with none.
+    /// </summary>
+    public List<UseDay> UseDays { get; set; } = new();
+    public const int UseDaysKept = 30;
     UseReport? _useReport;
     int _useReportAt = int.MinValue;
 
@@ -132,7 +192,7 @@ public sealed partial class GameState
         StationType.Colossus, StationType.TunnyMachine, StationType.Translation, StationType.Index, StationType.Dispatch,
     };
 
-    public const int DeskStates = 6;
+    public const int DeskStates = 7;
 
     public static bool Tracked(Station st) => st.Def.Operator != null;
 
@@ -153,12 +213,24 @@ public sealed partial class GameState
         {
             if (_useHour < 0) UseSince = t0;
             else
+            {
+                // The hour just ended: how much paper was left waiting for each step.
+                int ended = _useHour % UseLog.Slots;
+                foreach (var a in _useWaiting.Values) a[ended] = 0;
+                foreach (var (t, w) in WaitingByStep())
+                {
+                    if (!_useWaiting.TryGetValue(t, out var a)) _useWaiting[t] = a = new int[UseLog.Slots];
+                    a[ended] = w.n;
+                }
                 for (int h = _useHour + 1; h <= hour && h <= _useHour + UseLog.Slots; h++)
                 {
                     int s = h % UseLog.Slots;
+                    // Midnight: the record holds the day just ended, before its first hour is cleared.
+                    if (s == 0 && h * 60 - UseSince >= 20 * 60) RecordUseDay(h / UseLog.Slots - 1);
                     foreach (var st in Stations) st.Use?.Clear(s);
                     foreach (var p in Staff) p.Use?.Clear(s);
                 }
+            }
             _useHour = hour;
         }
         int slot = hour % UseLog.Slots;
@@ -191,7 +263,8 @@ public sealed partial class GameState
         if (st.IsDown(Now) || Unpowered(st)) return DeskUse.Down;
         if (st.Working) return DeskUse.Working;
         if (!WatchesAvailable && !AllHands && !Defs.Shifts[Shift.Office].OnDuty(MinuteOfDay)) return DeskUse.Closed;
-        if (st.Current != null || (st.Input.Count > 0 && !st.Obsolete)) return DeskUse.Unstaffed;
+        if (st.Current != null || (st.Input.Count > 0 && !st.Obsolete))
+            return st.OperatorId != null && !st.OperatorPresent ? DeskUse.Coming : DeskUse.Unstaffed;
         return st.OperatorPresent || st.IsMachine ? DeskUse.Starved : DeskUse.Quiet;
     }
 
@@ -222,6 +295,9 @@ public sealed partial class GameState
     /// <summary>The slot of the hour now under way (the newest in the record).</summary>
     public int UseSlotNow => (int)Math.Floor(Now / 60) % UseLog.Slots;
 
+    /// <summary>A role in running text, plural: "clerks", but "Wrens" (members of the WRNS).</summary>
+    public static string PluralWord(Role r) => r == Role.Wren ? Defs.Roles[r].Plural : Defs.Roles[r].Plural.ToLowerInvariant();
+
     public static string Plural(StationType t) => t switch
     {
         StationType.Dispatch => "Despatch boxes",
@@ -240,11 +316,9 @@ public sealed partial class GameState
         return _useReport = BuildUseReport();
     }
 
-    UseReport BuildUseReport()
+    /// <summary>Paper waiting for each step: in trays, out trays and runners' hands, not garbled copies sent back.</summary>
+    Dictionary<StationType, (int n, double sum, double oldest)> WaitingByStep()
     {
-        var r = new UseReport { Hours = UseHours };
-
-        // Paper waiting for each step: in trays, out trays and runners' hands, not garbled copies sent back.
         var waiting = new Dictionary<StationType, (int n, double sum, double oldest)>();
         foreach (var msg in Messages.Values)
         {
@@ -253,6 +327,68 @@ public sealed partial class GameState
             double age = Now - msg.Since;
             waiting[nx] = (w.n + 1, w.sum + age, Math.Max(w.oldest, age));
         }
+        return waiting;
+    }
+
+    static readonly Shift[] WatchOrder = { Shift.Day, Shift.Evening, Shift.Night };
+
+    /// <summary>The watch an hour of the day belongs to.</summary>
+    public static Shift WatchAt(int hour) => hour < 8 ? Shift.Night : hour < 16 ? Shift.Day : Shift.Evening;
+
+    /// <summary>Desks with paper (worked or not) in an hour, in desks: 1 is one desk kept in work all hour.</summary>
+    static double Demand(UseLog log, int slot)
+    {
+        double total = log.SlotTotal(slot);
+        return total > 0 ? (log.In(slot, (int)DeskUse.Working) + log.In(slot, (int)DeskUse.Unstaffed) + log.In(slot, (int)DeskUse.Coming)) / total : 0;
+    }
+
+    /// <summary>A demand in desks or people as a whole number: 1.1 is one most of the time, 1.3 needs a second.</summary>
+    static int Whole(double x) => (int)Math.Ceiling(Math.Max(0, x - 0.2));
+
+    /// <summary>Writes the day just ended into the trend, from the 24 hours of the record.</summary>
+    void RecordUseDay(int day)
+    {
+        var rec = new UseDay { Day = day };
+        double allWork = 0, allOpen = 0;
+        foreach (var t in UseOrder)
+        {
+            double work = 0, open = 0;
+            foreach (var st in Stations)
+            {
+                if (st.Type != t || st.Use is not { } log || st.Obsolete) continue;
+                work += log.In((int)DeskUse.Working);
+                open += log.Total() - log.In((int)DeskUse.Closed);
+            }
+            if (open < 60) continue;
+            rec.Steps[t] = (int)Math.Round(work / open * 100);
+            allWork += work; allOpen += open;
+        }
+        double allIdle = 0, allDuty = 0;
+        foreach (var role in Enum.GetValues<Role>())
+        {
+            double idle = 0, duty = 0;
+            foreach (var p in Staff)
+            {
+                if (p.Role != role || p.Use is not { } log) continue;
+                idle += log.In((int)PersonUse.Idle);
+                duty += log.OnWatch();
+            }
+            if (duty < 60) continue;
+            rec.Roles[role] = (int)Math.Round(idle / duty * 100);
+            allIdle += idle; allDuty += duty;
+        }
+        rec.Busy = allOpen > 0 ? (int)Math.Round(allWork / allOpen * 100) : 0;
+        rec.Idle = allDuty > 0 ? (int)Math.Round(allIdle / allDuty * 100) : 0;
+        UseDays.Add(rec);
+        if (UseDays.Count > UseDaysKept) UseDays.RemoveAt(0);
+    }
+
+    UseReport BuildUseReport()
+    {
+        var r = new UseReport { Hours = UseHours };
+
+        var waiting = WaitingByStep();
+        int nowSlot = UseSlotNow;
 
         foreach (var t in UseOrder)
         {
@@ -272,7 +408,36 @@ public sealed partial class GameState
             // The one to look at: paper with nobody on it, else the fullest tray, else the busiest.
             var worst = list.OrderByDescending(s => DeskState(s) == DeskUse.Unstaffed ? 1 : 0)
                             .ThenByDescending(s => s.Input.Count).ThenByDescending(s => s.Use!.In((int)DeskUse.Working)).First();
-            r.Steps.Add(new StepUse(t, list.Count, share, total, done, w.n, w.n > 0 ? w.sum / w.n : 0, w.oldest, worst.Id));
+            // Hour by hour: how many were worked at once, and the hours stuck or with paper and nobody at it.
+            double peak = 0;
+            int stuck = 0, nobody = 0;
+            var byWatch = new Dictionary<Shift, int>();
+            var waitLog = _useWaiting.GetValueOrDefault(t);
+            for (int h = 0; h < UseLog.Slots; h++)
+            {
+                double demand = 0, work = 0, unst = 0, open = 0;
+                foreach (var s in list)
+                {
+                    double slotTotal = s.Use!.SlotTotal(h);
+                    if (slotTotal > 0) demand += s.Use.In(h, (int)DeskUse.Working) / slotTotal;
+                    work += s.Use!.In(h, (int)DeskUse.Working);
+                    unst += s.Use.In(h, (int)DeskUse.Unstaffed);
+                    open += s.Use.SlotTotal(h) - s.Use.In(h, (int)DeskUse.Closed);
+                }
+                peak = Math.Max(peak, demand);
+                // Only whole hours count towards "most of the day"; the hour under way is still running.
+                if (h == nowSlot || open < 30 * list.Count) continue;
+                if (work / open >= 0.75 && (waitLog?[h] ?? 0) >= list.Count + 2) stuck++;
+                if (unst / open >= 0.5)
+                {
+                    nobody++;
+                    var sh = WatchAt(h);
+                    byWatch[sh] = byWatch.GetValueOrDefault(sh) + 1;
+                }
+            }
+            var worstWatch = WatchesAvailable && byWatch.Count > 0 ? byWatch.MaxBy(kv => kv.Value) : default;
+            r.Steps.Add(new StepUse(t, list.Count, share, total, done, w.n, w.n > 0 ? w.sum / w.n : 0, w.oldest, worst.Id,
+                Math.Min(list.Count, Whole(peak)), stuck, nobody, worstWatch.Value > 0 ? worstWatch.Key : null, worstWatch.Value));
         }
 
         foreach (var role in Enum.GetValues<Role>())
@@ -289,7 +454,7 @@ public sealed partial class GameState
             if (onDuty > 0) for (int k = 0; k < share.Length; k++) share[k] /= onDuty;
             // Clicking the row picks someone standing about if anyone is, else someone at work.
             var pick = people.Where(p => !p.Away).OrderBy(p => PersonState(p) switch { PersonUse.Idle => 0, PersonUse.Working => 1, _ => 2 }).FirstOrDefault();
-            r.Roles.Add(new RoleUse(role, people.Count, people.Count(p => !p.Away), share, onDuty, pick?.Id));
+            r.Roles.Add(new RoleUse(role, people.Count, people.Count(p => !p.Away), share, onDuty, pick?.Id, people.Count(SpareHand)));
         }
 
         if (WatchesAvailable)
@@ -320,8 +485,92 @@ public sealed partial class GameState
                     dt > 0 ? dw / dt : 0, dt > 0 ? du / dt : 0, pt > 0 ? pw / pt : 0, pt > 0 ? pi / pt : 0));
             }
 
+        if (WatchesAvailable) r.Staffing = RoleWatches();
         r.Findings = UseFindings(r);
+        r.Lasting = LastingFindings(r);
         return r;
+    }
+
+    /// <summary>Idle most of the time they were on watch over the last day (at least four hours of it).</summary>
+    public bool SpareHand(Staff p) =>
+        p.Use is { } log && !p.Leaving && log.OnWatch() >= 240 && log.OfWatch(PersonUse.Idle) >= 0.6;
+
+    /// <summary>Who covers a watch: its own people, and those on long days (07–22) for the day and evening.</summary>
+    static bool OnWatch(Staff p, Shift sh) => p.Shift == sh || (p.Shift == Shift.Office && sh != Shift.Night);
+
+    List<RoleWatch> RoleWatches()
+    {
+        var list = new List<RoleWatch>();
+        foreach (var role in Enum.GetValues<Role>())
+        {
+            var desks = Stations.Where(s => s.Def.Operator == role && !s.Obsolete && Tracked(s)).ToList();
+            var people = Staff.Where(p => p.Role == role && !p.Leaving && !p.Arriving(Now)).ToList();
+            if (people.Count == 0 && desks.Count == 0) continue;
+            foreach (var sh in WatchOrder)
+            {
+                var def = Defs.Shifts[sh];
+                var mine = people.Where(p => OnWatch(p, sh)).ToList();
+                double peak = 0, unst = 0, open = 0, idle = 0, duty = 0;
+                for (int h = def.StartHour; h < def.EndHour; h++)
+                {
+                    int slot = h % UseLog.Slots;
+                    double need = 0;
+                    foreach (var s in desks)
+                    {
+                        if (s.Use is not { } log) continue;
+                        need += Demand(log, slot);
+                        unst += log.In(slot, (int)DeskUse.Unstaffed);
+                        open += log.SlotTotal(slot) - log.In(slot, (int)DeskUse.Closed);
+                    }
+                    foreach (var p in mine)
+                    {
+                        if (p.Use is not { } log) continue;
+                        double total = log.SlotTotal(slot);
+                        if (total > 0) need += log.In(slot, (int)PersonUse.Carrying) / total;
+                        idle += log.In(slot, (int)PersonUse.Idle);
+                        for (int k = 0; k <= (int)PersonUse.Idle; k++) duty += log.In(slot, k);
+                    }
+                    peak = Math.Max(peak, need);
+                }
+                list.Add(new RoleWatch(role, sh, mine.Count(p => !p.IsSick(Now)), desks.Count, Whole(peak),
+                    open > 0 ? unst / open : 0, duty > 0 ? idle / duty : 0, duty));
+            }
+        }
+        return list;
+    }
+
+    /// <summary>
+    /// What has held for most of the last day rather than on the whole: a step stuck for twelve hours or more, paper
+    /// with nobody at it for most of a watch, a role standing about. For Needs attention, so each says what to do.
+    /// </summary>
+    List<UseFinding> LastingFindings(UseReport r)
+    {
+        var list = new List<UseFinding>();
+        if (r.Hours < 12) return list;
+        foreach (var s in r.Steps)
+        {
+            var def = Defs.Station(s.Type);
+            string name = Plural(s.Type);
+            if (s.StuckHours >= 12)
+                list.Add(new UseFinding("stuck", $"{name} the bottleneck for {s.StuckHours} of the last 24 h: build another", 10 + s.StuckHours / 24.0, s.Type, Count: s.StuckHours));
+            else if (def.Operator is Role role && s.Waiting > 0)
+            {
+                string who = PluralWord(role);
+                if (s.NobodyWatch is Shift sh && s.NobodyWatchHours >= 5)
+                    list.Add(new UseFinding("nobody", $"{name}: paper and nobody at them most of the {Defs.Shifts[sh].Name.ToLowerInvariant()}: put more {who} on it",
+                        8 + s.NobodyWatchHours / 8.0, s.Type, role, sh, s.NobodyWatchHours));
+                else if (!WatchesAvailable && s.NobodyHours >= 8)
+                    list.Add(new UseFinding("nobody", $"{name}: paper and nobody at them {s.NobodyHours} h of the last day: hire {who}",
+                        8 + s.NobodyHours / 24.0, s.Type, role, Count: s.NobodyHours));
+            }
+        }
+        // One line for everyone standing about, the roles with most of them first (Role: the one with the most).
+        var spare = r.Roles.Where(ro => ro.Spare >= 2).OrderByDescending(ro => ro.Spare).ToList();
+        int spareTotal = spare.Sum(ro => ro.Spare);
+        if (spareTotal >= 3)
+            list.Add(new UseFinding("spare", "Idle most of their watch: " + string.Join(", ", spare.Select(ro => $"{ro.Spare} {PluralWord(ro.Role)}")) +
+                ": move them or let some go", 2 + spareTotal / 10.0, Role: spare[0].Role, Count: spareTotal));
+        return list.OrderByDescending(f => f.Score).ToList();
     }
 
     List<UseFinding> UseFindings(UseReport r)
@@ -346,10 +595,15 @@ public sealed partial class GameState
             {
                 string when = WorstWatch(s.Type) is Shift sh ? $", worst on the {Defs.Shifts[sh].Name.ToLowerInvariant()}" : "";
                 list.Add(new UseFinding("unstaffed",
-                    $"{name} had paper but nobody to work them {P(unstaffed)} of the time{(WatchesAvailable ? "" : " in working hours")}{when}. Hire {Defs.Roles[role].Plural.ToLowerInvariant()}" +
+                    $"{name} had paper but nobody to work them {P(unstaffed)} of the time{(WatchesAvailable ? "" : " in working hours")}{when}. Hire {PluralWord(role)}" +
                     (WatchesAvailable ? " or move some to that watch." : "."),
                     8 + unstaffed * 10 + s.Waiting / (double)s.Count, s.Type, role));
             }
+            double coming = s.OfOpen(DeskUse.Coming);
+            if (coming >= 0.2 && def.Operator is Role far && StationById(s.Worst ?? -1) is { } w && Grid.ZoneAt(w.X, w.Y) is { } zone)
+                list.Add(new UseFinding("far",
+                    $"{name} waited {P(coming)} of the time for someone walking over to them. Post some {PluralWord(far)} to {zone.Name} (pick one in Staff, then Posted to) so they wait close by.",
+                    5 + coming * 10, s.Type, far));
             if (down >= 0.15)
                 list.Add(new UseFinding("down", $"{name} were out of action {P(down)} of the last day. Service them before they wear out.", 6 + down * 10, s.Type));
         }

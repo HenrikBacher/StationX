@@ -136,6 +136,17 @@ public partial class Hud
         if (S.ActiveNets.Any(n => Defs.NetOf(n).Family == Family.Enigma) || hist.Any(r => r.KeysBroken > 0))
             Chart("Enigma keys broken per day", hist, r => r.KeysBroken, UiTheme.Accent, "0");
         Chart("Messages in the huts at midnight", hist, r => r.Backlog, Gfx.Warn, "0");
+        // The workload trend, beside the backlog: kept for the last month only, and only from when it began.
+        var use = S.UseDays.TakeLast(_statsRange).ToList();
+        if (use.Count >= 2)
+        {
+            // Busy shares run low (most desks stand quiet much of the day), so this one is scaled to its tens.
+            var busy = use.Select(d => (double)d.Busy).ToArray();
+            Chart("Desks and machines busy (Workload, U)", busy, use[0].Day, Gfx.Good, "0'%'", 0, Math.Clamp(Math.Ceiling(busy.Max() * 1.25 / 10) * 10, 20, 100),
+                "The share of their working hours all desks and machines spent working a message, day by day. Low means room to spare; near the top, paper queues.");
+            Chart("Staff idle while on watch", use.Select(d => (double)d.Idle).ToArray(), use[0].Day, Gfx.Warn, "0'%'", 0, 100,
+                "The share of their time on watch everyone spent with nothing to do. High means more people than work: move them to a short watch or let some go.");
+        }
         Chart("Funds", hist, r => r.Funds, UiTheme.Text, "£#,0");
         Chart("Reputation in Whitehall", hist, r => r.Reputation, UiTheme.Accent, "0", 0, 100);
         Chart("Staff", hist, r => r.Staff, UiTheme.Text, "0");
@@ -155,17 +166,20 @@ public partial class Hud
         if (more.Count > 0) _sideBox.AddChild(UiTheme.Label(char.ToUpperInvariant(more[0][0]) + string.Join(" · ", more)[1..], 12, UiTheme.TextDim));
     }
 
-    void Chart(string title, List<DayRecord> hist, Func<DayRecord, double> f, Color color, string fmt, double? min = null, double? max = null)
+    void Chart(string title, List<DayRecord> hist, Func<DayRecord, double> f, Color color, string fmt, double? min = null, double? max = null) =>
+        Chart(title, hist.Select(f).ToArray(), hist[0].Day, color, fmt, min, max);
+
+    void Chart(string title, double[] values, int firstDay, Color color, string fmt, double? min = null, double? max = null, string tip = "")
     {
-        var values = hist.Select(f).ToArray();
         var v = Card();
+        if (tip != "") { v.GetParent<Control>().TooltipText = tip; v.MouseFilter = Control.MouseFilterEnum.Ignore; }
         var name = UiTheme.Label(title, 13, UiTheme.Text, Fonts.BodyBold);
         name.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
         v.AddChild(Row(name, UiTheme.Label(values[^1].ToString(fmt), 13, color, Fonts.BodyBold)));
         v.AddChild(new LineChart
         {
             Values = values,
-            FirstDay = hist[0].Day,
+            FirstDay = firstDay,
             Min = min ?? Math.Min(0, values.Min()),
             Max = max ?? Math.Max(1, values.Max() * 1.1),
             Color = color,
