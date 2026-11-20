@@ -514,6 +514,7 @@ public partial class PersonModel : Node3D
     /// <param name="hidden">Indoors under solid roofs: kept in place but not drawn or posed.</param>
     public void Sync(Staff s, GameState g, float dt, Vector3? faceTarget, RestSpot? rest = null, Vector3? seat = null, bool hidden = false)
     {
+        if (Commuting) EndCommute();
         // Off watch: back at the billets, not on the map.
         bool show = !s.Away && !hidden;
         if (Visible != show) Visible = show;
@@ -571,6 +572,73 @@ public partial class PersonModel : Node3D
     }
 
     float _carryScale = 1;
+
+    MeshInstance3D? _bike;
+    /// <summary>On the way in or out (<see cref="Commuters"/>): not where the sim has them, so others don't step round them.</summary>
+    public bool Commuting { get; private set; }
+
+    /// <summary>
+    /// Off the map in the sim, but walking or cycling between the gate and their door: placed and posed from the
+    /// trip, riding a bicycle out of doors, or stopped at the barrier holding out a pass.
+    /// </summary>
+    public void SyncCommute(Vector3 at, Vector3 heading, bool riding, bool checking, float dt)
+    {
+        Commuting = true;
+        Settled = false;
+        if (!Visible) Visible = true;
+        if (!_placed) { _shown = at; _placed = true; }
+        _shown = _shown.Lerp(at, 1 - Mathf.Exp(-dt * 18));
+        if ((at - _shown).Length() > 2) _shown = at;
+        Position = _shown;
+        if (heading.LengthSquared() > 1e-4f) _yaw = Mathf.Atan2(heading.X, heading.Z);
+        Rotation = new Vector3(0, Mathf.LerpAngle(Rotation.Y, _yaw, 1 - Mathf.Exp(-dt * 12)), 0);
+        if (riding && _bike == null)
+        {
+            // Nose to +Z, the saddle under the hips.
+            _bike = new MeshInstance3D { Mesh = Bikes.Single(Bikes.FrameOf(StaffId)), RotationDegrees = new Vector3(0, -90, 0), Position = new Vector3(0, 0, 0.1f) };
+            AddChild(_bike);
+        }
+        if (_bike != null && _bike.Visible != riding) _bike.Visible = riding;
+        if (_carry.Visible) _carry.Visible = false;
+        if (_hasSkirt && _seatedSkirt) SetSkirt(false);
+        Pose p = riding ? Ride(dt, !checking) : checking ? ShowPass(dt) : Walk(dt, false, false, false);
+        if (riding && checking) { p.ArmR = -1.25f; p.ElbowR = -0.25f; p.ArmOutR = 0.2f; }   // astride, pass held out
+        Apply(p, dt);
+    }
+
+    /// <summary>Back in the sim's hands: no bicycle.</summary>
+    void EndCommute()
+    {
+        Commuting = false;
+        if (_bike != null && _bike.Visible) _bike.Visible = false;
+    }
+
+    Pose Ride(float dt, bool pedalling)
+    {
+        if (pedalling) _phase += dt * 7f;
+        float sn = Mathf.Sin(_phase), cs = Mathf.Cos(_phase);
+        return new Pose
+        {
+            HipY = 0.47f, Lean = 0.3f, HeadPitch = -0.15f,
+            ThighL = -0.95f + sn * 0.3f, ThighR = -0.95f - sn * 0.3f,
+            ShinL = 1.05f + cs * 0.35f, ShinR = 1.05f - cs * 0.35f,
+            ArmL = -0.95f, ElbowL = -0.25f, ArmOutL = 0.12f,
+            ArmR = -0.95f, ElbowR = -0.25f, ArmOutR = 0.12f,
+        };
+    }
+
+    /// <summary>Stopped at the barrier, pass held out to the sentry.</summary>
+    Pose ShowPass(float dt)
+    {
+        _idleT += dt;
+        return new Pose
+        {
+            HipY = HipY - 0.004f, HeadPitch = 0.05f,
+            ThighL = -0.03f, ThighR = 0.05f, ShinL = 0.05f, ShinR = 0.08f,
+            ArmL = 0.03f, ElbowL = -0.12f, ArmOutL = 0.05f,
+            ArmR = -1.2f, ElbowR = -0.3f, ArmOutR = 0.15f,
+        };
+    }
 
     /// <summary>The sheaf held in front of the chest: the torso bone's pose, worked out here rather than asked of the engine.</summary>
     void PlaceCarry()

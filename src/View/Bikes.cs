@@ -7,7 +7,8 @@ namespace StationX.View;
 
 /// <summary>
 /// Bicycle racks against the wall beside each open building's door. Most of the Park cycled in from billets in the
-/// town and villages, so a rack fills as that building's watch comes on and empties as it goes home. Each rack is one
+/// town and villages (<see cref="Commuters"/>), so a rack fills as that building's watch comes on and empties as it
+/// goes home. Each rack is one
 /// mesh for the rail and one per number of bicycles in it, coloured per vertex: two draws a rack whatever it holds.
 /// </summary>
 public partial class Bikes : Node3D
@@ -36,14 +37,14 @@ public partial class Bikes : Node3D
         _countIn = 0;
     }
 
-    public void Sync(GameState g, double dt, IReadOnlyList<Vector3> poles)
+    public void Sync(GameState g, double dt, IReadOnlyList<Vector3> poles, Commuters commuters)
     {
         if ((_countIn -= dt) > 0) return;
         _countIn = 0.5;
         _people.Clear();
         foreach (var s in g.Staff)
         {
-            if (s.Away || s.Arriving(g.Now) || s.FarBillet) continue;   // the far-billeted come by bus
+            if (s.Away || s.Arriving(g.Now) || !Commuters.Cycles(s)) continue;   // walkers, and the far-billeted come by bus
             var (x, y) = s.TilePos;
             if (g.Grid.ZoneAt(x, y) is { } z) _people[z.Id] = _people.GetValueOrDefault(z.Id) + 1;
         }
@@ -51,8 +52,8 @@ public partial class Bikes : Node3D
         {
             if (!z.Unlocked) continue;
             if (!_racks.TryGetValue(z.Id, out var rack)) _racks[z.Id] = rack = Build(z, poles);
-            // Most, not all, came by bicycle: some walked, and someone always borrowed one.
-            int want = Math.Min(Slots, (_people.GetValueOrDefault(z.Id) * 2 + 2) / 3);
+            // The bicycles of those in the building, and of those who've just come in ahead of their watch.
+            int want = Math.Min(Slots, _people.GetValueOrDefault(z.Id) + commuters.Parked(g, z));
             if (want == rack.Shown) continue;
             for (int k = 0; k < rack.Levels.Length; k++) rack.Levels[k].Visible = k + 1 == want;
             rack.Shown = want;
@@ -119,6 +120,22 @@ public partial class Bikes : Node3D
         }
         return rack;
     }
+
+    static readonly Dictionary<Color, Mesh> Ridden = new();
+
+    /// <summary>One bicycle as a single mesh, length along local X, front at +X (shared by everyone with that frame colour).</summary>
+    public static Mesh Single(Color frame)
+    {
+        if (Ridden.TryGetValue(frame, out var m)) return m;
+        var n = new Node3D();
+        Bike(n, Vector3.Zero, 0, frame);
+        var mi = Mesh3.MergePainted(n, "Bike");
+        m = mi.Mesh;   // the parts were freed by the merge
+        mi.Free();
+        return Ridden[frame] = m;
+    }
+
+    public static Color FrameOf(int staffId) => Frames[(int)(Gfx.Rand01(staffId, 2, 7) * Frames.Length * 0.999f)];
 
     static readonly TorusMesh Rim = new() { InnerRadius = 0.112f, OuterRadius = 0.13f, Rings = 20, RingSegments = 4 };
 

@@ -1327,7 +1327,7 @@ public partial class Park3D : Node3D
         StaffCar(_visitCar);
 
         // The sentry: battledress, webbing, steel helmet, rifle slung; facing the road, by his box.
-        var guard = new Node3D { Position = new Vector3(1.4f, 0, gy - 1.05f), RotationDegrees = new Vector3(0, 180, 0) };
+        var guard = _guard = new Node3D { Position = new Vector3(1.3f, 0, gy - 1.02f), RotationDegrees = new Vector3(0, 180, 0) };
         _gate.AddChild(guard);
         var still = new Node3D();   // everything of him but the waving arm, merged below into one draw
         var serge = new Color("6a6446");
@@ -1435,6 +1435,23 @@ public partial class Park3D : Node3D
     }
 
     public float BoomOpen => _boomOpen;
+
+    Node3D? _guard;
+
+    /// <summary>The sentry turns to whoever's showing him a pass at the barrier, and back to the road after.</summary>
+    public void SetSentryFacing(Vector3? at, float dt)
+    {
+        if (_guard == null || !IsInstanceValid(_guard) || dt <= 0) return;
+        float want = Mathf.Pi;   // he faces his local +X: at rest, turned half round to look down the road (-X)
+        if (at is Vector3 a)
+        {
+            var d = a - _guard.Position;
+            want = Mathf.Atan2(-d.Z, d.X);
+        }
+        var r = _guard.Rotation;
+        if (Mathf.Abs(Mathf.AngleDifference(r.Y, want)) < 0.002f) return;
+        _guard.Rotation = new Vector3(r.X, Mathf.LerpAngle(r.Y, want, 1 - Mathf.Exp(-dt * 6)), r.Z);
+    }
 
     void SurveyLines(Zone z)
     {

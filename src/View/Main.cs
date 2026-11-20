@@ -39,6 +39,7 @@ public partial class Main : Node3D
     bool _wasRaid;
     double _snowClock = double.NaN;
     WorldEnvironment _env = null!;
+    Commuters _commuters = null!;
     MeshInstance3D _selRing = null!;
 
     public readonly Dictionary<int, StationModel> StationModels = new();
@@ -216,6 +217,7 @@ public partial class Main : Node3D
         AddChild(_riders);
         _bikes = new Bikes { Name = "Bikes" };
         AddChild(_bikes);
+        _commuters = new Commuters();
         _geese = new Geese { Name = "Geese" };
         AddChild(_geese);
         _music = new Music { Name = "Music" };
@@ -438,6 +440,7 @@ public partial class Main : Node3D
         PersonModels.Clear();
         _furniture.Clear();
         _bikes.Clear();
+        _commuters.Clear();
         Rig.LookAtTile(11, 8);
         Rig.Cam.Size = 16;
         Paused = false;
@@ -537,11 +540,13 @@ public partial class Main : Node3D
         _park.SetRoofs(Rig.Cam.Size);
         SyncStations(running ? dt : 0);
         BenchMark(2);
+        _commuters.Update(State);
         SyncPeople(dt);
         BenchMark(3);
-        _riders.Sync(State, running ? dt : 0, Speed, _park);
+        _riders.Sync(State, running ? dt : 0, Speed, _park, _commuters.AtBarrier(State.Now));
+        _park.SetSentryFacing(_commuters.Checking(State.Now), dt);
         _park.SetVisitor(State.VisitorHere);
-        _bikes.Sync(State, dt, _park.PolesAt);
+        _bikes.Sync(State, dt, _park.PolesAt, _commuters);
         _geese.Sync(running ? dt : 0, Mathf.Clamp((_snowCover - 0.4f) * 2f, 0, 1));
         PanKeys(dt);
         UpdateHover();
@@ -680,7 +685,7 @@ public partial class Main : Node3D
     {
         const float gap = 0.36f;
         _shownPeople.Clear();
-        foreach (var m in PersonModels.Values) if (m.Visible) _shownPeople.Add(m);
+        foreach (var m in PersonModels.Values) if (m.Visible && !m.Commuting) _shownPeople.Add(m);
         for (int i = 0; i < _shownPeople.Count; i++)
         {
             var a = _shownPeople[i];
@@ -726,6 +731,11 @@ public partial class Main : Node3D
             {
                 var (at, f) = rm.Seat(r.Seat);
                 rest = new PersonModel.RestSpot(rm.ToGlobal(at), rm.ToGlobal(f), rm.Seated, rm.Type == StationType.Rounders);
+            }
+            if (s.Away && _commuters.Where(s.Id, State.Now, out var cAt, out var heading, out bool riding, out bool checking))
+            {
+                m.SyncCommute(cAt, heading, riding, checking, dt);
+                continue;
             }
             bool indoors = roofed && State.Grid.ZoneAt((int)s.X, (int)s.Y) is { Unlocked: true };
             m.Sync(s, State, dt, face, rest, seat, indoors);

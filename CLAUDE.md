@@ -181,6 +181,15 @@ Then (user requests, 2026-11-19):
 - Chimney smoke (`Smoke.cs`, CPU particles, one draw each): on the Mansion's chimneys (`Park3D.Chimney`) and the huts'
   back-eaves stove pipes, parented to the same wall-side node so it hides with them. `Park3D.SetSmoke`: October–April, the
   Mansion always, a hut only with a stove in it; the wind bends it.
+- Commuters (`Commuters.cs`, view only, the sim never sees it): when someone goes Away their own `PersonModel` walks or
+  cycles (`Commuters.Cycles`: 60% by id, never the far-billeted) from where they were to the gate and down the road
+  (`RoadX` -18), leaving up to `Linger` 20 game minutes late. Arrivals for each watch start are planned together
+  `PlanAhead` (300 min) before it: due at their `HomeX/HomeY` door `Early` 3–30 min early, pass checks
+  (`CheckMinutes` 3.5 at `CheckPoint`, by the sentry, who turns to them: `Park3D.SetSentryFacing`) scheduled
+  back-to-back from the latest, so nobody queues. Walkers keep left of cyclists (lanes in `Where`). Trips run on game
+  time; the sim reclaiming the person ends a trip. `PersonModel.SyncCommute` (poses `Ride`, `ShowPass`, a shared
+  `Bikes.Single` mesh); racks count cyclists present plus `Commuters.Parked`; the barrier lifts for them (`AtBarrier`).
+  Walk 0.42 and bike 1.05 tiles a game minute (sim walkers do 0.28: a sim-side commute would cost hours of watch).
 - Draw-call notes: Godot already instances identical mesh+material draws, so many copies of one mesh cost little; distinct
   boxes each cost a draw. `STX_COUNT=1` with `--shot` prints visible surfaces by owner (Stations by type, Buildings by
   kind). Bombe drums are two MultiMeshes per Bombe (`StationModel.TurnDrums`); the sentry, barrier pole and staff car
