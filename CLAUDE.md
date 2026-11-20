@@ -131,9 +131,19 @@ Then (user requests, 2026-11-19):
   ... --filter Invariants` checks message bookkeeping, energy/morale ranges, frozen walkers, starved desks. Hot-path rules:
   no lambdas capturing a loop variable in per-tick loops (move that code to its own method), `StationById`/`StaffById`
   (`IdIndex<T>`) not scans, no LINQ in anything that runs every tick.
-- Known, not yet fixed: standing orders' `Contract.TotalDays` is one too many (the view uses `Hud.StandingDays`); the
-  act-1 briefing says build before accepting; the Mansion's dormers stick out of its roof; no telegraph wires; progress
-  bars show through roofs at night; the weekly grant late on is far below wages.
+- Fixed since: standing orders' `TotalDays` (from Quantity/PerDay), the act-1 briefing (accept first). Clean quit by every
+  path (`Main.QuitGame`: free the world, collect and finalize, then quit; Godot aborted on "!rc_owner"). Draw calls:
+  nothing indoors drawn under solid roofs, each figure one skinned mesh, furniture merged per building (`Furniture.cs`,
+  `StationModel.DetachStatic`; moving uses the ghost).
+- Whitehall's quota (from `Defs.QuotaFromAct` = 5): `IntelQuota` fresh decrypts a day (`QuotaShare` 0.5 + 0.04/act, max
+  0.8, of the act's offers at full rate), `IntelRate` over the last two days (`DayRecord.Fresh`, `QuotaValue`: stale 3/4,
+  dead 1/2); `ExpectationMult` = 2.25 × shortfall, clamped 0.6..2.25 (`QuotaFloor`; slope 2.5 put Normal at 17, 2 at 28).
+  `MissedRep` scales by what's still owed (base 2.5). Visits count idle heads (`IdleShare`). `MaxOffers` 5. Workload
+  finding `spare`; the autoplayer takes `SpareRequests` more on networks read today and hires no more of an idle role
+  (`UseWorkload`; off in the save-comparing test). Tip `quota`. `ParkDiag` (PARKDIAG=1) reports a game act by act.
+  Balance 2026-11-20: Easy 40, Normal 21, Hard 0 of 40 (main before it: 40/26/2).
+- Known, not yet fixed: the Mansion's dormers stick out of its roof; no telegraph wires; progress bars show through
+  roofs at night.
 
 ### Graphics overhaul: period realism, CC0 assets allowed
 
