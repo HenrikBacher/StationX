@@ -191,7 +191,7 @@ public partial class Hud
     // ------------------------------------------------------------------ hints
 
     PanelContainer _hint = null!;
-    Label _hintText = null!;
+    Label _hintText = null!, _hintHead = null!;
     string? _hintId;
     readonly HashSet<string> _hintsDone = new();
 
@@ -208,7 +208,7 @@ public partial class Hud
         var v = new VBoxContainer();
         v.AddThemeConstantOverride("separation", 4);
         _hint.AddChild(v);
-        var head = Ink("A WORD FROM COMMANDER DENNISTON", 11, Fonts.BodyBold, UiTheme.Stamp, wrap: false);
+        var head = _hintHead = Ink("A WORD FROM COMMANDER DENNISTON", 11, Fonts.BodyBold, UiTheme.Stamp, wrap: false);
         head.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
         var close = UiTheme.Button("Got it", () => { if (_hintId != null) { _hintsDone.Add(_hintId); S.TipsDismissed.Add(_hintId); } _hint.Visible = false; });
         close.Flat = true;
@@ -381,6 +381,8 @@ public partial class Hud
         {
             _hintId = x.id;
             _hintText.Text = x.text;
+            // Travis took over from Denniston in February 1942: the tips come from whoever signs the briefings.
+            _hintHead.Text = S.Act.From.Contains("Travis") ? "A WORD FROM COMMANDER TRAVIS" : "A WORD FROM COMMANDER DENNISTON";
             _hint.OffsetBottom = _hint.OffsetTop;
         }
     }
