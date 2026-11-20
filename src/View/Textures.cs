@@ -157,6 +157,77 @@ public static class Textures
         return m;
     }
 
+    static ImageTexture? _mossGraded, _mossEven;
+
+    /// <summary>Periodic value noise on a square texture of side `size`, `cells` cells across.</summary>
+    static float Periodic(int x, int y, int size, int cells, int salt)
+    {
+        float gx = x * cells / (float)size, gy = y * cells / (float)size;
+        int ix = (int)gx, iy = (int)gy;
+        float tx = gx - ix, ty = gy - iy;
+        tx = tx * tx * (3 - 2 * tx); ty = ty * ty * (3 - 2 * ty);
+        float a = Gfx.Rand01(ix % cells, iy % cells, salt), b = Gfx.Rand01((ix + 1) % cells, iy % cells, salt);
+        float c = Gfx.Rand01(ix % cells, (iy + 1) % cells, salt), d = Gfx.Rand01((ix + 1) % cells, (iy + 1) % cells, salt);
+        return Mathf.Lerp(Mathf.Lerp(a, b, tx), Mathf.Lerp(c, d, tx), ty);
+    }
+
+    /// <summary>
+    /// Moss and lichen for the roofs' detail layer, drawn by hand rather than downloaded: cushions of dark olive moss
+    /// with lighter tips, and pale grey-green crusts of lichen dotted between, its alpha saying how much shows. Graded,
+    /// each row down the texture has less (the roof's UV2 picks a row by how shaded and how low on the slope a point
+    /// is: more at the eaves and on the north side); even, the same thin scatter everywhere (flat roofs).
+    /// </summary>
+    public static ImageTexture Moss(bool graded)
+    {
+        if ((graded ? _mossGraded : _mossEven) is { } done) return done;
+        const int S = 256;
+        var img = Image.CreateEmpty(S, S, false, Image.Format.Rgba8);
+        var moss = new Color("424826"); var tip = new Color("59602f"); var dark = new Color("2e331f");
+        var lichen = new Color("8e8f76");
+        for (int y = 0; y < S; y++)
+            for (int x = 0; x < S; x++)
+            {
+                float amount = graded ? 1 - y / (S - 1f) : 0.2f;
+                // Where moss takes: clumps (low frequency) broken up by smaller cushions.
+                float n = Periodic(x, y, S, 6, 201) * 0.55f + Periodic(x, y, S, 16, 202) * 0.3f + Periodic(x, y, S, 48, 203) * 0.15f;
+                float a = Mathf.SmoothStep(n - 0.06f, n + 0.06f, amount * 0.9f + 0.05f) * 0.62f;
+                float fine = Gfx.Rand01(x, y, 204);
+                var c = moss.Lerp(tip, Periodic(x, y, S, 64, 205)).Lerp(dark, fine > 0.8f ? 0.5f : 0);
+                // Lichen: small round crusts where the moss hasn't taken, thinning out where there's little of anything.
+                float spot = Periodic(x, y, S, 85, 206);
+                if (a < 0.2f && spot > 0.84f - 0.05f * amount && amount > 0.06f)
+                {
+                    float l = Mathf.Clamp((spot - 0.84f) * 10, 0, 1) * 0.4f;
+                    c = c.Lerp(lichen, l / Mathf.Max(0.01f, l + a));
+                    a = Mathf.Max(a, l);
+                }
+                c.A = a;
+                img.SetPixel(x, y, c);
+            }
+        img.GenerateMipmaps();
+        var t = ImageTexture.CreateFromImage(img);
+        if (graded) _mossGraded = t; else _mossEven = t;
+        return t;
+    }
+
+    /// <summary>
+    /// Lays moss over a roof material as its detail layer: graded on the pitched roofs' own UV2 (see Mesh3.Roof),
+    /// an even scatter mapped from above on flat ones. No extra draws, one more texture read.
+    /// </summary>
+    public static void Mossy(StandardMaterial3D m, bool graded)
+    {
+        m.DetailEnabled = true;
+        m.DetailAlbedo = Moss(graded);
+        m.DetailBlendMode = BaseMaterial3D.BlendModeEnum.Mix;
+        m.DetailUVLayer = BaseMaterial3D.DetailUV.UV2;
+        if (!graded)
+        {
+            m.UV2Triplanar = true;
+            m.UV2WorldTriplanar = true;
+            m.UV2Scale = Vector3.One / 3.5f;
+        }
+    }
+
     /// <summary>A fading copy of a wall material, for the gable ends under a fading roof.</summary>
     public static StandardMaterial3D FadingCopy(StandardMaterial3D m) => (StandardMaterial3D)m.Duplicate();
 

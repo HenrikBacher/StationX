@@ -7,6 +7,9 @@ namespace StationX.View;
 public partial class WeatherFx : Node3D
 {
     CpuParticles3D _rain = null!, _snow = null!;
+    /// <summary>Each particle material and its full-daylight colour: they're unshaded, so they're dimmed by hand at night.</summary>
+    readonly System.Collections.Generic.List<(StandardMaterial3D mat, Color day)> _mats = new();
+    float _light = 1;
     readonly System.Collections.Generic.List<Node3D> _beams = new();
     float _t;
 
@@ -55,12 +58,14 @@ public partial class WeatherFx : Node3D
 
     CpuParticles3D Make(Mesh mesh, Color c, int amount, float lifetime, float gravity, float spread)
     {
-        mesh.SurfaceSetMaterial(0, new StandardMaterial3D
+        var mat = new StandardMaterial3D
         {
             AlbedoColor = c,
             ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
             Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
-        });
+        };
+        mesh.SurfaceSetMaterial(0, mat);
+        _mats.Add((mat, c));
         var p = new CpuParticles3D
         {
             Mesh = mesh,
@@ -82,8 +87,15 @@ public partial class WeatherFx : Node3D
         return p;
     }
 
-    public void Sync(Weather w, Vector3 target, bool searchlights = false)
+    /// <param name="light">How brightly the falling rain and snow catch the light: 1 by day, low at night.</param>
+    public void Sync(Weather w, Vector3 target, bool searchlights = false, float light = 1)
     {
+        if (Mathf.Abs(light - _light) > 0.01f)
+        {
+            _light = light;
+            foreach (var (mat, day) in _mats)
+                mat.AlbedoColor = new Color(day.R * light, day.G * light, day.B * light, day.A);
+        }
         foreach (var b in _beams) if (b.Visible != searchlights) b.Visible = searchlights;
         Position = new Vector3(target.X, 0, target.Z);
         bool rain = w is Weather.Rain or Weather.Storm;

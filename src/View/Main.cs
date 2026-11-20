@@ -30,6 +30,8 @@ public partial class Main : Node3D
     DirectionalLight3D _sun = null!;
     WeatherFx _weather = null!;
     float _snowCover;
+    /// <summary>How wet the ground is: soaks in an hour of rain, dries over most of a day.</summary>
+    float _wetness;
     bool _wasRaid;
     double _snowClock = double.NaN;
     WorldEnvironment _env = null!;
@@ -663,7 +665,7 @@ public partial class Main : Node3D
         env.FogLightEnergy = 1;
         env.FogDensity = 0.36f + 0.36f * haze;
         env.FogDepthBegin = 115 - 22 * haze;
-        _weather.Sync(w, Rig.Target, State.RaidOn && night > 0.3f);
+        _weather.Sync(w, Rig.Target, State.RaidOn && night > 0.3f, light: Mathf.Lerp(1f, 0.3f, night) * (1 - 0.25f * gloom));
         if (State.RaidOn != _wasRaid)
         {
             _wasRaid = State.RaidOn;
@@ -675,6 +677,11 @@ public partial class Main : Node3D
         if (_shotPath != null && w == Weather.Snow) _snowCover = 1;
         _snowCover = Math.Clamp(_snowCover + (float)dtMin * (w == Weather.Snow ? 1 / 240f : -1 / 900f), 0, 1);
         _park.SetSnow(_snowCover);
+        bool raining = w is Weather.Rain or Weather.Storm;
+        if (_shotPath != null && raining) _wetness = 1;
+        if (w is not (Weather.Fog or Weather.Snow))
+            _wetness = Math.Clamp(_wetness + (float)dtMin * (raining ? 1 / 60f : -1 / 600f), 0, 1);
+        _park.SetWet(_wetness);
         _park.Lake.Set(
             wind: w switch { Weather.Storm => 1f, Weather.Rain => 0.6f, Weather.Overcast or Weather.Snow => 0.45f, Weather.Fog => 0.1f, _ => 0.3f },
             rain: w switch { Weather.Storm => 1f, Weather.Rain => 0.8f, _ => 0f },
