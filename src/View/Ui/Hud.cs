@@ -15,6 +15,7 @@ public partial class Hud : CanvasLayer
     Control _root = null!;
     Label _date = null!, _time = null!, _funds = null!, _points = null!, _tonnage = null!;
     ProgressBar _rep = null!;
+    Label _quota = null!;
     Button _pauseBtn = null!, _flowBtn = null!;
     readonly List<(Button b, int speed)> _speedBtns = new();
     readonly Dictionary<string, Button> _tools = new();
@@ -179,6 +180,10 @@ public partial class Hud : CanvasLayer
         _rep = new ProgressBar { MinValue = 0, MaxValue = 100, ShowPercentage = false, CustomMinimumSize = new Vector2(150, 12) };
         _rep.TooltipText = "Completed requests raise it, missed deadlines lower it. It sets the weekly Treasury grant. At zero, GC&CS is closed down.";
         repBox.AddChild(_rep);
+        // Today's fresh decrypts against Whitehall's quota, once it counts (the tooltip is the reputation bar's).
+        _quota = UiTheme.Label("", 11, UiTheme.TextDim, Fonts.Body, wrap: false);
+        _quota.MouseFilter = Control.MouseFilterEnum.Pass;
+        repBox.AddChild(_quota);
         repBox.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
         row.AddChild(repBox);
         row.AddChild(Stat("Breakthroughs", out _points));
@@ -230,6 +235,14 @@ public partial class Hud : CanvasLayer
                            RepWeek();
         _funds.MouseFilter = Control.MouseFilterEnum.Pass;
         _rep.Value = S.Reputation;
+        _quota.Visible = S.QuotaActive;
+        if (S.QuotaActive)
+        {
+            int q = S.IntelQuota;
+            _quota.Text = $"Fresh decrypts {S.IntelRate:0.#} a day of {q} wanted · {S.FreshToday:0} today";
+            _quota.AddThemeColorOverride("font_color", S.IntelRate >= q ? Gfx.Good : S.IntelRate >= q * 0.6 ? UiTheme.TextDim : Gfx.Warn);
+            _quota.TooltipText = _rep.TooltipText;
+        }
         var fill = UiTheme.Box(S.Reputation < 25 ? Gfx.Bad : S.Reputation < 45 ? Gfx.Warn : UiTheme.Accent, UiTheme.Accent, 3, 0);
         _rep.AddThemeStyleboxOverride("fill", fill);
         _points.Text = S.Points.ToString();
