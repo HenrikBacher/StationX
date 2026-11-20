@@ -103,7 +103,7 @@ public sealed class UseDay
 }
 
 /// <summary>One kind of desk or machine over the last day.</summary>
-/// <param name="Peak">The most of them that had paper at once, hour by hour: how many the work needed.</param>
+/// <param name="Peak">The most of them worked at once in any hour of the last day: how many the work has needed.</param>
 /// <param name="StuckHours">Hours of the last day in which this step was the bottleneck (busy, paper piling up).</param>
 /// <param name="NobodyHours">Hours of the last day in which paper sat at most of them with nobody to work it.</param>
 /// <param name="NobodyWatch">The watch in which that was worst, and its hours in it.</param>
@@ -405,7 +405,7 @@ public sealed partial class GameState
             // The one to look at: paper with nobody on it, else the fullest tray, else the busiest.
             var worst = list.OrderByDescending(s => DeskState(s) == DeskUse.Unstaffed ? 1 : 0)
                             .ThenByDescending(s => s.Input.Count).ThenByDescending(s => s.Use!.In((int)DeskUse.Working)).First();
-            // Hour by hour: how many had paper at once, and the hours stuck or with paper and nobody at it.
+            // Hour by hour: how many were worked at once, and the hours stuck or with paper and nobody at it.
             double peak = 0;
             int stuck = 0, nobody = 0;
             var byWatch = new Dictionary<Shift, int>();
@@ -415,7 +415,8 @@ public sealed partial class GameState
                 double demand = 0, work = 0, unst = 0, open = 0;
                 foreach (var s in list)
                 {
-                    demand += Demand(s.Use!, h);
+                    double slotTotal = s.Use!.SlotTotal(h);
+                    if (slotTotal > 0) demand += s.Use.In(h, (int)DeskUse.Working) / slotTotal;
                     work += s.Use!.In(h, (int)DeskUse.Working);
                     unst += s.Use.In(h, (int)DeskUse.Unstaffed);
                     open += s.Use.SlotTotal(h) - s.Use.In(h, (int)DeskUse.Closed);
@@ -518,15 +519,11 @@ public sealed partial class GameState
                         unst += log.In(slot, (int)DeskUse.Unstaffed);
                         open += log.SlotTotal(slot) - log.In(slot, (int)DeskUse.Closed);
                     }
-                    foreach (var p in people)
+                    foreach (var p in mine)
                     {
                         if (p.Use is not { } log) continue;
                         double total = log.SlotTotal(slot);
                         if (total > 0) need += log.In(slot, (int)PersonUse.Carrying) / total;
-                    }
-                    foreach (var p in mine)
-                    {
-                        if (p.Use is not { } log) continue;
                         idle += log.In(slot, (int)PersonUse.Idle);
                         for (int k = 0; k <= (int)PersonUse.Idle; k++) duty += log.In(slot, k);
                     }
@@ -564,10 +561,12 @@ public sealed partial class GameState
                         8 + s.NobodyHours / 24.0, s.Type, role, Count: s.NobodyHours));
             }
         }
-        foreach (var ro in r.Roles)
-            if (ro.Spare >= 3)
-                list.Add(new UseFinding("spare", $"{ro.Spare} {PluralWord(ro.Role)} idle most of their watch: move them or let some go",
-                    2 + ro.Spare / 10.0, Role: ro.Role, Count: ro.Spare));
+        // One line for everyone standing about, the roles with most of them first (Role: the one with the most).
+        var spare = r.Roles.Where(ro => ro.Spare >= 2).OrderByDescending(ro => ro.Spare).ToList();
+        int spareTotal = spare.Sum(ro => ro.Spare);
+        if (spareTotal >= 3)
+            list.Add(new UseFinding("spare", "Idle most of their watch: " + string.Join(", ", spare.Select(ro => $"{ro.Spare} {PluralWord(ro.Role)}")) +
+                ": move them or let some go", 2 + spareTotal / 10.0, Role: spare[0].Role, Count: spareTotal));
         return list.OrderByDescending(f => f.Score).ToList();
     }
 

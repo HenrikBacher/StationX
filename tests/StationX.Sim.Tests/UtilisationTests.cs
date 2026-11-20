@@ -194,6 +194,6 @@ public class UtilisationTests
 
         var clerks = r.Roles.Single(x => x.Role == Role.Clerk);
         Assert.True(clerks.Spare >= 3, $"{clerks.Spare} spare clerks");
-        Assert.Contains(r.Lasting, x => x.Kind == "spare" && x.Role == Role.Clerk);
+        Assert.Contains(r.Lasting, x => x.Kind == "spare" && x.Text.Contains($"{clerks.Spare} clerks"));
     }
 }
