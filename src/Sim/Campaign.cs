@@ -634,6 +634,8 @@ public static class Campaign
     public static readonly int ActionThisDay = Array.FindIndex(Acts, a => a.Title == "Action This Day");
     /// <summary>From U-110 on, some naval traffic is Offizier: enciphered twice.</summary>
     public static readonly int OffizierFrom = Array.FindIndex(Acts, a => a.Title == "U-110");
+    /// <summary>From Operation Claymore, Hut 8 can read the dockyard cipher (WERFT) for kisses.</summary>
+    public static readonly int KissesFrom = IndexOf("Operation Claymore");
 
     public const string TunnyEpilogue =
         "On 1 June 1944 the improved Colossus Mark 2 started work. On 5 June, as the invasion fleet waited for the weather, " +

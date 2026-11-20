@@ -17,7 +17,7 @@ public enum StationType
 
 public enum Family { Hand, Enigma, Lorenz }
 
-public enum Net { Police, Abwehr, Red, LightBlue, Chaffinch, Dolphin, Shark, Tunny, Brown }
+public enum Net { Police, Abwehr, Red, LightBlue, Chaffinch, Dolphin, Shark, Tunny, Brown, Werft }
 
 public enum Issuer { WarOffice, AirMinistry, Admiralty, SIS }
 
@@ -149,6 +149,13 @@ public static partial class Defs
     /// <summary>Messages of a network's day to log before its externals give a crib hint; and the hint's effect.</summary>
     public const int SixtaNeeded = 2;
     public const double SixtaCribMult = 0.6, SixtaBombeMult = 0.85;
+    /// <summary>
+    /// Kisses: WERFT signals sent on a day when the Park reads them (the dockyards' and weather stations' morning reports,
+    /// from this hour over this many hours), and what a kissed naval key saves: the crib desk's menu and the Bombe run.
+    /// </summary>
+    public const int WerftPerDay = 2;
+    public const double WerftFromHour = 5, WerftSpreadHours = 4;
+    public const double KissCribMult = 0.35, KissBombeMult = 0.8, KissCribQuality = 0.99;
 
     // ---- Layout ----
     /// <summary>Paper passes straight across to a next-step desk this close (Manhattan, between working tiles, same hut).</summary>
@@ -319,7 +326,7 @@ public static partial class Defs
         new("chicksands", "RAF Chicksands", new[] { Net.Red, Net.LightBlue, Net.Brown }, Service.Luftwaffe, 3),
         new("arkley", "Arkley View", new[] { Net.Abwehr }, Service.Security, 2),
         new("beaumanor", "Beaumanor", new[] { Net.Chaffinch }, Service.Heer, 7),
-        new("scarborough", "Scarborough", new[] { Net.Dolphin, Net.Shark }, Service.Kriegsmarine, 7),
+        new("scarborough", "Scarborough", new[] { Net.Dolphin, Net.Shark, Net.Werft }, Service.Kriegsmarine, 7),
         new("knockholt", "Knockholt", new[] { Net.Tunny }, null, 0),
     };
     /// <summary>Daily chance that a man on the staff is called up (1940-42).</summary>
@@ -517,6 +524,7 @@ public static partial class Defs
         [Net.Chaffinch] = new(Net.Chaffinch, "CHAFFINCH", "Afrika Korps army key", Family.Enigma, false, false, 1.3, false, Issuer.WarOffice, 2, 45, Service.Heer),
         [Net.Dolphin] = new(Net.Dolphin, "DOLPHIN", "Kriegsmarine home waters key", Family.Enigma, true, false, 3.0, false, Issuer.Admiralty, 2, 55, Service.Kriegsmarine),
         [Net.Shark] = new(Net.Shark, "SHARK", "U-boat Atlantic key, four wheels", Family.Enigma, true, true, 1.6, false, Issuer.Admiralty, 3, 80, Service.Kriegsmarine),
+        [Net.Werft] = new(Net.Werft, "WERFT", "Kriegsmarine dockyard and weather hand cipher, read for kisses", Family.Hand, true, false, 1.0, false, Issuer.Admiralty, 0, 0, Service.Kriegsmarine),
         [Net.Tunny] = new(Net.Tunny, "TUNNY", "German high command teleprinter cipher, Lorenz SZ42", Family.Lorenz, false, false, 1.0, false, Issuer.WarOffice, 4, 100, Service.Heer),
     };
 

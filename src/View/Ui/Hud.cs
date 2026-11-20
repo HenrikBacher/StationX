@@ -330,9 +330,9 @@ public partial class Hud : CanvasLayer
         {
             int waiting = S.Messages.Values.Count(m => m.Net == n && m.Next == null);
             var state = S.KeyBroken(n, S.Day) ? "broken" : S.KeyState(n, S.Day).ToString();
-            return $"{n}:{state}:{waiting}:{S.KeyRouteProblem(n)}:{S.KeyOrderOf(n)}";
+            return $"{n}:{state}:{waiting}:{S.KeyRouteProblem(n)}:{S.KeyOrderOf(n)}:{S.Kissed(n, S.Day)}";
         }).ToList();
-        var sig = S.Day + "|" + string.Join(";", lines);
+        var sig = S.Day + "|" + string.Join(";", lines) + $"|{S.KissesOpen}{S.ReadWerft}{S.WerftProblem()}";
         if (sig == _keySig) return;
         _keySig = sig;
         Clear(_keyBox);
@@ -372,6 +372,14 @@ public partial class Hud : CanvasLayer
                 st.MouseFilter = Control.MouseFilterEnum.Pass;
                 texts.AddChild(st);
             }
+            if (!free && S.Kissed(n, S.Day))
+            {
+                var k = UiTheme.Label("Kissed by WERFT", 11, Gfx.Good);
+                k.TooltipText = "A perfect crib: this morning's WERFT signal went out again in this key. The crib desk writes the menu in a third of the time, " +
+                                $"the Bombe run is {(1 - Defs.KissBombeMult) * 100:0}% shorter, and the stop holds.";
+                k.MouseFilter = Control.MouseFilterEnum.Pass;
+                texts.AddChild(k);
+            }
             row.AddChild(texts);
             if (waiting > 0)
             {
@@ -399,6 +407,40 @@ public partial class Hud : CanvasLayer
             }
             _keyBox.AddChild(row);
         }
+        if (S.KissesOpen) WerftRow();
+    }
+
+    /// <summary>Kisses: the dockyard cipher, read only for the cribs it gives the naval keys.</summary>
+    void WerftRow()
+    {
+        var row = new HBoxContainer();
+        row.AddThemeConstantOverride("separation", 8);
+        row.AddChild(new ColorRect { Color = Gfx.NetColor(Net.Werft), CustomMinimumSize = new Vector2(6, 30) });
+        var texts = new VBoxContainer();
+        texts.AddThemeConstantOverride("separation", -2);
+        texts.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        var name = UiTheme.Label("WERFT · kisses", 14, UiTheme.Text, Fonts.BodyBold);
+        name.TooltipText = Defs.NetOf(Net.Werft).Owner;
+        name.MouseFilter = Control.MouseFilterEnum.Pass;
+        texts.AddChild(name);
+        string? prob = S.WerftProblem();
+        var (status, col) = !S.ReadWerft ? ("Not read: no kisses for the naval keys", UiTheme.TextDim)
+            : prob != null ? (prob, Gfx.Bad)
+            : S.KissesToday > 0 ? ("Read today: naval keys kissed", Gfx.Good)
+            : ("Read each morning for kisses", Gfx.Warn);
+        texts.AddChild(UiTheme.Label(status, 12, col));
+        row.AddChild(texts);
+        var b = UiTheme.Button(S.ReadWerft ? "Read" : "Off", () => { S.SetReadWerft(!S.ReadWerft); _keySig = ""; },
+            tooltip: "A kiss: the same text sent twice, once in a cipher we already read. The dockyards and weather stations send their routine " +
+                     $"reports in WERFT, a hand cipher, and again in naval Enigma. Read: Scarborough sends {Defs.WerftPerDay} WERFT signals each morning " +
+                     "to a hand-cipher desk; once one is read, that day's DOLPHIN and SHARK keys have a perfect crib (the menu in a third of the time, " +
+                     $"a Bombe run {(1 - Defs.KissBombeMult) * 100:0}% shorter, and a stop that holds). Reading one takes a cryptanalyst about three hours.\nClick to change.");
+        b.CustomMinimumSize = new Vector2(64, 26);
+        b.AddThemeFontSizeOverride("font_size", 11);
+        if (S.ReadWerft) b.AddThemeColorOverride("font_color", Gfx.Good);
+        b.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
+        row.AddChild(b);
+        _keyBox.AddChild(row);
     }
 
     // ------------------------------------------------------------- event feed
