@@ -400,7 +400,7 @@ public partial class Hud
 
     /// <summary>What someone is doing in a word, for a Staff row (the tooltip has <see cref="Doing"/>).</summary>
     string DoingShort(Staff p) =>
-        p.Arriving(S.Now) ? "arriving" : p.IsSick(S.Now) ? (p.OffReason switch { "leave" => "on leave", "breakdown" => "broken down", _ => "sick" }) : p.Away ? "off"
+        p.Arriving(S.Now) ? "arriving" : p.IsSick(S.Now) ? (p.OffReason switch { "leave" => "on leave", "breakdown" => "broken down", "course" => "on a course", _ => "sick" }) : p.Away ? "off"
         : p.HeadOf != null && p.Task == null ? "head" : p.Task switch
         {
             null => "idle",
@@ -454,7 +454,7 @@ public partial class Hud
 
     /// <summary>What someone is doing, in a word or two, for the Staff list.</summary>
     string Doing(Staff p) =>
-        p.Arriving(S.Now) ? "arriving" : p.IsSick(S.Now) ? (p.OffReason switch { "leave" => "on leave", "breakdown" => "broken down", _ => "off sick" }) : p.Away ? "off watch"
+        p.Arriving(S.Now) ? "arriving" : p.IsSick(S.Now) ? (p.OffReason switch { "leave" => "on leave", "breakdown" => "broken down", "course" => "on a course", _ => "off sick" }) : p.Away ? "off watch"
         : p.HeadOf != null && p.Task == null ? $"head of {S.Grid.Zone(p.HeadOf)?.Name}" : p.Task switch
         {
             null => "idle",
@@ -644,7 +644,7 @@ public partial class Hud
 
         string sig = st != null
             ? $"st{st.Id}{st.Input.Count}{st.Output.Count}{st.OperatorId}{st.OperatorPresent}{st.Current}{(int)(st.Progress * 20)}{st.PendingRemoval}{st.X},{st.Y}|{string.Join(",", S.PinnedTo(st.Id).Select(p => p.Id))}|{S.Funds >= Defs.MoveCost}|{(int)(st.Wear * 20)}{st.IsDown(S.Now)}{S.Funds >= Defs.ServiceCost}|{(st.Receives == null ? "all" : string.Join(",", st.Receives))}{S.ActiveNets.Count}|{OldestHours(st)}"
-            : sf != null ? $"sf{sf.Id}{sf.Task?.Kind}{sf.Task?.Dest}{sf.Leaving}{sf.Decrypts}{sf.Away}{sf.IsSick(S.Now)}{sf.Shift}{sf.Pinned}{sf.Posted}{sf.HeadOf}{sf.HeadStyle}{S.Grid.Zones.Count(z => z.Unlocked)}{(int)(sf.Energy * 10)}{(int)(sf.Morale * 10)}{(int)(sf.Strain * 10)}{sf.Rival}{(sf.Rival != null && S.WithRival(sf))}{sf.OffReason}{sf.CarelessKnown}{(int)(sf.Experience / 60)}{sf.Skill}"
+            : sf != null ? $"sf{sf.Id}{sf.Task?.Kind}{sf.Task?.Dest}{sf.Leaving}{sf.Decrypts}{sf.Away}{sf.IsSick(S.Now)}{sf.Shift}{sf.Pinned}{sf.Posted}{sf.HeadOf}{sf.HeadStyle}{S.Grid.Zones.Count(z => z.Unlocked)}{(int)(sf.Energy * 10)}{(int)(sf.Morale * 10)}{(int)(sf.Strain * 10)}{sf.Rival}{(sf.Rival != null && S.WithRival(sf))}{sf.OffReason}{sf.Second}{(int)S.Funds / 50}{sf.CarelessKnown}{(int)(sf.Experience / 60)}{sf.Skill}"
             : $"z{z!.Id}{z.Unlocked}{S.Funds >= z.Cost}{S.ColdZones()?.Contains(z.Id)}";
         if (sig == _inspSig) return;
         _inspSig = sig;
@@ -811,7 +811,7 @@ public partial class Hud
     {
         var rd = Defs.Roles[s.Role];
         _inspBox.AddChild(UiTheme.Heading(s.Name, 18));
-        _inspBox.AddChild(UiTheme.Label($"{rd.Name} · {Stars(s.Skill)} · £{s.Salary}/week", 13, UiTheme.Accent));
+        _inspBox.AddChild(UiTheme.Label($"{rd.Name}{(s.Second is Role sec ? $" (and {Defs.Roles[sec].Name.ToLowerInvariant()})" : "")} · {Stars(s.Skill)} · £{s.Salary}/week", 13, UiTheme.Accent));
         if (s.Skill < 3 && s.Role != Role.Messenger)
             _inspBox.AddChild(UiTheme.Label($"Experience: {Hours(Defs.ExperienceFor[s.Skill + 1] - s.Experience)} more work to reach {Stars(s.Skill + 1)} (with a pay rise)", 11, UiTheme.TextDim));
         if (s.Bio != null) _inspBox.AddChild(UiTheme.Label(s.Bio, 12, UiTheme.Text));
@@ -824,7 +824,7 @@ public partial class Hud
             var l = UiTheme.Label($"{td.Name}: {td.Blurb}", 12, td.Good ? UiTheme.Accent : Gfx.Bad);
             _inspBox.AddChild(l);
         }
-        string doing = s.Arriving(S.Now) ? $"On the way: vetting and the train to Bletchley. Reports in about {Math.Max(1, Math.Round((s.ArrivesAt - S.Now) / 60))} h" : s.IsSick(S.Now) ? $"{(s.OffReason switch { "leave" => "On leave", "breakdown" => "Sent home after a breakdown", _ => "Off sick" })}: back in about {Math.Max(1, Math.Round((s.SickUntil - S.Now) / Defs.MinutesPerDay))} days" : s.Away ? $"Off watch, back at the billets until {Defs.Shifts[s.Shift].StartHour:00}:00" : s.Task switch
+        string doing = s.Arriving(S.Now) ? $"On the way: vetting and the train to Bletchley. Reports in about {Math.Max(1, Math.Round((s.ArrivesAt - S.Now) / 60))} h" : s.IsSick(S.Now) ? (s.OffReason == "course" ? $"On a course to learn the {Defs.Roles[s.Second ?? s.Role].Name.ToLowerInvariant()}'s work: back in about {Math.Max(1, Math.Round((s.SickUntil - S.Now) / 60))} h" : $"{(s.OffReason switch { "leave" => "On leave", "breakdown" => "Sent home after a breakdown", _ => "Off sick" })}: back in about {Math.Max(1, Math.Round((s.SickUntil - S.Now) / Defs.MinutesPerDay))} days") : s.Away ? $"Off watch, back at the billets until {Defs.Shifts[s.Shift].StartHour:00}:00" : s.Task switch
         {
             { Kind: TaskKind.Operate } t => $"Working at the {S.StationById(t.Dest)?.Def.Name.ToLowerInvariant()}",
             { Kind: TaskKind.Carry, Phase: 0 } => "Fetching messages",
@@ -880,6 +880,29 @@ public partial class Hud
             post.TooltipText = "Posted staff work, carry and wait only in that building.";
             post.ItemSelected += idx => { int v = post.GetItemId((int)idx); S.Post(id, v < 0 ? null : open[v].Id); _inspSig = ""; };
             _inspBox.AddChild(Row(UiTheme.Label("Posted to", 12, UiTheme.TextDim), post));
+        }
+        if (!s.Leaving && s.HeadOf == null && !s.Arriving(S.Now) && !(s.IsSick(S.Now) && s.OffReason == "course"))
+        {
+            // Cross-training: a course in a second role, worked when their own has nothing waiting.
+            var learn = new OptionButton { FocusMode = Control.FocusModeEnum.None, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+            learn.TooltipText = $"Send them on a course to learn a second role. They work it at {Defs.SecondRoleSpeed:P0} speed, and only when their own desks have nothing waiting.";
+            learn.AddItem(s.Second is Role had ? $"{Defs.Roles[had].Name} as well" : "Only their own work", -1);
+            learn.Select(0);
+            foreach (Role r in Enum.GetValues<Role>())
+            {
+                if (r == s.Second || Defs.Course(s.Role, r) is not var (hours, cost)) continue;
+                learn.AddItem($"Learn {Defs.Roles[r].Name.ToLowerInvariant()}'s work ({hours:0} h away, £{cost})", (int)r);
+                if (S.CantTrain(s, r) is string why)
+                {
+                    learn.SetItemDisabled(learn.ItemCount - 1, true);
+                    learn.SetItemTooltip(learn.ItemCount - 1, why);
+                }
+            }
+            if (learn.ItemCount > 1)
+            {
+                learn.ItemSelected += idx => { int v = learn.GetItemId((int)idx); if (v >= 0) S.Train(id, (Role)v); _inspSig = ""; };
+                _inspBox.AddChild(Row(UiTheme.Label("Learns", 12, UiTheme.TextDim), learn));
+            }
         }
         var stations = S.Stations.Where(st => st.Def.Operator == s.Role && !st.IsRest).ToList();
         if (stations.Count > 0)

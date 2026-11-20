@@ -14,6 +14,8 @@ public sealed partial class GameState
     void Schedule()
     {
         _restExists = Stations.Any(s => s.IsRest && RestOpen(s));
+        _secondRoles = false;
+        foreach (var s in Staff) if (s.Second != null) { _secondRoles = true; break; }
         // Heads of huts walk back to their hut when they've nothing else on.
         foreach (var h in Staff)
             if (h.HeadOf != null && h.Idle && h.Path.Count == 0 && Grid.Zone(h.HeadOf) is { } hz && Grid.ZoneAt(h.TilePos.x, h.TilePos.y) != hz)
@@ -49,7 +51,8 @@ public sealed partial class GameState
         for (int tries = 0; tries < 4 && who == null; tries++)
         {
             var cand = FindIdle(st.UseTile, s => s.Pinned == st.Id && !cantReach.Contains(s.Id))
-                       ?? FindIdle(st.UseTile, s => s.Role == role && s.Pinned == null && MayWorkAt(s, st.UseTile) && !cantReach.Contains(s.Id));
+                       ?? FindIdle(st.UseTile, s => s.Role == role && s.Pinned == null && MayWorkAt(s, st.UseTile) && !cantReach.Contains(s.Id))
+                       ?? (_secondRoles ? SecondHand(st, role, cantReach) : null);
             if (cand == null) break;
             if (SendTo(cand, st.UseTile)) who = cand;
             else cantReach.Add(cand.Id);
@@ -59,6 +62,13 @@ public sealed partial class GameState
         st.OperatorId = who.Id;
         st.OperatorPresent = who.Path.Count == 0;
     }
+
+    /// <summary>Whether anyone on the staff has a second role (checked once a tick: most Parks have none).</summary>
+    bool _secondRoles;
+
+    /// <summary>Someone who learned this role on a course, free because their own work has nothing waiting.</summary>
+    Staff? SecondHand(Station st, Role role, HashSet<int> cantReach) =>
+        FindIdle(st.UseTile, s => s.Second == role && s.Pinned == null && MayWorkAt(s, st.UseTile) && !cantReach.Contains(s.Id) && !RoleNeeded(s.Role));
 
     /// <summary>A runner holding messages with nowhere to go.</summary>
     void Redirect(Staff s, StaffTask t)
@@ -295,7 +305,7 @@ public sealed partial class GameState
     {
         if (st.Def.Operator is not Role role) return true;
         foreach (var s in Staff)
-            if (!s.Leaving && s.HeadOf == null && (s.Pinned == st.Id || (s.Pinned == null && s.Role == role && MayWorkAt(s, st.UseTile)))) return true;
+            if (!s.Leaving && s.HeadOf == null && (s.Pinned == st.Id || (s.Pinned == null && (s.Role == role || s.Second == role) && MayWorkAt(s, st.UseTile)))) return true;
         return false;
     }
 

@@ -290,6 +290,10 @@ public partial class Hud
             "Put each step's desk beside the next one (registration, Typex, translation, despatch): neighbouring desks pass paper across without a runner. And keep aisles clear: people squeezing past each other walk slower.");
         yield return ("bottleneck", S.UseHours >= 6 && S.Utilisation().Top is { Kind: "bottleneck" or "unstaffed" },
             "Paper is piling up at one step of the line while others wait for it. Workload (U) shows how busy each kind of desk, machine and person has been over the last day, and names the bottleneck; while it's open, a ring round every desk shows the same.");
+        yield return ("course", S.CourseAdvice() is not null,
+            "Some of the staff stand idle while another kind of desk has paper and nobody at it. Anyone can go on a short course (12 hours, £30) to learn " +
+            "clerical work, the messengers' round or the Wrens' machines; a linguist and a cryptanalyst can learn each other's trade in three days. " +
+            "Pick someone idle in Staff (H) and choose what they learn: they work it a little slower, and only when their own desks have nothing waiting.");
         yield return ("ycover", S.ActIndex >= 1 && S.CoveredNets().Any(n => S.CoverShare(n) < 1),
             $"A network has fewer than {Defs.SetsWanted} receiver sets at its Y-station: its traffic comes in hours late and garbled. In Y-stations (Y), move a set over from a network with no requests, or buy another. The Y Board allots one more each chapter.");
         yield return ("riders", S.ActIndex >= 2 && S.Lines.Count == 0 && S.Funds >= Defs.LineCost * 2,

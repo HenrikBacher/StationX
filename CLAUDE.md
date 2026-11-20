@@ -143,6 +143,11 @@ Then (user requests, 2026-11-19):
   finding `spare`; the autoplayer takes `SpareRequests` more on networks read today and hires no more of an idle role
   (`UseWorkload`; off in the save-comparing test). Tip `quota`. `ParkDiag` (PARKDIAG=1) reports a game act by act.
   Balance 2026-11-20: Easy 40, Normal 21, Hard 0 of 40 (main before it: 40/26/2).
+- Courses (cross-training): `Staff.Second`, `Defs.Course(from, to)` (Clerk/Messenger/Wren from anyone 12 h £30;
+  Linguist↔Cryptanalyst 72 h £80), `Train`/`CantTrain` (away via `SendOff(…, "course")`), worked at `SecondRoleSpeed`
+  0.8 in `SpeedFor`, only when `!RoleNeeded(own role)` (`Scheduler.SecondHand`, after the own-role search). `CourseAdvice`
+  (an idle role and an unstaffed one with a course) drives the idle finding's hint, tip `course` and the autoplayer
+  (one a day). Inspector row "Learns". Balance with it: Easy 40, Normal 18, Hard 2.
 - Also fixed: the Mansion's gables have cross roofs (`MansionGables`, in `_roofs` so they fade); telegraph wires
   (`TelegraphLine`, `Wire`: sagging segments, a terminal post by the Mansion); nothing indoors shows under solid roofs.
   Shots hold reputation ≥ 25 so `--days` always reaches the date (seed 7 now loses on Normal around day 60).

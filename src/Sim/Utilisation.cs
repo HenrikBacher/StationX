@@ -308,6 +308,23 @@ public sealed partial class GameState
     };
 
     /// <summary>The utilisation report for the panel, the overlay and tips; worked out at most once a game minute.</summary>
+    /// <summary>
+    /// A role standing idle and another whose desks go unstaffed, with a course from the one to the other: the Workload
+    /// panel's advice to cross-train. Null when there's none (or too little record yet).
+    /// </summary>
+    public (Role from, Role to)? CourseAdvice()
+    {
+        if (UseHours < 6) return null;
+        var fs = Utilisation().Findings;
+        foreach (var idle in fs)
+        {
+            if (idle.Kind != "idle" || idle.Role is not Role from) continue;
+            foreach (var f in fs)
+                if (f.Kind == "unstaffed" && f.Role is Role to && Defs.Course(from, to) != null) return (from, to);
+        }
+        return null;
+    }
+
     public UseReport Utilisation()
     {
         int at = (int)Now;
@@ -612,9 +629,16 @@ public sealed partial class GameState
             if (ro.Minutes < 240 || ro.Staff < 2) continue;
             double idle = ro.Share[(int)PersonUse.Idle];
             if (idle >= 0.5)
+            {
+                // Where another role's desks go unstaffed and there's a course for it, say so.
+                Role? learn = null;
+                foreach (var f in list)
+                    if (f.Kind == "unstaffed" && f.Role is Role short_ && Defs.Course(ro.Role, short_) != null) { learn = short_; break; }
                 list.Add(new UseFinding("idle",
-                    $"{Defs.Roles[ro.Role].Plural} stood idle {P(idle)} of their time on watch: there's more of them than work for them.",
+                    $"{Defs.Roles[ro.Role].Plural} stood idle {P(idle)} of their time on watch: there's more of them than work for them." +
+                    (learn is Role l ? $" Send some on a course to work as {Defs.Roles[l].Plural.ToLowerInvariant()} too (Staff, pick one, Learn)." : ""),
                     2 + idle * 4, Role: ro.Role));
+            }
         }
         // Capacity to sell: short of Whitehall's quota while the desks stand mostly idle and nothing is stuck.
         if (QuotaActive && IntelRate < IntelQuota && !list.Any(f => f.Kind == "bottleneck"))

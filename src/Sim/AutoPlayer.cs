@@ -19,6 +19,7 @@ public sealed class AutoPlayer
     /// <summary>Requests taken on beyond the usual workload while the Park has capacity to spare.</summary>
     const int SpareRequests = 2;
     double _teaQueueSeenAt = -1e9;
+    double _courseAt = -1e9;
 
     static readonly Dictionary<StationType, string[]> PreferredZones = new()
     {
@@ -206,6 +207,13 @@ public sealed class AutoPlayer
             if (other != null) g.Post(a.Id, other);
         }
         foreach (var a in g.Staff.Where(x => x.Rival == null && x.Posted != null)) g.Post(a.Id, null);
+        // The course tip: one idle person a day sent to learn the work of desks that go unstaffed.
+        if (UseWorkload && g.Now - _courseAt > Defs.MinutesPerDay && g.CourseAdvice() is var (from, to) && Defs.Course(from, to) is var (_, fee) && g.Funds > fee + 400)
+        {
+            var who = g.Staff.Where(s => s.Role == from && s.Second == null && g.CantTrain(s, to) == null && s.Pinned == null && s.Available)
+                .OrderBy(s => s.Skill).FirstOrDefault();
+            if (who != null && g.Train(who.Id, to)) _courseAt = g.Now;
+        }
         if (g.MaxSuspicion > 60) g.SetPolicy(Policy.Cautious);
         else if (g.MaxSuspicion < 30) g.SetPolicy(Policy.Standard);
         // Stations the act's goals ask for come first; save up for them rather than spend elsewhere.

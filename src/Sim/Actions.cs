@@ -273,6 +273,31 @@ public sealed partial class GameState
         return true;
     }
 
+    /// <summary>Why someone can't be sent on a course to learn a role now, or null if they can.</summary>
+    public string? CantTrain(Staff s, Role to)
+    {
+        if (Defs.Course(s.Role, to) is not var (_, cost) ) return $"There's no course to make a {Defs.Roles[s.Role].Name.ToLowerInvariant()} a {Defs.Roles[to].Name.ToLowerInvariant()}.";
+        if (s.Second == to) return "They already know it.";
+        if (s.Leaving || s.HeadOf != null) return "Not while they're leaving or heading a hut.";
+        if (s.Arriving(Now) || s.IsSick(Now)) return "Not while they're away from the Park.";
+        if (Funds < cost) return $"The course costs £{cost}.";
+        return null;
+    }
+
+    /// <summary>Sends someone away on a course to learn a second role (replacing any they had).</summary>
+    public bool Train(int staffId, Role to)
+    {
+        var s = StaffById(staffId);
+        if (s == null || CantTrain(s, to) != null || Defs.Course(s.Role, to) is not var (hours, cost)) return false;
+        Funds -= cost;
+        s.Second = to;
+        s.Pinned = null;
+        SendOff(s, hours / 24.0, "course");
+        Emit(EventKind.Info, $"{s.Name} goes on a course to learn the {Defs.Roles[to].Name.ToLowerInvariant()}'s work (£{cost}), back in about {hours:0} hours. " +
+                             $"After that they'll lend a hand at {Defs.Roles[to].Plural.ToLowerInvariant()}' desks whenever their own work runs out.");
+        return true;
+    }
+
     public void Fire(int staffId)
     {
         var s = StaffById(staffId);

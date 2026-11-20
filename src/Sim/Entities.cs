@@ -123,6 +123,8 @@ public sealed class Staff
     public int Id { get; set; }
     public string Name { get; set; } = "";
     public Role Role { get; set; }
+    /// <summary>A second role learned on a course: worked, a little slower, only when their own has nothing waiting.</summary>
+    public Role? Second { get; set; }
     public int Skill { get; set; } = 1;
     public int Salary { get; set; }
     public bool Female { get; set; }
@@ -171,6 +173,7 @@ public sealed class Staff
     public double SpeedFor(StationType t)
     {
         double v = Defs.SkillMultiplier(Skill) * (Specialties.Contains(t) ? 1.5 : 1.0);
+        if (Defs.Station(t).Operator is Role r && r != Role) v *= Defs.SecondRoleSpeed;
         if (Has(Trait.NativeGerman) && t == StationType.Translation) v *= 1.4;
         if (Has(Trait.ChessPlayer) && t is StationType.Crib or StationType.Banburismus) v *= 1.2;
         if (Has(Trait.CrosswordFiend) && t == StationType.Crib) v *= 1.25;

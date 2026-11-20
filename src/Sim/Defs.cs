@@ -215,6 +215,17 @@ public static partial class Defs
         _ => StaleIntelAfter,
     };
     public static double DeadAfter(Net net) => 2 * StaleAfter(net);
+    /// <summary>
+    /// Cross-training: anyone can be sent on a short course to learn clerical work, the messengers' round or the Wrens'
+    /// machines; a linguist and a cryptanalyst can learn each other's trade on a longer one. Hours away from the Park and
+    /// the fee, or null where there's no such course. The second role is worked at SecondRoleSpeed.
+    /// </summary>
+    public static (double hours, int cost)? Course(Role from, Role to) =>
+        from == to ? null
+        : to is Role.Clerk or Role.Messenger or Role.Wren ? (12, 30)
+        : (from, to) is (Role.Linguist, Role.Cryptanalyst) or (Role.Cryptanalyst, Role.Linguist) ? (72, 80)
+        : null;
+    public const double SecondRoleSpeed = 0.8;
     public const int InspectionEveryDays = 9;
     public const double InspectionGoodRep = 2;
     public const double InspectionBadRep = 2;
