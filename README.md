@@ -203,7 +203,7 @@ godot --path . --resolution 1600x900 -- --selftest      # exits 1 on any failure
 Optional flags:
 
 - `--panel=requests|build|staff|research|huts|intel|stats|workload`
-- `--modal=pause|settings|save|load|newgame|dilemma|update|end` `--place=Type@x,y;...` puts stations down (free, building unlocked) for a visual check. `--lineup=x,y` stands everyone on duty in rows by role, to check how people look. `--age=H` makes every message H hours older; `--inspect=Type` opens the busiest station of that type.
+- `--modal=pause|settings|save|load|newgame|dilemma|update|end` `--place=Type@x,y;...` puts stations down (free, building unlocked) for a visual check. `--lineup=x,y` stands everyone on duty in rows by role, to check how people look. `--age=H` makes every message H hours older; `--inspect=Type` opens the busiest station of that type (`--inspect=Clerk` or another role: someone of that role on duty).
 - `--select=bombe`, `--briefing`, `--title`, `--build=Registration`
 - `--weather=fine|overcast|rain|fog|snow|storm`, `--raid`, `--head=hut6` (appoints the best cryptanalyst head of that hut)
 - `--quarter=0..3`, `--flows`, `--breakdown` (breaks the first machine and wears another)
