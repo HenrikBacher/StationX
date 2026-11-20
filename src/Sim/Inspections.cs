@@ -161,6 +161,8 @@ public sealed partial class GameState
         {
             if (s.Away || s.Arriving(Now) || s.IsSick(Now) || s.HeadOf != null) continue;
             if (s.Task is { Kind: TaskKind.Rest, Loafing: false }) continue;
+            // A fitter waiting for a breakdown is on call, not idle.
+            if (s.Role == Role.Fitter && s.Task is null or { Kind: TaskKind.Rest }) continue;
             on++;
             if (s.Task == null || s.Task is { Kind: TaskKind.Rest, Loafing: true }) idle++;
         }

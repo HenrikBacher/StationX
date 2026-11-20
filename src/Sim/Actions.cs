@@ -173,7 +173,7 @@ public sealed partial class GameState
 
     public Staff NewPerson(Role role, int skill)
     {
-        bool female = role == Role.Wren || Rng.Chance(role switch { Role.Linguist => 0.6, Role.Messenger => 0.3, _ => 0.45 });
+        bool female = role == Role.Wren || Rng.Chance(role switch { Role.Linguist => 0.6, Role.Messenger => 0.3, Role.Fitter => 0.1, _ => 0.45 });
         var first = female ? Rng.Pick(Defs.FemaleFirst) : Rng.Pick(Defs.MaleFirst);
         var last = Rng.Pick(Defs.Surnames);
         int baseSalary = Defs.Roles[role].Salary;
@@ -218,7 +218,7 @@ public sealed partial class GameState
     }
 
     /// <summary>Whether this kind of post has opened yet: no Wrens before Hut 6, no messengers in the first weeks.</summary>
-    public bool RoleOpen(Role r) => IntakeFor(ActIndex).Contains(r) || Staff.Any(s => s.Role == r) || Candidates.Any(c => c.Role == r);
+    public bool RoleOpen(Role r) => IntakeFor(ActIndex).Contains(r) || (r == Role.Fitter && FittersOpen) || Staff.Any(s => s.Role == r) || Candidates.Any(c => c.Role == r);
 
     /// <summary>Whether a German service has anything on the air yet that we read, or has noticed us already.</summary>
     public bool ServiceInPlay(Service sv) => SuspicionOf(sv) > 0 || ActiveNets.Any(n => Defs.NetOf(n).Service == sv);
@@ -233,6 +233,17 @@ public sealed partial class GameState
     {
         Candidates.RemoveAll(c => c.Notable == null && !c.Crossword);
         foreach (var r in IntakeFor(ActIndex)) AddCandidate(r);
+        FitterCandidates();
+    }
+
+    /// <summary>Once there are Bombes to look after, the RAF sends a couple of fitters a week (own dice).</summary>
+    public void FitterCandidates()
+    {
+        if (!FittersOpen || Candidates.Count(c => c.Role == Role.Fitter) >= 2) return;
+        var shared = Rng;
+        Rng = Rng.Seeded(Mix(Seed, Day, 0xF177));
+        while (Candidates.Count(c => c.Role == Role.Fitter) < 2) AddCandidate(Role.Fitter);
+        Rng = shared;
     }
 
     /// <summary>
@@ -477,6 +488,11 @@ public sealed partial class GameState
         Points -= r.Cost;
         Researched.Add(id);
         Emit(EventKind.Good, $"Breakthrough: {r.Name}. {r.Blurb}");
+        if (id == ResearchId.Bombe)
+        {
+            FitterCandidates();
+            Emit(EventKind.Info, "The RAF offers fitters to keep the Bombes running: two are among the candidates (Staff, H).");
+        }
         return true;
     }
 

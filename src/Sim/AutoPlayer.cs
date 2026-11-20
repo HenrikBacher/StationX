@@ -349,12 +349,15 @@ public sealed class AutoPlayer
             [Role.Wren] = Need(Have(StationType.Bombe) + Have(StationType.Bombe4) + Have(StationType.Typex) + Have(StationType.Checking) + Have(StationType.HeathRobinson)
                                + Have(StationType.OutstationLink) + Have(StationType.Colossus) + Have(StationType.TunnyMachine)),
             [Role.Linguist] = Need(Have(StationType.Translation) + Have(StationType.Japanese)),
+            // The fitters tip: one on each watch in a building with three or more Bombes, checking machines or Typex.
+            [Role.Fitter] = 0,
         };
         if (g.WatchesAvailable)
             foreach (var r in want.Keys.ToList())
                 if (want[r] > 0) want[r] = Math.Max(3, want[r]);   // one per watch at least
         // Everyone stays in their building: one in each building with the role's desks, on every watch.
         foreach (var r in want.Keys.ToList()) want[r] = Math.Max(want[r], g.PostsWanted(r));
+        if (g.Stats.Breakdowns == 0) want[Role.Fitter] = 0;   // the fitters tip comes after the first breakdown
         // The social tip: an evening out when spirits are low.
         if (g.CantHoldSocial() == null && g.AverageMorale < Defs.MoraleBaseline - 0.15 && g.Funds > Defs.SocialCost + 300)
             g.HoldSocial();

@@ -18,13 +18,16 @@ public sealed partial class GameState
 
     /// <summary>Open buildings with desks or machines this role works.</summary>
     public IEnumerable<Zone> PostsFor(Role r) =>
-        Grid.Zones.Where(z => z.Unlocked && Defs.Stations.Values.Any(d => d.Operator == r && Defs.AllowedIn(z.Id, d.Type)));
+        Grid.Zones.Where(z => z.Unlocked && Defs.Stations.Values.Any(d => Works(r, d.Type) && Defs.AllowedIn(z.Id, d.Type)));
+
+    /// <summary>The desks a role works, or for fitters the machines they look after.</summary>
+    static bool Works(Role r, StationType t) => r == Role.Fitter ? Defs.FitterServes(t) : Defs.Station(t).Operator == r;
 
     int DesksIn(Role r, string zoneId)
     {
         int n = 0;
         foreach (var st in Stations)
-            if (st.Def.Operator == r && !st.Obsolete && !st.PendingRemoval && Grid.ZoneAt(st.X, st.Y)?.Id == zoneId) n++;
+            if (Works(r, st.Type) && !st.Obsolete && !st.PendingRemoval && Grid.ZoneAt(st.X, st.Y)?.Id == zoneId) n++;
         return n;
     }
 
@@ -82,7 +85,7 @@ public sealed partial class GameState
     public (Zone zone, Role role, Shift shift)? PostingGap() => PostingGaps().Select(x => ((Zone, Role, Shift)?)x).FirstOrDefault();
 
     /// <summary>People of a role wanted to have one in every building with its desks, on every watch.</summary>
-    public int PostsWanted(Role r) => Roams(r) ? 0 : PostsFor(r).Count(z => DesksIn(r, z.Id) > 0) * Watches.Count();
+    public int PostsWanted(Role r) => Roams(r) ? 0 : PostsFor(r).Count(z => DesksIn(r, z.Id) >= (r == Role.Fitter ? 3 : 1)) * Watches.Count();
 
     /// <summary>Every building, role and watch with desks and nobody posted.</summary>
     public IEnumerable<(Zone zone, Role role, Shift shift)> PostingGaps()
@@ -92,7 +95,8 @@ public sealed partial class GameState
             if (!z.Unlocked) continue;
             foreach (Role r in Enum.GetValues<Role>())
             {
-                if (Roams(r) || DesksIn(r, z.Id) == 0) continue;
+                // Fitters are a help, not a step every message needs: their own tip covers them.
+                if (Roams(r) || r == Role.Fitter || DesksIn(r, z.Id) == 0) continue;
                 // Only once the Park has posted people of that role at all: a role nobody's hired yet is the hiring tip's business.
                 if (!Staff.Any(s => s.Role == r && s.Posted != null && !s.Leaving)) continue;
                 foreach (var w in Watches)

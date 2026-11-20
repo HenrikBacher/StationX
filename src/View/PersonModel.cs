@@ -114,6 +114,8 @@ public partial class PersonModel : Node3D
             Role.Cryptanalyst => (Vary(PickFor(s, 4, Tweeds)), Vary(s.Female ? new Color("5b4a3a") : new Color("5d5a55")), shirt, s.Female ? null : tie),
             Role.Linguist => (Vary(Gfx.RoleColor(Role.Linguist)), Vary(s.Female ? new Color("4c4a3e") : new Color("57544d")), shirt, null),
             Role.Messenger => (Vary(Gfx.RoleColor(Role.Messenger)), new Color("2a2a30"), new Color("cfc8b8"), null),
+            // RAF blue-grey working dress: battledress blouse and trousers alike, a black tie.
+            Role.Fitter => (Vary(Gfx.RoleColor(Role.Fitter)), Gfx.RoleColor(Role.Fitter).Darkened(0.08f), new Color("b9c2cc"), new Color("15161a")),
             _ => (Gfx.RoleColor(s.Role), Gfx.RoleColor(s.Role).Darkened(0.2f), Gfx.Cream, null),
         };
     }

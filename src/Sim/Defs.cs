@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace StationX.Sim;
 
-public enum Role { Clerk, Cryptanalyst, Wren, Linguist, Messenger }
+public enum Role { Clerk, Cryptanalyst, Wren, Linguist, Messenger, Fitter }
 
 public enum StationType
 {
@@ -412,7 +412,13 @@ public static partial class Defs
     public const double TeleprinterWearPerMsg = 1 / 150.0, TeleprinterHazard = 0.025;
 
     /// <summary>Who mends it: the Post Office engineers looked after the teleprinter lines, the RAF fitters the machines.</summary>
-    public static string Fitters(StationType t) => t == StationType.Inbox ? "the GPO engineers" : "the RAF fitters";
+    public static string Fitters(StationType t) => FitterServes(t) ? "the RAF fitters" : "the GPO engineers";
+    /// <summary>The machines RAF fitters look after: the Bombes, checking machines and Typex. Teleprinters, Colossus and the Tunny machines are the Post Office's.</summary>
+    public static bool FitterServes(StationType t) => t is StationType.Bombe or StationType.Bombe4 or StationType.Checking or StationType.Typex;
+    /// <summary>A fitter on site mends a breakdown in this share of the outside fitters' time, and pays only for the parts.</summary>
+    public const double FitterRepairShare = 0.3, FitterPartsShare = 0.25;
+    /// <summary>Wear at which an idle fitter services a machine, and the share of a full service's time it takes them.</summary>
+    public const double FitterServiceAt = 0.45, FitterServiceShare = 0.5;
 
     public static int RepairCostFor(StationType t) => t == StationType.Inbox ? 30 : RepairCost;
 
@@ -494,6 +500,8 @@ public static partial class Defs
             "Women's Royal Naval Service. Operates the Bombes, Typex, checking machines and Colossus."),
         [Role.Linguist] = new(Role.Linguist, "Linguist", "Linguists", 34,
             "Translates decrypts and writes them up as intelligence reports."),
+        [Role.Fitter] = new(Role.Fitter, "RAF fitter", "RAF fitters", 20,
+            "RAF technicians posted to keep the Bombes, checking machines and Typex running. On watch, they mend a breakdown in a fraction of the time for the price of the parts, and service worn machines between jobs."),
         [Role.Messenger] = new(Role.Messenger, "Messenger", "Messengers", 14,
             "Mostly local teenagers. Cheap, quick on their feet, and can't work a desk: they carry paper between desks and buildings so the clerks can stay at theirs."),
     };

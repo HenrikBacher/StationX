@@ -324,6 +324,9 @@ public partial class Hud
                 (S.WatchesAvailable ? $" on the {Defs.Shifts[pw].Name.ToLowerInvariant()}" : "") +
                 ". Everyone stays in the building they're posted to: hire one for it (pick the building on the candidate's card), " +
                 "or select someone in Staff (H) and change Posted to.");
+        yield return ("fitters", S.FittersOpen && !S.Staff.Any(s => s.Role == Role.Fitter) && S.Stats.Breakdowns > 0,
+            $"Machines break down, and the outside fitters take hours and charge £{Defs.RepairCost}. RAF fitters of our own (Staff, H: post them to the Bombe hut) " +
+            $"mend a breakdown in a third of the time for the parts alone, and service worn machines between jobs. One on each watch where the Bombes are.");
         yield return ("japanese", S.JapanOpen && S.JapanWanted && (!S.HasStation(StationType.Japanese) || S.JapaneseReaders < (S.WatchesAvailable ? 3 : 1)),
             "JN-25, the Japanese navy's code, comes in overnight. A hand-cipher desk strips its additive; then it needs a Japanese desk (Build), " +
             $"and only linguists who've been on the Bedford Japanese course can work that: select a linguist, Learns → Japanese ({Defs.JapaneseCourseHours / 24:0} days away, " +

@@ -130,6 +130,10 @@ public sealed partial class GameState
                         s.Task = null;
                         StartLeave(s);
                         break;
+                    case TaskKind.Repair:
+                        FitterOffWatch(s);
+                        StartLeave(s);
+                        break;
                     case TaskKind.Rest:
                         // Everyone at a table shares its tile: they get up one at a time, in seat order, rather than
                         // walking out as one body.

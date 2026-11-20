@@ -55,6 +55,10 @@ public sealed class Station
     public double DownUntil { get; set; }
     /// <summary>True when the downtime is a planned service rather than a breakdown.</summary>
     public bool Servicing { get; set; }
+    /// <summary>The fitter mending or servicing this machine (walking to it or at it), if any.</summary>
+    public int? FitterId { get; set; }
+    /// <summary>A fitter's routine service: back at work without an announcement.</summary>
+    public bool QuietService { get; set; }
     public bool Wears => Defs.WearLife(Type) > 0;
     public bool IsDown(double now) => DownUntil > now;
 
@@ -104,7 +108,7 @@ public sealed class Station
     public int FreeInput => Def.InputCap - Input.Count - ReservedInputs;
 }
 
-public enum TaskKind { Carry, Operate, Rest, Leave }
+public enum TaskKind { Carry, Operate, Rest, Leave, Repair }
 
 public sealed class StaffTask
 {
@@ -331,6 +335,9 @@ public sealed class Stats
     public int ContractsCompleted { get; set; }
     public int ContractsFailed { get; set; }
     public int Breakdowns { get; set; }
+    /// <summary>Breakdowns our own fitters mended, and machines they serviced.</summary>
+    public int FitterRepairs { get; set; }
+    public int FitterServices { get; set; }
     /// <summary>Messages passed straight across between neighbouring desks, no runner needed.</summary>
     public int HandOvers { get; set; }
 
@@ -346,6 +353,8 @@ public sealed class Stats
         ContractsCompleted = ContractsCompleted,
         ContractsFailed = ContractsFailed,
         Breakdowns = Breakdowns,
+        FitterRepairs = FitterRepairs,
+        FitterServices = FitterServices,
     };
 
     public static int Get(Dictionary<Net, int> d, Net n) => d.TryGetValue(n, out var v) ? v : 0;

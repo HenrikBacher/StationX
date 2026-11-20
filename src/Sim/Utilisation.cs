@@ -282,6 +282,7 @@ public sealed partial class GameState
             { Kind: TaskKind.Rest, Loafing: true } => PersonUse.Idle,
             { Kind: TaskKind.Rest } => PersonUse.Break,
             { Kind: TaskKind.Leave } => PersonUse.Walking,
+            { Kind: TaskKind.Repair } t => p.Path.Count > 0 ? PersonUse.Walking : PersonUse.Working,
             _ => p.HeadOf != null ? PersonUse.Working : PersonUse.Idle,
         };
     }
@@ -661,7 +662,7 @@ public sealed partial class GameState
         }
         foreach (var ro in r.Roles)
         {
-            if (ro.Minutes < 240 || ro.Staff < 2) continue;
+            if (ro.Minutes < 240 || ro.Staff < 2 || ro.Role == Role.Fitter) continue;   // fitters wait on call
             double idle = ro.Share[(int)PersonUse.Idle];
             if (idle >= 0.5)
             {

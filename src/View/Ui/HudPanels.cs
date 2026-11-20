@@ -499,6 +499,8 @@ public partial class Hud
             { Kind: TaskKind.Rest, Loafing: true } => "free",
             { Kind: TaskKind.Rest } => "break",
             { Kind: TaskKind.Leave } => "going off",
+            { Kind: TaskKind.Repair, Phase: < 2 } => "mending",
+            { Kind: TaskKind.Repair } => "servicing",
             _ => "carrying",
         };
 
@@ -540,7 +542,7 @@ public partial class Hud
 
     static string ShortRole(Role r) => r switch
     {
-        Role.Clerk => "Clerks", Role.Cryptanalyst => "Crypt.", Role.Wren => "Wrens", Role.Linguist => "Ling.", _ => "Msgrs",
+        Role.Clerk => "Clerks", Role.Cryptanalyst => "Crypt.", Role.Wren => "Wrens", Role.Linguist => "Ling.", Role.Fitter => "Fitters", _ => "Msgrs",
     };
 
     /// <summary>What someone is doing, in a word or two, for the Staff list.</summary>

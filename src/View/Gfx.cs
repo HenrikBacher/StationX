@@ -73,6 +73,7 @@ public static class Gfx
         Role.Wren => new Color("23314f"),
         Role.Linguist => new Color("4f6b4a"),
         Role.Messenger => new Color("6e2f2a"),
+        Role.Fitter => new Color("55657a"),
         _ => Colors.White,
     };
 

@@ -243,6 +243,13 @@ Then (user requests, 2026-11-19):
   building with the role's desks. `BalanceWatches` counts on building by building. Pipeline tests that use the starting
   staff in huts call `TestUtil.Unpost` (BombeLine does). Hard rep loss 1.15 → 1.2. Balance: Easy 39, Normal 23, Hard 2.
   Shots: `--scroll=end` scrolls the open panel to its foot.
+- RAF fitters (user request, `Fitters.cs`): `Role.Fitter` (appended), open with the Bombe research (`FittersOpen`; two
+  candidates on own dice, `FitterCandidates`). `Defs.FitterServes`: Bombe, Bombe4, Checking, Typex (GPO keeps the rest).
+  A breakdown with a fitter on watch posted to the building costs `FitterPartsShare` 0.25 and a `TaskKind.Repair` (appended)
+  walks them over; on arrival downtime becomes `FitterRepairShare` 0.3 of the outside time. Idle fitters service idle
+  machines with wear ≥ `FitterServiceAt` (free, half the time, `Station.QuietService`: no announcement). `Station.FitterId`
+  holds the job. Not idle in `IdleShare` or the idle finding, not in `PostingGaps`; `PostsWanted` counts buildings with ≥ 3
+  of their machines. Tip `fitters` after the first breakdown; the autoplayer hires one per watch. Balance: 39/24/1.
 
 ### Graphics overhaul: period realism, CC0 assets allowed
 

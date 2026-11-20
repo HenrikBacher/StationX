@@ -173,6 +173,7 @@ public sealed partial class GameState
         TickKisses();
         TickStaff(dt);
         MoveStaff(dt);
+        TickFitters();
         WorkStations(dt);
         TickRemote();
         TickRaids();
@@ -375,6 +376,8 @@ public sealed partial class GameState
             return;
         }
 
+        if (t.Kind == TaskKind.Repair) return;   // TickFitters takes it from here
+
         // Carry
         if (t.Phase == 0)
         {
@@ -541,6 +544,7 @@ public sealed partial class GameState
     {
         if (st.DownUntil <= 0) return true;
         if (st.IsDown(Now)) return false;
+        if (st.QuietService) { st.QuietService = false; st.DownUntil = 0; st.Servicing = false; return true; }
         Emit(EventKind.Good, st.Servicing
             ? $"{st.Def.Name} #{st.Id} is serviced and back at work."
             : $"{Cap(Defs.Fitters(st.Type))} have repaired {st.Def.Name} #{st.Id}.");
@@ -572,8 +576,13 @@ public sealed partial class GameState
         st.DownUntil = Now + Defs.RepairMinutesFor(st.Type);
         st.Servicing = false;
         st.Wear = 0.1;
-        Funds -= Defs.RepairCostFor(st.Type);
+        st.QuietService = false;
+        // Our own fitters, if any are on watch in the building, come and mend it: far quicker, and only the parts to pay.
+        bool ours = FitterCanCome(st);
+        int cost = ours ? (int)Math.Round(Defs.RepairCostFor(st.Type) * Defs.FitterPartsShare) : Defs.RepairCostFor(st.Type);
+        Funds -= cost;
         Stats.Breakdowns++;
+        if (ours) Stats.FitterRepairs++;
         string what = st.Type switch
         {
             StationType.Bombe or StationType.Bombe4 => Rng.Pick(new[] { "a drum has seized", "the brushes have shorted", "a relay has burnt out" }),
@@ -583,7 +592,12 @@ public sealed partial class GameState
             StationType.Inbox => Rng.Pick(new[] { "the tape has jammed in the printer", "the line has gone dead", "the print head has worn out" }),
             _ => Rng.Pick(new[] { "a valve has blown", "the photocell has drifted" }),
         };
-        Emit(EventKind.Bad, $"{st.Def.Name} #{st.Id} has broken down: {what}. {Cap(Defs.Fitters(st.Type))} will take about {Defs.RepairMinutesFor(st.Type) / 60:0} hours (£{Defs.RepairCostFor(st.Type)})." +
+        if (ours)
+        {
+            Emit(EventKind.Bad, $"{st.Def.Name} #{st.Id} has broken down: {what}. Our fitters are on their way (parts £{cost}).");
+            return;
+        }
+        Emit(EventKind.Bad, $"{st.Def.Name} #{st.Id} has broken down: {what}. {Cap(Defs.Fitters(st.Type))} will take about {Defs.RepairMinutesFor(st.Type) / 60:0} hours (£{cost})." +
             (st.Type == StationType.Inbox ? " Until then its traffic comes by dispatch rider, unless another teleprinter can take it." : " Service machines before they wear out."));
     }
 
