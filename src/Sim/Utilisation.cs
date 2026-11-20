@@ -18,6 +18,8 @@ public enum DeskUse
     Down,
     /// <summary>Nobody at it and nothing for it.</summary>
     Quiet,
+    /// <summary>After hours, before there are watches: nobody is on duty, so it isn't counted against the desk.</summary>
+    Closed,
 }
 
 /// <summary>What a person was doing.</summary>
@@ -75,7 +77,17 @@ public sealed class UseLog
 
 /// <summary>One kind of desk or machine over the last day.</summary>
 public sealed record StepUse(StationType Type, int Count, double[] Share, double Minutes, int Done, int Waiting,
-                             double AvgWait, double OldestWait, int? Worst);
+                             double AvgWait, double OldestWait, int? Worst)
+{
+    /// <summary>The share of the hours it could be worked (not after hours before there are watches) in a state.</summary>
+    public double OfOpen(DeskUse u)
+    {
+        double open = 1 - Share[(int)DeskUse.Closed];
+        return open > 1e-6 ? Share[(int)u] / open : 0;
+    }
+
+    public double OpenMinutes => Minutes * (1 - Share[(int)DeskUse.Closed]);
+}
 
 /// <summary>One role over the last day: shares are of their time on watch.</summary>
 public sealed record RoleUse(Role Role, int Staff, int OnDuty, double[] Share, double Minutes, int? Pick);
@@ -120,6 +132,8 @@ public sealed partial class GameState
         StationType.Colossus, StationType.TunnyMachine, StationType.Translation, StationType.Index, StationType.Dispatch,
     };
 
+    public const int DeskStates = 6;
+
     public static bool Tracked(Station st) => st.Def.Operator != null;
 
     /// <summary>Game minutes between samples: states last far longer, and it keeps the cost down with 150 people.</summary>
@@ -155,8 +169,8 @@ public sealed partial class GameState
         {
             if (st.OperatorPresent && st.Current != null && st.OperatorId is int op) _useAtWork.Add(op);
             if (!Tracked(st)) continue;
-            if (st.Use == null) { st.Use = new UseLog(5); st.Use.LastProcessed = st.Processed; }
-            st.Use.Minutes[slot * 5 + (int)DeskState(st)] += m;
+            if (st.Use == null) { st.Use = new UseLog(DeskStates); st.Use.LastProcessed = st.Processed; }
+            st.Use.Minutes[slot * DeskStates + (int)DeskState(st)] += m;
             if (st.Processed != st.Use.LastProcessed)
             {
                 st.Use.Done[slot] += Math.Max(0, st.Processed - st.Use.LastProcessed);
@@ -176,6 +190,7 @@ public sealed partial class GameState
     {
         if (st.IsDown(Now) || Unpowered(st)) return DeskUse.Down;
         if (st.Working) return DeskUse.Working;
+        if (!WatchesAvailable && !AllHands && !Defs.Shifts[Shift.Office].OnDuty(MinuteOfDay)) return DeskUse.Closed;
         if (st.Current != null || (st.Input.Count > 0 && !st.Obsolete)) return DeskUse.Unstaffed;
         return st.OperatorPresent || st.IsMachine ? DeskUse.Starved : DeskUse.Quiet;
     }
@@ -243,16 +258,16 @@ public sealed partial class GameState
         {
             var list = Stations.Where(s => s.Type == t && s.Use != null && !s.Obsolete).ToList();
             if (list.Count == 0) continue;
-            var share = new double[5];
+            var share = new double[DeskStates];
             double total = 0;
             int done = 0;
             foreach (var s in list)
             {
-                for (int k = 0; k < 5; k++) share[k] += s.Use!.In(k);
+                for (int k = 0; k < DeskStates; k++) share[k] += s.Use!.In(k);
                 total += s.Use!.Total();
                 done += s.Use.DoneTotal();
             }
-            if (total > 0) for (int k = 0; k < 5; k++) share[k] /= total;
+            if (total > 0) for (int k = 0; k < DeskStates; k++) share[k] /= total;
             var w = waiting.GetValueOrDefault(t);
             // The one to look at: paper with nobody on it, else the fullest tray, else the busiest.
             var worst = list.OrderByDescending(s => DeskState(s) == DeskUse.Unstaffed ? 1 : 0)
@@ -290,7 +305,7 @@ public sealed partial class GameState
                         if (s.Use == null) continue;
                         dw += s.Use.In(slot, (int)DeskUse.Working);
                         du += s.Use.In(slot, (int)DeskUse.Unstaffed);
-                        dt += s.Use.SlotTotal(slot) - s.Use.In(slot, (int)DeskUse.Down);
+                        dt += s.Use.SlotTotal(slot) - s.Use.In(slot, (int)DeskUse.Down) - s.Use.In(slot, (int)DeskUse.Closed);
                     }
                     foreach (var p in Staff)
                     {
@@ -317,8 +332,8 @@ public sealed partial class GameState
         static string H(double minutes) => minutes >= 90 ? $"{minutes / 60:0} h" : $"{minutes:0} min";
         foreach (var s in r.Steps)
         {
-            if (s.Minutes < 120) continue;
-            double busy = s.Share[(int)DeskUse.Working], unstaffed = s.Share[(int)DeskUse.Unstaffed], down = s.Share[(int)DeskUse.Down];
+            if (s.OpenMinutes < 120) continue;
+            double busy = s.OfOpen(DeskUse.Working), unstaffed = s.OfOpen(DeskUse.Unstaffed), down = s.OfOpen(DeskUse.Down);
             var def = Defs.Station(s.Type);
             string name = Plural(s.Type);
             bool machine = s.Type is StationType.Bombe or StationType.Bombe4 or StationType.Colossus or StationType.HeathRobinson;
@@ -331,7 +346,7 @@ public sealed partial class GameState
             {
                 string when = WorstWatch(s.Type) is Shift sh ? $", worst on the {Defs.Shifts[sh].Name.ToLowerInvariant()}" : "";
                 list.Add(new UseFinding("unstaffed",
-                    $"{name} had paper but nobody to work them {P(unstaffed)} of the time{when}. Hire {Defs.Roles[role].Plural.ToLowerInvariant()}" +
+                    $"{name} had paper but nobody to work them {P(unstaffed)} of the time{(WatchesAvailable ? "" : " in working hours")}{when}. Hire {Defs.Roles[role].Plural.ToLowerInvariant()}" +
                     (WatchesAvailable ? " or move some to that watch." : "."),
                     8 + unstaffed * 10 + s.Waiting / (double)s.Count, s.Type, role));
             }

@@ -26,6 +26,7 @@ public partial class Overlay : Control
         if (s == null || Main.Hud.ModalOpen) return;
         float zoom = 18f / Main.Rig.Cam.Size;
         if (Main.ShowFlows) DrawFlows(s);
+        if (Main.Hud.PanelId == "workload") DrawUse(s, zoom);
         if (Main.BuildType is StationType bt && !Defs.Station(bt).Outdoor) DrawAllowedZones(s, bt);
 
         foreach (var st in s.Stations)
@@ -114,6 +115,49 @@ public partial class Overlay : Control
             DrawArc(c, 16, 0, Mathf.Tau, 28, col, 4, true);
             if (st.Input.Count > 0)
                 Tag(c + new Vector2(18, 6), oldest >= 60 ? $"{st.Input.Count} · {(int)(oldest / 60)}h {(int)(oldest % 60)}m" : $"{st.Input.Count} · {(int)oldest}m", col, 11);
+        }
+    }
+
+    /// <summary>
+    /// While the Workload panel is open: a ring round each desk and machine split by what it did over the last day,
+    /// a dot in the middle for what it is doing now, and a dot over each person on watch for what they're doing.
+    /// </summary>
+    void DrawUse(GameState s, float zoom)
+    {
+        DrawRect(GetViewportRect(), new Color(0.08f, 0.07f, 0.05f, 0.35f));
+        var ink = new Color(0, 0, 0, 0.65f);
+        foreach (var st in s.Stations)
+        {
+            if (st.Use is not { } log || st.Obsolete || !Main.StationModels.TryGetValue(st.Id, out var m)) continue;
+            var c = Screen(m.GlobalPosition + new Vector3(0, 0.05f, 0));
+            const float r = 15;
+            DrawArc(c, r, 0, Mathf.Tau, 32, ink, 9, true);
+            double total = log.Total();
+            float a = -Mathf.Pi / 2;
+            if (total > 0)
+                for (int k = 0; k < log.States; k++)
+                {
+                    float sweep = (float)(log.In(k) / total) * Mathf.Tau;
+                    if (sweep <= 0.01f) continue;
+                    DrawArc(c, r, a, a + sweep, Math.Max(3, (int)(32 * sweep / Mathf.Tau)), UseLook.Desk[k], 6, true);
+                    a += sweep;
+                }
+            var now = s.DeskState(st);
+            DrawCircle(c, 6.5f, ink);
+            DrawCircle(c, 5, UseLook.Desk[(int)now]);
+            if (zoom > 0.6f && total > 0)
+            {
+                double open = total - log.In((int)DeskUse.Closed);
+                int busy = open > 0 ? (int)Math.Round(log.In((int)DeskUse.Working) / open * 100) : 0;
+                Tag(c + new Vector2(r + 4, 6), st.Input.Count > 0 ? $"{busy}% · {st.Input.Count} in tray" : $"{busy}%", UseLook.Desk[(int)now], 11);
+            }
+        }
+        foreach (var p in s.Staff)
+        {
+            if (p.Away || s.PersonState(p) is not PersonUse u || !Main.PersonModels.TryGetValue(p.Id, out var pm)) continue;
+            var at = Screen(pm.HeadPoint) + new Vector2(0, -8);
+            DrawCircle(at, 4.5f, ink);
+            DrawCircle(at, 3.4f, UseLook.Person[(int)u]);
         }
     }
 
