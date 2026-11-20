@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Linq;
 using Godot;
 using StationX.Sim;
 
@@ -281,22 +280,8 @@ public partial class PersonModel : Node3D
 
     // ------------------------------------------------------------------ bake
 
-    /// <summary>A mesh's triangles, read from the engine once per mesh and shared by every figure that uses it.</summary>
-    sealed record Tris(Vector3[] V, Vector3[] N, int[] I);
-    static readonly Dictionary<Mesh, Tris> TrisOf = new();
     static readonly Dictionary<float, SphereMesh> SmallSpheres = new();
     static StandardMaterial3D? _clothMat, _glossyMat;
-
-    static Tris TrisFor(Mesh m)
-    {
-        if (TrisOf.TryGetValue(m, out var t)) return t;
-        var a = m.SurfaceGetArrays(0);
-        var v = a[(int)Mesh.ArrayType.Vertex].AsVector3Array();
-        var n = a[(int)Mesh.ArrayType.Normal].AsVector3Array();
-        var idxVar = a[(int)Mesh.ArrayType.Index];
-        int[] idx = idxVar.VariantType == Variant.Type.Nil ? Enumerable.Range(0, v.Length).ToArray() : idxVar.AsInt32Array();
-        return TrisOf[m] = new Tris(v, n, idx);
-    }
 
     /// <summary>The vertex-coloured materials every figure shares: cloth and skin, and brilliantined hair.</summary>
     static StandardMaterial3D FigureMat(bool glossy)
@@ -359,7 +344,7 @@ public partial class PersonModel : Node3D
                         SmallSpheres[sm.Radius] = small = new SphereMesh { Radius = sm.Radius, Height = sm.Radius * 2, RadialSegments = 10, Rings = 5 };
                     mesh = small;
                 }
-                var t = TrisFor(mesh);
+                var t = Mesh3.TrianglesOf(mesh);
                 var xf = restAt[b] * mi.Transform;
                 var nb = xf.Basis.Inverse().Transposed();
                 int baseV = verts[surf].Count;

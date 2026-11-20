@@ -28,6 +28,7 @@ public partial class Main : Node3D
     double _nextTrain = 40, _nextPlane = 90, _nextTyping = 3;
     int _lastHour = -1;
     Node3D _stationRoot = null!, _peopleRoot = null!;
+    Furniture _furniture = null!;
     DirectionalLight3D _sun = null!;
     WeatherFx _weather = null!;
     float _snowCover;
@@ -217,6 +218,8 @@ public partial class Main : Node3D
         _peopleRoot = new Node3D { Name = "People" };
         AddChild(_stationRoot);
         AddChild(_peopleRoot);
+        _furniture = new Furniture { Name = "Furniture" };
+        AddChild(_furniture);
 
         _selRing = new MeshInstance3D
         {
@@ -392,6 +395,7 @@ public partial class Main : Node3D
         foreach (var m in PersonModels.Values) m.QueueFree();
         StationModels.Clear();
         PersonModels.Clear();
+        _furniture.Clear();
         Rig.LookAtTile(11, 8);
         Rig.Cam.Size = 16;
         Paused = false;
@@ -487,6 +491,7 @@ public partial class Main : Node3D
                 m = StationModel.Create(st.Type);
                 m.StationId = st.Id;
                 m.PlaceAt(st.X, st.Y, st.Rot);
+                m.DetachStatic();
                 _stationRoot.AddChild(m);
                 StationModels[st.Id] = m;
             }
@@ -501,6 +506,7 @@ public partial class Main : Node3D
                 StationModels[id].QueueFree();
                 StationModels.Remove(id);
             }
+        _furniture.Sync(State, StationModels, MovingStation, roofed);
     }
 
     readonly List<PersonModel> _shownPeople = new();

@@ -19,13 +19,19 @@ public static class Mesh3
         emission = MathF.Round(emission * 20) / 20;   // animated glows would otherwise fill the cache
         var key = (c, emission, glossy);
         if (Mats.TryGetValue(key, out var m)) return m;
-        if (emission == 0 && !glossy && Textures.Wood(c) is { } wood) return Mats[key] = wood;
+        if (emission == 0 && !glossy && Textures.Wood(c) is { } wood)
+        {
+            var tone = wood.AlbedoColor;
+            if (tone.R <= 1 && tone.G <= 1 && tone.B <= 1) Painted[wood] = (tone with { A = 1 }, true);
+            return Mats[key] = wood;
+        }
         m = new StandardMaterial3D
         {
             AlbedoColor = c,
             Roughness = glossy ? 0.25f : 0.85f,
             Metallic = glossy ? 0.2f : 0f,
         };
+        if (emission == 0 && !glossy && c.A >= 1) Painted[m] = (c, false);
         if (emission > 0)
         {
             m.EmissionEnabled = true;
@@ -35,6 +41,104 @@ public static class Mesh3
         if (c.A < 1) m.Transparency = BaseMaterial3D.TransparencyEnum.Alpha;
         Mats[key] = m;
         return m;
+    }
+
+    /// <summary>Materials from Mat that differ only in colour: plain paint, or the wood photo in a shade.</summary>
+    static readonly Dictionary<Material, (Color c, bool wood)> Painted = new();
+    static StandardMaterial3D? _paint, _woodPaint;
+
+    /// <summary>
+    /// If this material is one of Mat's plain colours (or a shade of the furniture wood), its colour, so pieces in many
+    /// colours can be merged into one mesh coloured per vertex (PaintMat) and drawn at once.
+    /// </summary>
+    public static bool Paintable(Material m, out Color c, out bool wood)
+    {
+        if (Painted.TryGetValue(m, out var p)) { (c, wood) = p; return true; }
+        c = default; wood = false;
+        return false;
+    }
+
+    /// <summary>The material for merged pieces coloured per vertex: Mat's plain paint, or the wood photo.</summary>
+    public static StandardMaterial3D PaintMat(bool wood)
+    {
+        if (!wood) return _paint ??= new StandardMaterial3D { VertexColorUseAsAlbedo = true, VertexColorIsSrgb = true, Roughness = 0.85f };
+        if (_woodPaint != null) return _woodPaint;
+        // Any shade will do as the pattern: the shade itself goes in the vertex colours.
+        foreach (var (mat, (_, isWood)) in Painted)
+            if (isWood && mat is StandardMaterial3D w)
+            {
+                _woodPaint = (StandardMaterial3D)w.Duplicate();
+                _woodPaint.AlbedoColor = Colors.White;
+                _woodPaint.VertexColorUseAsAlbedo = true;
+                _woodPaint.VertexColorIsSrgb = true;
+                return _woodPaint;
+            }
+        return PaintMat(false);
+    }
+
+    /// <summary>A mesh surface's triangles, read from the engine once and kept.</summary>
+    public sealed record Tris(Vector3[] V, Vector3[] N, int[] I);
+    static readonly Dictionary<(Mesh, int), Tris> TrisOf = new();
+
+    public static Tris TrianglesOf(Mesh m, int surface = 0)
+    {
+        if (TrisOf.TryGetValue((m, surface), out var t)) return t;
+        var a = m.SurfaceGetArrays(surface);
+        var v = a[(int)Mesh.ArrayType.Vertex].AsVector3Array();
+        var n = a[(int)Mesh.ArrayType.Normal].AsVector3Array();
+        var idxVar = a[(int)Mesh.ArrayType.Index];
+        int[] idx;
+        if (idxVar.VariantType == Variant.Type.Nil)
+        {
+            idx = new int[v.Length];
+            for (int i = 0; i < idx.Length; i++) idx[i] = i;
+        }
+        else idx = idxVar.AsInt32Array();
+        return TrisOf[(m, surface)] = new Tris(v, n, idx);
+    }
+
+    /// <summary>Gathers pieces of many colours into one mesh coloured per vertex.</summary>
+    public sealed class PaintedMesh
+    {
+        readonly List<Vector3> _v = new(), _n = new();
+        readonly List<Color> _c = new();
+        readonly List<int> _i = new();
+        public int Count => _v.Count;
+
+        public void Add(Mesh mesh, int surface, Transform3D xf, Color c)
+        {
+            var t = TrianglesOf(mesh, surface);
+            var nb = xf.Basis.Inverse().Transposed();
+            int b = _v.Count;
+            for (int k = 0; k < t.V.Length; k++)
+            {
+                _v.Add(xf * t.V[k]);
+                _n.Add((nb * t.N[k]).Normalized());
+                _c.Add(c);
+            }
+            // A mirroring transform turns the faces inside out: wind them the other way.
+            bool flip = xf.Basis.Determinant() < 0;
+            for (int k = 0; k + 2 < t.I.Length; k += 3)
+            {
+                _i.Add(b + t.I[k]);
+                _i.Add(b + t.I[flip ? k + 2 : k + 1]);
+                _i.Add(b + t.I[flip ? k + 1 : k + 2]);
+            }
+        }
+
+        public ArrayMesh Commit(Material m)
+        {
+            var a = new Godot.Collections.Array();
+            a.Resize((int)Mesh.ArrayType.Max);
+            a[(int)Mesh.ArrayType.Vertex] = _v.ToArray();
+            a[(int)Mesh.ArrayType.Normal] = _n.ToArray();
+            a[(int)Mesh.ArrayType.Color] = _c.ToArray();
+            a[(int)Mesh.ArrayType.Index] = _i.ToArray();
+            var mesh = new ArrayMesh();
+            mesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, a);
+            mesh.SurfaceSetMaterial(0, m);
+            return mesh;
+        }
     }
 
     /// <summary>
@@ -117,6 +221,9 @@ public static class Mesh3
             foreach (var y in S)
                 foreach (var z in S)
                     Tri(P(0, x, y, z), P(1, x, y, z), P(2, x, y, z));
+        // Indexed like the engine's own primitives: merging (SurfaceTool.AppendFrom) an unindexed surface into an
+        // indexed one, or the other way round, leaves some of the triangles out.
+        st.Index();
         return st.Commit();
     }
 

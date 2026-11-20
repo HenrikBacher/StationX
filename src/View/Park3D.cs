@@ -188,8 +188,14 @@ public partial class Park3D : Node3D
         _ => side is 2 or 3,
     };
 
+    /// <summary>
+    /// The parts of every building that show or hide together share one node, so their pieces merge into a few
+    /// meshes for the whole Park rather than a few per building.
+    /// </summary>
     Node3D Sided(int a, int b, bool tall)
     {
+        foreach (var (node, sa, sb, st) in _sided)
+            if (sa == a && sb == b && st == tall) return node;
         var n = new Node3D();
         _buildings.AddChild(n);
         _sided.Add((n, a, b, tall));
@@ -880,6 +886,7 @@ public partial class Park3D : Node3D
         foreach (var box in containers)
         {
             var groups = new Dictionary<(Material, GeometryInstance3D.ShadowCastingSetting), SurfaceTool>();
+            var painted = new Dictionary<(bool, GeometryInstance3D.ShadowCastingSetting), Mesh3.PaintedMesh>();
             var merged = new List<MeshInstance3D>();
             void Collect(Node n, Transform3D parent)
             {
@@ -902,6 +909,13 @@ public partial class Park3D : Node3D
                         {
                             for (int s = 0; s < mats.Length; s++)
                             {
+                                // Plain colours and shades of wood: one mesh each, coloured per vertex.
+                                if (Mesh3.Paintable(mats[s], out var colour, out bool wood))
+                                {
+                                    if (!painted.TryGetValue((wood, mi.CastShadow), out var pm)) painted[(wood, mi.CastShadow)] = pm = new Mesh3.PaintedMesh();
+                                    pm.Add(mi.Mesh, s, xf, colour);
+                                    continue;
+                                }
                                 var key = (mats[s], mi.CastShadow);
                                 if (!groups.TryGetValue(key, out var st))
                                 {
@@ -925,6 +939,8 @@ public partial class Park3D : Node3D
                 mesh.SurfaceSetMaterial(0, mat);
                 box.AddChild(new MeshInstance3D { Mesh = mesh, CastShadow = shadow });
             }
+            foreach (var ((wood, shadow), pm) in painted)
+                box.AddChild(new MeshInstance3D { Mesh = pm.Commit(Mesh3.PaintMat(wood)), CastShadow = shadow });
         }
     }
 

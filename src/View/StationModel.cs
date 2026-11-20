@@ -30,11 +30,64 @@ public partial class StationModel : Node3D
         return m;
     }
 
-    public void PlaceAt(int x, int y, int rot)
+    public void PlaceAt(int x, int y, int rot) => Transform = Placement(Type, x, y, rot);
+
+    /// <summary>Where a station of this type stands, footprint at (x, y), turned rot quarters.</summary>
+    public static Transform3D Placement(StationType t, int x, int y, int rot)
     {
-        var (w, h) = Defs.Dims(Type, rot);
-        Position = new Vector3(x + w / 2f, 0, y + h / 2f);
-        RotationDegrees = new Vector3(0, rot * 90, 0);
+        var (w, h) = Defs.Dims(t, rot);
+        return new Transform3D(Basis.FromEuler(new Vector3(0, Mathf.DegToRad(rot * 90), 0)), new Vector3(x + w / 2f, 0, y + h / 2f));
+    }
+
+    /// <summary>A still, opaque piece of the model, in the model's own space, for Furniture to merge.</summary>
+    public readonly record struct Part(Mesh Mesh, int Surface, Material Mat, Transform3D Local, GeometryInstance3D.ShadowCastingSetting Shadow);
+
+    public readonly List<Part> StaticParts = new();
+    /// <summary>The still parts have been handed to Furniture (only for real stations, not the build ghost).</summary>
+    public bool Detached { get; private set; }
+
+    /// <summary>
+    /// Takes out every piece that never moves or changes (left to Furniture to draw, merged with the rest of the
+    /// building), keeping the drums, tapes, glows, trays and anything see-through.
+    /// </summary>
+    public void DetachStatic()
+    {
+        if (Detached) return;
+        Detached = true;
+        var live = new HashSet<Node>();
+        foreach (var n in _spinners) live.Add(n);
+        foreach (var n in _sliders) live.Add(n);
+        foreach (var n in _inPile) live.Add(n);
+        foreach (var n in _outPile) live.Add(n);
+        foreach (var n in _valves) live.Add(n);
+        if (_glow != null) live.Add(_glow);
+        if (_canister != null) live.Add(_canister);
+        var taken = new List<MeshInstance3D>();
+        void Collect(Node n, Transform3D parent)
+        {
+            foreach (var c in n.GetChildren())
+            {
+                if (c is not Node3D c3 || live.Contains(c)) continue;
+                var xf = parent * c3.Transform;
+                if (c is MeshInstance3D mi && mi.Mesh != null && mi.GetChildCount() == 0 && mi.Visible)
+                {
+                    var mats = new Material[mi.Mesh.GetSurfaceCount()];
+                    bool ok = true;
+                    for (int s = 0; s < mats.Length && ok; s++)
+                    {
+                        mats[s] = (mi.MaterialOverride ?? mi.GetSurfaceOverrideMaterial(s) ?? mi.Mesh.SurfaceGetMaterial(s))!;
+                        ok = mats[s] is BaseMaterial3D { Transparency: BaseMaterial3D.TransparencyEnum.Disabled };
+                    }
+                    if (!ok) continue;
+                    for (int s = 0; s < mats.Length; s++) StaticParts.Add(new Part(mi.Mesh, s, mats[s], xf, mi.CastShadow));
+                    taken.Add(mi);
+                    continue;
+                }
+                Collect(c, xf);
+            }
+        }
+        Collect(this, Transform3D.Identity);
+        foreach (var mi in taken) { mi.GetParent().RemoveChild(mi); mi.QueueFree(); }
     }
 
     float W => Defs.Station(Type).W;
