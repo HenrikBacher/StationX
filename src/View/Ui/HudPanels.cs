@@ -336,22 +336,7 @@ public partial class Hud
             _sideBox.AddChild(Row(new ColorRect { Color = Gfx.RoleColor(role), CustomMinimumSize = new Vector2(10, 10), SizeFlagsVertical = Control.SizeFlags.ShrinkCenter },
                 toggle, summary));
             if (!open) continue;
-            foreach (var p in people)
-            {
-                string doing = Doing(p);
-                string shift = S.WatchesAvailable ? $" · {Defs.Shifts[p.Shift].Name.Split(' ')[0].ToLowerInvariant()}" : "";
-                string pin = (p.Pinned != null ? " · 📌" : "") + (p.Posted is string po && S.Grid.Zone(po) is { } pz ? $" · {pz.Name}" : "");
-                var b = UiTheme.Button($"{p.Name}   {Stars(p.Skill)}   {doing}{shift}{pin}",
-                    () => { _main.Select(null, p.Id); if (!p.Away) _main.CenterOnTile((float)p.X, (float)p.Y); });
-                b.Alignment = HorizontalAlignment.Left;
-                b.Flat = true;
-                b.AddThemeFontSizeOverride("font_size", 13);
-                b.ClipText = true;   // a long line must not widen the panel
-                b.TooltipText = b.Text;
-                if (p.Away) b.AddThemeColorOverride("font_color", UiTheme.TextDim);
-                b.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-                _sideBox.AddChild(Row(b, DayBar(p), Meter(p.Energy, "Energy"), Meter(p.Morale, "Morale")));
-            }
+            foreach (var p in people) _sideBox.AddChild(PersonRow(p));
         }
         _sideBox.AddChild(new HSeparator());
         _sideBox.AddChild(UiTheme.Heading("Candidates", 17));
@@ -377,6 +362,54 @@ public partial class Hud
                 tooltip: c.Notable != null ? "Reports at once." : $"Vetting and travel: reports in about {Math.Round(Defs.VettingHours(c.Role, S.Difficulty))} hours. Hire ahead of need.")));
         }
     }
+
+    /// <summary>
+    /// One person in the Staff list: the name (which gives way first when space is short), skill, what they're doing
+    /// and their watch in a word each, their day, energy and morale. The full wording is in the tooltip.
+    /// </summary>
+    Control PersonRow(Staff p)
+    {
+        var sd = Defs.Shifts[p.Shift];
+        string shift = S.WatchesAvailable ? p.Shift switch { Shift.Office => "long", Shift.Evening => "eve", _ => sd.Name.Split(' ')[0].ToLowerInvariant() } : "";
+        string where = p.Posted is string po && S.Grid.Zone(po) is { } pz ? $"\nPosted to {pz.Name}." : "";
+        string pinned = p.Pinned is int pid && S.StationById(pid) is { } pst ? $"\nPinned to the {pst.Def.Name.ToLowerInvariant()}." : p.Pinned != null ? "\nPinned to a desk." : "";
+        string tip = $"{p.Name}, {RoleWord(p.Role)} {Stars(p.Skill)}: {Doing(p)}" +
+                     (S.WatchesAvailable ? $", {sd.Name.ToLowerInvariant()} ({sd.StartHour:00}–{sd.EndHour % 24:00})" : "") + "." + where + pinned +
+                     "\nClick to select them.";
+        var b = UiTheme.Button(p.Name, () => { _main.Select(null, p.Id); if (!p.Away) _main.CenterOnTile((float)p.X, (float)p.Y); });
+        b.Alignment = HorizontalAlignment.Left;
+        b.Flat = true;
+        b.AddThemeFontSizeOverride("font_size", 13);
+        b.ClipText = true;   // a long name must not widen the panel
+        b.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
+        b.TooltipText = tip;
+        b.CustomMinimumSize = new Vector2(60, 0);
+        b.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        if (p.Away) b.AddThemeColorOverride("font_color", UiTheme.TextDim);
+        var stars = UiTheme.Label(Stars(p.Skill), 12, UiTheme.Accent, wrap: false);
+        var state = UiTheme.Label(DoingShort(p) + (shift != "" ? $" · {shift}" : "") + (p.Pinned != null ? " · pinned" : ""), 12,
+            p.Away ? UiTheme.TextDim : UiTheme.Text, wrap: false);
+        foreach (var l in new[] { stars, state })
+        {
+            l.TooltipText = tip;
+            l.MouseFilter = Control.MouseFilterEnum.Pass;
+            l.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
+        }
+        return Row(b, stars, state, DayBar(p), Meter(p.Energy, "Energy"), Meter(p.Morale, "Morale"));
+    }
+
+    /// <summary>What someone is doing in a word, for a Staff row (the tooltip has <see cref="Doing"/>).</summary>
+    string DoingShort(Staff p) =>
+        p.Arriving(S.Now) ? "arriving" : p.IsSick(S.Now) ? (p.OffReason switch { "leave" => "on leave", "breakdown" => "broken down", _ => "sick" }) : p.Away ? "off"
+        : p.HeadOf != null && p.Task == null ? "head" : p.Task switch
+        {
+            null => "idle",
+            { Kind: TaskKind.Operate } => "working",
+            { Kind: TaskKind.Rest, Loafing: true } => "free",
+            { Kind: TaskKind.Rest } => "break",
+            { Kind: TaskKind.Leave } => "going off",
+            _ => "carrying",
+        };
 
     /// <summary>The Staff panel lists each role idlest first (by the last day on watch).</summary>
     bool _idleFirst = true;
