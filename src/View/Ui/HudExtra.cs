@@ -358,8 +358,8 @@ public partial class Hud
         bool Has(StationType t) => S.Stations.Any(s => s.Type == t);
         int Count(Role r) => S.Staff.Count(s => s.Role == r);
         if (!S.Contracts.Any(c => c.State is ContractState.Active or ContractState.Completed))
-            return ("accept", "Open Requests (Q) and accept one: the Y-station sends nothing until a ministry has asked for it. " +
-                              "The first rider takes a while, so build the desks in your objectives (top right) meanwhile.");
+            return ("accept", "Open Requests (Q) and accept one as soon as it comes in: the Y-station sends nothing until a ministry has asked for it. " +
+                              "The first rider takes a while, so build the desks in your objectives (top right, and first under Build) meanwhile.");
         if (!Has(StationType.Registration))
             return ("reg", "Dispatch riders bring the intercepts up the drive, and need a desk to hand them to. Open Build (B) and place a registration desk in the Mansion: every message is logged there first.");
         if (!Has(StationType.HandCipher))
@@ -375,7 +375,7 @@ public partial class Hud
         if (Count(Role.Linguist) == 0)
             return ("ling", "Hire a linguist for the translation desk.");
         if (S.Stations.Any(s => s.Def.Operator != null && s.Input.Count > 5 && s.OperatorId == null))
-            return ("idle", "A desk has a pile of paper and nobody to work it: the ! marks it. Hire someone of that role, or pin a person to it from the desk's panel.");
+            return ("idle", "A desk has a pile of paper and nobody to work it: the ! marks it. Hire someone of that role into its building, or pin a person to it from the desk's panel.");
         if (!Has(StationType.Canteen))
             return ("tea", "Desk work tires people, and standing about is no rest. Build a canteen table (B) so they can take a tea break and come back fresh: " +
                            "nobody lasts a whole day without one.");

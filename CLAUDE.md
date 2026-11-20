@@ -278,6 +278,9 @@ Then (user requests, 2026-11-19):
   WERFT/JN-25 deutan, RED/BROWN). `NetMark` draws a shape per network (circle RED, square LIGHT BLUE, triangles CHAFFINCH/
   DOLPHIN, diamond BROWN, star SHARK, plus POLICE, X ABWEHR, ring JN-25, bar WERFT, hexagon TUNNY) on the keys card and
   request cards, whose header now names the network.
+- First-hour pass: the Build panel lists the chapter's unbuilt "Build a …" objectives first, marked; candidate cards show
+  no posting row until there's a second building for the role or the watches begin; tip wording (accept as soon as one
+  comes; hire into the desk's building) and the Build intro (riders before the teleprinter).
 
 ### Graphics overhaul: period realism, CC0 assets allowed
 

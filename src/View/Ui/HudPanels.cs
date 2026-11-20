@@ -188,8 +188,11 @@ public partial class Hud
     void BuildPanel()
     {
         _sideBox.AddChild(UiTheme.Heading("Build"));
-        _sideBox.AddChild(UiTheme.Label("Desks and machines go inside a hut, with clear space in front for whoever works them. Messages flow from the teleprinter, through each step, to the despatch box.", 13, UiTheme.TextDim));
-        foreach (StationType t in Enum.GetValues<StationType>())
+        _sideBox.AddChild(UiTheme.Label("Desks and machines go inside a hut, with clear space in front for whoever works them. Messages come in by dispatch rider (later by teleprinter), pass through each step, and leave by the despatch box.", 13, UiTheme.TextDim));
+        // What the chapter's objectives ask to be built comes first, marked, so a new player finds it at once.
+        var wanted = S.Mode == GameMode.FreePlay ? new HashSet<StationType>()
+            : S.Act.Goals.Where(g => g.Kind == GoalKind.Build && g.Station is not null && g.Progress(S) < g.Target).Select(g => g.Station!.Value).ToHashSet();
+        foreach (StationType t in Enum.GetValues<StationType>().OrderBy(t => wanted.Contains(t) ? 0 : 1))
         {
             var d = Defs.Station(t);
             bool unlocked = S.StationUnlocked(t, out var why);
@@ -198,6 +201,7 @@ public partial class Hud
             var name = UiTheme.Label(d.Name, 15, UiTheme.Text, Fonts.BodyBold);
             name.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
             v.AddChild(Row(name, UiTheme.Label($"£{d.Cost:N0}", 15, S.Funds >= d.Cost ? UiTheme.Accent : Gfx.Bad, Fonts.BodyBold)));
+            if (wanted.Contains(t)) v.AddChild(UiTheme.Caps("An objective of this chapter", 11, Gfx.Good));
             v.AddChild(UiTheme.Label(d.Blurb, 12, UiTheme.TextDim));
             if (!d.Outdoor) v.AddChild(UiTheme.Label("Goes in: " + WhereItGoes(t), 12, UiTheme.Accent));
             string who = d.Operator is Role r ? $"Worked by a {RoleWord(r)}" : "No operator needed";
@@ -405,7 +409,9 @@ public partial class Hud
                     _hireZone.Remove(id);
                 }, S.Funds >= c.Salary,
                 tooltip: c.Notable != null ? "Reports at once." : $"Vetting and travel: reports in about {Math.Round(Defs.VettingHours(c.Role, S.Difficulty))} hours. Hire ahead of need.")));
-            v.AddChild(HirePosting(c));
+            // Nothing to choose until there's a second building for the role or the watches begin.
+            if (S.WatchesAvailable || (!GameState.Roams(c.Role) && S.PostsFor(c.Role).Skip(1).Any()))
+                v.AddChild(HirePosting(c));
         }
     }
 
