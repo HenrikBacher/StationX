@@ -229,6 +229,7 @@ public partial class Park3D : Node3D
         Lamps.Clear();
         _sided.Clear();
         _roofs.Clear();
+        _smokes.Clear();
 
         var lake = new MeshInstance3D
         {
@@ -1018,8 +1019,36 @@ public partial class Park3D : Node3D
         SetView(_quarter);
     }
 
+    /// <summary>Smoke from each chimney and stove pipe, with the building it belongs to.</summary>
+    readonly List<(CpuParticles3D p, string zone)> _smokes = new();
+
+    /// <summary>
+    /// Fires lit in the cold months (October to April): the Mansion's grates always, a hut's stove pipe only once a
+    /// stove stands inside it.
+    /// </summary>
+    public void SetSmoke(GameState g, float wind)
+    {
+        if (_smokes.Count == 0) return;
+        int month = g.Date.Month;
+        bool cold = month >= 10 || month <= 4;
+        foreach (var (p, zone) in _smokes)
+        {
+            if (!IsInstanceValid(p)) continue;
+            bool lit = cold && (zone == "mansion" || HasStove(g, zone));
+            Smoke.Set(p, lit, wind);
+        }
+    }
+
+    static bool HasStove(GameState g, string zone)
+    {
+        foreach (var st in g.Stations)
+            if (st.Type == StationType.Stove && g.Grid.ZoneAt(st.X, st.Y)?.Id == zone) return true;
+        return false;
+    }
+
     void Chimney(Node3D parent, Vector3 at, Material brick)
     {
+        _smokes.Add((Smoke.At(parent, at + new Vector3(0.1f, 1.55f, 0)), "mansion"));
         Mesh3.Box(parent, new Vector3(0.45f, 1.4f, 0.32f), at + new Vector3(0, 0.55f, 0), brick);
         Mesh3.Box(parent, new Vector3(0.52f, 0.07f, 0.4f), at + new Vector3(0, 1.27f, 0), Gfx.StoneDressing);
         foreach (float dx in new[] { -0.1f, 0.1f })
@@ -1039,6 +1068,7 @@ public partial class Park3D : Node3D
         var pipe = new Vector3(x0 + z.W * 0.6f, 0, by + sgn * 0.2f);
         Mesh3.Cyl(far, 0.06f, 0.06f, 0.9f, pipe + new Vector3(0, BackWall + 0.45f, 0), new Color("2a2826"), 8);
         Mesh3.Cyl(far, 0.12f, 0.07f, 0.08f, pipe + new Vector3(0, BackWall + 0.92f, 0), new Color("2a2826"), 8);
+        _smokes.Add((Smoke.At(far, pipe + new Vector3(0, BackWall + 1.0f, 0)), z.Id));
         for (int k = 0; k < 3; k++) Bicycle(far, new Vector3(x0 + 1.5f + k * 0.55f, 0, by + sgn * 0.42f), back == 0 ? 0 : Mathf.Pi);
 
         foreach (int side in new[] { 1, 3 })

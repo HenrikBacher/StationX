@@ -789,6 +789,7 @@ public partial class Main : Node3D
             // At night the glints come from the moon: fainter, and silver-blue (the light colour is the moon's by then).
             sunlight: Mathf.Max(1 - night, night * 0.65f) * (1 - gloom));
         _park.SetHeads(State);
+        _park.SetSmoke(State, w switch { Weather.Storm => 1f, Weather.Rain => 0.55f, Weather.Overcast or Weather.Snow => 0.4f, Weather.Fog => 0.05f, _ => 0.25f });
         // Blackout during a raid: shaded lamps, just enough to work by.
         foreach (var l in _park.Lamps) l.LightEnergy = night * (State.RaidOn ? 0.55f : 1.6f);
         float desk = Mathf.Max(night, gloom * 0.35f);

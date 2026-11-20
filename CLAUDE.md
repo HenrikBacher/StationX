@@ -178,6 +178,9 @@ Then (user requests, 2026-11-19):
   `ReportEveryDays` (14), cost 60 + 50 per report sent. Research panel card, tip `chiefs`, the autoplayer sends one when
   `ResearchDone()`. Reputation is touchy here: +4 weekly from act 1 put Normal at 25–29; +2 fortnightly from the quota at
   24 (baseline 21). Balance: Normal 24, Hard 2.
+- Chimney smoke (`Smoke.cs`, CPU particles, one draw each): on the Mansion's chimneys (`Park3D.Chimney`) and the huts'
+  back-eaves stove pipes, parented to the same wall-side node so it hides with them. `Park3D.SetSmoke`: October–April, the
+  Mansion always, a hut only with a stove in it; the wind bends it.
 
 ### Graphics overhaul: period realism, CC0 assets allowed
 
