@@ -301,6 +301,12 @@ Then (user requests, 2026-11-19):
   (−3 rep); each Abwehr delivery (`ReadAbwehr`) +`XxPerDecrypt` 0.12 to `LeastSure`; runs until D-Day. `FortitudeBonus` = Σ trust ×
   `XxReadiness` 0.016 in `Readiness`. ARTIST (`Tag` "artist", `XxArtistDay` 2 into D-Day; `Action` "artist-drop"/"artist-keep").
   Intelligence card, tip `doublecross`, readiness tooltip, war record line, `--modal=artist`. Balance 40/24/2.
+- The mole (`Mole.cs`): `DailyMole` from `SharkFrom` to before D-Day picks a linguist (own dice 0x30AE; not notable, head, American
+  or `MoleCleared`) once there are 3; while `MoleState` 1, Luftwaffe +`MoleLeakAir` 1.2 and Heer +0.8 a day; after `MoleNoticeDays` 6
+  a dilemma (`Tag` "mole", own dice 0x30AF) names the mole and two others (same building if possible) with clue lines (`MoleClues`
+  vs `HerringClues`). Options: dismiss each (`Action` "mole:id"), and at index 1 move all three (`"mole-move:ids"`, re-posted,
+  state 3). Wrong dismissal: −morale, −3 rep, `MoleCleared`, asked again; too few left and MI5 finds them. `--modal=mole`.
+  Balance 40/24/2.
 
 ### Graphics overhaul: period realism, CC0 assets allowed
 

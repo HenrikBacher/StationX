@@ -215,6 +215,7 @@ public sealed partial class GameState
         DailySecurity();
         DailyBook();
         DailyDoubleCross();
+        DailyMole();
         PlanFrequencyChanges();
         foreach (var k in Flows.Keys.ToList())
             if ((Flows[k] *= 0.5) < 0.25) Flows.Remove(k);

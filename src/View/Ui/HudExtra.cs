@@ -492,6 +492,10 @@ public partial class Hud
                 S.DebugMatapan();
                 if (S.Dilemmas.Count > 0) ShowDilemma(S.Dilemmas[0]);
                 break;
+            case "mole":
+                S.Dilemmas.Clear();
+                if (S.DebugMole()) ShowDilemma(S.Dilemmas[0]);
+                break;
             case "artist":
                 S.Dilemmas.Clear();
                 S.DebugArtist();
@@ -771,6 +775,7 @@ public partial class Hud
             "brusa" => "MOST SECRET · WASHINGTON",
             "uncles" => "MOST SECRET · DOWNING STREET",
             "artist" => "MOST SECRET · MI5 · DOUBLE CROSS",
+            "mole" => "MOST SECRET · MI5",
             _ => d.Service == Service.Security ? "SECURITY" : $"ULTRA · {Defs.ServiceNames[d.Service].ToUpperInvariant()}",
         };
         v.AddChild(Ink(header, 13, Fonts.BodyBold, UiTheme.Stamp));

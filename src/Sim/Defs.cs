@@ -174,6 +174,9 @@ public static partial class Defs
     public const double XxStartTrust = 0.6, XxPerDecrypt = 0.12, XxDrift = 0.04, XxBlownBelow = 0.15, XxBlownChance = 0.25, XxBlownRep = 3,
                         XxReadiness = 0.016, XxArtistDoubt = 0.3;
     public const int XxArtistDay = 2;
+    /// <summary>The mole (from the Blackout to D-Day): suspicion a day while leaking, days before MI5 brings names, and what each ending costs or brings.</summary>
+    public const double MoleLeakAir = 1.2, MoleLeakArmy = 0.8, MoleMovedMorale = 0.08, MoleCaughtRep = 3, MoleRelief = 10, MoleWrongMorale = 0.04, MoleWrongRep = 3;
+    public const int MoleNoticeDays = 6;
     /// <summary>The Wicked Uncles' early letter: offered below this reputation from Claymore; what it brings, and the proper channels instead.</summary>
     public const double UnclesAt = 25, UnclesRep = 10, UnclesMorale = 0.04, UnclesChannelsRep = 4;
     public const int UnclesFunds = 2000, UnclesChannelsFunds = 500, UnclesWrens = 3;

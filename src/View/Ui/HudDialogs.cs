@@ -301,6 +301,7 @@ public partial class Hud
                 right.Add($"{op.Name}: " + outcome switch { OpOutcome.Success => "a success", OpOutcome.Partial => "went badly", _ => "failed" });
         int peak = S.History.Count > 0 ? Math.Max(S.History.Max(h => h.Staff), S.Staff.Count) : S.Staff.Count;
         right.Add($"Staff: {S.Staff.Count} at the end, {peak} at the most");
+        if (st.MoleLeakDays > 0) right.Add(st.MoleCaught ? $"A mole caught after {st.MoleLeakDays} days" : S.MoleState == 3 ? $"A leak stopped after {st.MoleLeakDays} days, its source never known" : $"A leak for {st.MoleLeakDays} days");
         if (S.Agents.Count > 0) right.Add($"Double Cross agents: {S.Agents.Count(a => !a.Blown)} of {S.Agents.Count} kept" + (S.Agents.Any(a => a.Blown) ? $" ({string.Join(", ", S.Agents.Where(a => a.Blown).Select(a => a.Name))} blown)" : ""));
         if (st.DaytonStops > 0) right.Add($"SHARK menus run at Dayton: {st.DaytonStops}");
         if (st.Breakdowns > 0) right.Add($"Machine breakdowns: {st.Breakdowns}" + (st.FitterRepairs > 0 ? $", {st.FitterRepairs} mended by our own fitters" : ""));

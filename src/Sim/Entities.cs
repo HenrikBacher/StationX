@@ -346,6 +346,8 @@ public sealed class Stats
     public int FitterServices { get; set; }
     public int DaytonStops { get; set; }
     public int XxChecks { get; set; }
+    public int MoleLeakDays { get; set; }
+    public bool MoleCaught { get; set; }
     /// <summary>Messages passed straight across between neighbouring desks, no runner needed.</summary>
     public int HandOvers { get; set; }
 
@@ -365,6 +367,8 @@ public sealed class Stats
         FitterServices = FitterServices,
         DaytonStops = DaytonStops,
         XxChecks = XxChecks,
+        MoleLeakDays = MoleLeakDays,
+        MoleCaught = MoleCaught,
     };
 
     public static int Get(Dictionary<Net, int> d, Net n) => d.TryGetValue(n, out var v) ? v : 0;

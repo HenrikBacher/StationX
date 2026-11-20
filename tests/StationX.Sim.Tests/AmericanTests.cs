@@ -150,3 +150,65 @@ public class DoubleCrossTests
         Assert.False(t.Active);
     }
 }
+
+public class MoleTests
+{
+    static GameState Blackout()
+    {
+        var g = GameState.NewGame(3);
+        g.DebugSkipToAct(Campaign.SharkFrom);
+        g.Dilemmas.Clear();
+        for (int i = 0; i < 4; i++) TestUtil.Add(g, Role.Linguist);
+        return g;
+    }
+
+    [Fact]
+    public void ALeakRaisesSuspicionUntilMI5BringsNames()
+    {
+        var g = Blackout();
+        double air = g.SuspicionOf(Service.Luftwaffe);
+        Dilemma? d = null;
+        for (int i = 0; i < 20 && d == null; i++)
+        {
+            g.Advance(Defs.MinutesPerDay);
+            g.Reputation = 100;
+            g.Events.Clear();
+            g.Dilemmas.RemoveAll(x => x.Tag != "mole");
+            d = g.Dilemmas.Find(x => x.Tag == "mole");
+        }
+        Assert.NotNull(d);
+        Assert.Equal(1, g.MoleState);
+        Assert.True(g.Stats.MoleLeakDays >= Defs.MoleNoticeDays);
+        Assert.Equal(4, d!.Options.Count);
+        Assert.StartsWith("mole-move:", d.Options[1].Action);
+        Assert.Contains(d.Options, o => o.Action == $"mole:{g.MoleId}");
+    }
+
+    [Fact]
+    public void TheRightNameStopsItAndTheWrongOneDoesNot()
+    {
+        var g = Blackout();
+        Assert.True(g.DebugMole());
+        var d = g.Dilemmas.Single(x => x.Tag == "mole");
+        int wrong = d.Options.FindIndex(o => o.Action!.StartsWith("mole:") && o.Action != $"mole:{g.MoleId}");
+        double rep = g.Reputation;
+        Assert.True(g.ResolveDilemma(d.Id, wrong));
+        Assert.Equal(1, g.MoleState);
+        Assert.True(g.Reputation < rep);
+        Assert.True(g.DebugMole());
+        d = g.Dilemmas.Single(x => x.Tag == "mole");
+        Assert.True(g.ResolveDilemma(d.Id, d.Options.FindIndex(o => o.Action == $"mole:{g.MoleId}")));
+        Assert.Equal(2, g.MoleState);
+        Assert.True(g.Stats.MoleCaught);
+    }
+
+    [Fact]
+    public void MovingAllThreeContainsIt()
+    {
+        var g = Blackout();
+        Assert.True(g.DebugMole());
+        var d = g.Dilemmas.Single(x => x.Tag == "mole");
+        Assert.True(g.ResolveDilemma(d.Id, 1));
+        Assert.Equal(3, g.MoleState);
+    }
+}

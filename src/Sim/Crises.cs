@@ -120,6 +120,9 @@ public sealed partial class GameState
             case "generator" when PowerCut:
                 Generator = true;
                 break;
+            case { } mole when mole.StartsWith("mole"):
+                MoleAction(mole);
+                break;
             case "artist-drop":
                 ArtistAction(true);
                 break;
