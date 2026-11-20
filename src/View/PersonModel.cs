@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using Godot;
 using StationX.Sim;
 
@@ -17,11 +18,25 @@ public partial class PersonModel : Node3D
     const float HipY = 0.5f, Thigh = 0.24f, Shin = 0.23f, Upper = 0.17f, Fore = 0.15f, ShoulderY = 0.31f;
     const float SeatY = 0.31f;
 
+    // Built from jointed parts (below), then baked into one skinned mesh: a bone per joint, every part rigidly on its
+    // joint's bone, coloured per vertex. One draw per figure (and per shadow pass) instead of one per part.
     Node3D _hips = null!, _torso = null!, _head = null!;
     Node3D _thighL = null!, _thighR = null!, _shinL = null!, _shinR = null!;
     Node3D _armL = null!, _armR = null!, _elbowL = null!, _elbowR = null!;
     Node3D? _skirt, _lap;
     MeshInstance3D _carry = null!;
+
+    // Bones, in this order; each one's parent.
+    const int BHips = 0, BTorso = 1, BHead = 2, BThighL = 3, BShinL = 4, BThighR = 5, BShinR = 6,
+              BArmL = 7, BElbowL = 8, BArmR = 9, BElbowR = 10, BSkirt = 11, BLap = 12, Bones = 13;
+    static readonly int[] BoneParent = { -1, BHips, BTorso, BHips, BThighL, BHips, BThighR, BTorso, BArmL, BTorso, BArmR, BHips, BHips };
+    Skeleton3D _skel = null!;
+    /// <summary>Each joint's place on its parent (fixed, but for the hips), and its current rotation (Euler, YXZ).</summary>
+    readonly Vector3[] _jointAt = new Vector3[Bones], _rot = new Vector3[Bones];
+    Vector3 _hipAt;
+    bool _hasSkirt, _seatedSkirt;
+    /// <summary>Where the carried sheaf sits on the torso.</summary>
+    Transform3D _carryOnTorso;
     float _phase, _yaw, _idleT, _lookYaw, _lookGoal;
     Vector3 _shown;
     bool _placed;
@@ -261,6 +276,145 @@ public partial class PersonModel : Node3D
         _baseScale = (s.Role == Role.Messenger ? 0.9f : s.Female ? 0.95f : 1f) * (0.94f + Trait(s, 22) * 0.12f);
         Scale = Vector3.One * _baseScale;
         _phase = (s.Id * 1.37f) % Mathf.Tau;
+        Bake();
+    }
+
+    // ------------------------------------------------------------------ bake
+
+    /// <summary>A mesh's triangles, read from the engine once per mesh and shared by every figure that uses it.</summary>
+    sealed record Tris(Vector3[] V, Vector3[] N, int[] I);
+    static readonly Dictionary<Mesh, Tris> TrisOf = new();
+    static readonly Dictionary<float, SphereMesh> SmallSpheres = new();
+    static StandardMaterial3D? _clothMat, _glossyMat;
+
+    static Tris TrisFor(Mesh m)
+    {
+        if (TrisOf.TryGetValue(m, out var t)) return t;
+        var a = m.SurfaceGetArrays(0);
+        var v = a[(int)Mesh.ArrayType.Vertex].AsVector3Array();
+        var n = a[(int)Mesh.ArrayType.Normal].AsVector3Array();
+        var idxVar = a[(int)Mesh.ArrayType.Index];
+        int[] idx = idxVar.VariantType == Variant.Type.Nil ? Enumerable.Range(0, v.Length).ToArray() : idxVar.AsInt32Array();
+        return TrisOf[m] = new Tris(v, n, idx);
+    }
+
+    /// <summary>The vertex-coloured materials every figure shares: cloth and skin, and brilliantined hair.</summary>
+    static StandardMaterial3D FigureMat(bool glossy)
+    {
+        if (glossy) return _glossyMat ??= NewFigureMat(true);
+        return _clothMat ??= NewFigureMat(false);
+    }
+
+    static StandardMaterial3D NewFigureMat(bool glossy) => new()
+    {
+        VertexColorUseAsAlbedo = true,
+        VertexColorIsSrgb = true,
+        AlbedoColor = Colors.White,
+        Roughness = glossy ? 0.25f : 0.85f,
+        Metallic = glossy ? 0.2f : 0f,
+    };
+
+    /// <summary>
+    /// Turns the jointed parts into one skinned mesh on a skeleton with a bone per joint (two surfaces if the hair is
+    /// glossy), and drops the parts. The carried sheaf stays its own mesh, since its colour changes.
+    /// </summary>
+    void Bake()
+    {
+        var joints = new Node3D?[] { _hips, _torso, _head, _thighL, _shinL, _thighR, _shinR, _armL, _elbowL, _armR, _elbowR, _skirt, _lap };
+        _hasSkirt = _skirt != null;
+        var restAt = new Transform3D[Bones];
+        _skel = new Skeleton3D { Name = "Skeleton" };
+        for (int b = 0; b < Bones; b++)
+        {
+            _skel.AddBone(b.ToString());
+            if (BoneParent[b] >= 0) _skel.SetBoneParent(b, BoneParent[b]);
+            _jointAt[b] = joints[b]?.Position ?? Vector3.Zero;
+            var rest = new Transform3D(Basis.Identity, _jointAt[b]);
+            _skel.SetBoneRest(b, rest);
+            _skel.SetBonePosePosition(b, _jointAt[b]);
+            restAt[b] = BoneParent[b] >= 0 ? restAt[BoneParent[b]] * rest : rest;
+        }
+        _hipAt = _jointAt[BHips];
+        _carryOnTorso = _carry.Transform;
+
+        var verts = new List<Vector3>[] { new(), new() };
+        var norms = new List<Vector3>[] { new(), new() };
+        var cols = new List<Color>[] { new(), new() };
+        var bones = new List<int>[] { new(), new() };
+        var idx = new List<int>[] { new(), new() };
+        for (int b = 0; b < Bones; b++)
+        {
+            if (joints[b] is not { } j) continue;
+            foreach (var child in j.GetChildren())
+            {
+                if (child is not MeshInstance3D mi || mi == _carry || mi.Mesh == null) continue;
+                var mat = mi.MaterialOverride as StandardMaterial3D;
+                var col = mat?.AlbedoColor ?? Colors.White;
+                int surf = mat != null && mat.Roughness < 0.5f ? 1 : 0;
+                var mesh = mi.Mesh;
+                // Beads, buttons and hands are a few pixels across: a coarser sphere looks the same.
+                if (mesh is SphereMesh { Radius: < 0.03f } sm)
+                {
+                    if (!SmallSpheres.TryGetValue(sm.Radius, out var small))
+                        SmallSpheres[sm.Radius] = small = new SphereMesh { Radius = sm.Radius, Height = sm.Radius * 2, RadialSegments = 10, Rings = 5 };
+                    mesh = small;
+                }
+                var t = TrisFor(mesh);
+                var xf = restAt[b] * mi.Transform;
+                var nb = xf.Basis.Inverse().Transposed();
+                int baseV = verts[surf].Count;
+                for (int k = 0; k < t.V.Length; k++)
+                {
+                    verts[surf].Add(xf * t.V[k]);
+                    norms[surf].Add((nb * t.N[k]).Normalized());
+                    cols[surf].Add(col);
+                    bones[surf].Add(b);
+                }
+                foreach (int i in t.I) idx[surf].Add(baseV + i);
+            }
+        }
+
+        var skin = new Skin();
+        for (int b = 0; b < Bones; b++) skin.AddBind(b, restAt[b].AffineInverse());
+        var arrays = new ArrayMesh();
+        for (int surf = 0; surf < 2; surf++)
+        {
+            if (verts[surf].Count == 0) continue;
+            int n = verts[surf].Count;
+            var bi = new int[n * 4];
+            var bw = new float[n * 4];
+            for (int k = 0; k < n; k++) { bi[k * 4] = bones[surf][k]; bw[k * 4] = 1; }
+            var a = new Godot.Collections.Array();
+            a.Resize((int)Mesh.ArrayType.Max);
+            a[(int)Mesh.ArrayType.Vertex] = verts[surf].ToArray();
+            a[(int)Mesh.ArrayType.Normal] = norms[surf].ToArray();
+            a[(int)Mesh.ArrayType.Color] = cols[surf].ToArray();
+            a[(int)Mesh.ArrayType.Bones] = bi;
+            a[(int)Mesh.ArrayType.Weights] = bw;
+            a[(int)Mesh.ArrayType.Index] = idx[surf].ToArray();
+            arrays.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, a);
+            arrays.SurfaceSetMaterial(arrays.GetSurfaceCount() - 1, FigureMat(surf == 1));
+        }
+        var body = new MeshInstance3D { Name = "Body", Mesh = arrays, Skin = skin, Skeleton = ".." };
+        // Generous bounds for culling: the skinned figure reaches past its rest pose (an arm raised at rounders).
+        body.CustomAabb = new Aabb(new Vector3(-0.7f, -0.1f, -0.7f), new Vector3(1.4f, 1.6f, 1.4f));
+        _skel.AddChild(body);
+
+        // The jointed parts have served their turn; the sheaf moves to the figure itself.
+        _carry.GetParent().RemoveChild(_carry);
+        _hips.GetParent().RemoveChild(_hips);
+        _hips.Free();
+        AddChild(_skel);
+        AddChild(_carry);
+        if (_hasSkirt) SetSkirt(false);
+    }
+
+    /// <summary>The skirt hangs when standing; seated, the lap piece shows instead. The hidden one shrinks to nothing.</summary>
+    void SetSkirt(bool seated)
+    {
+        _seatedSkirt = seated;
+        _skel.SetBonePoseScale(BSkirt, Vector3.One * (seated ? 0.001f : 1f));
+        _skel.SetBonePoseScale(BLap, Vector3.One * (seated ? 1f : 0.001f));
     }
 
     void Hair(Staff s, Color hair)
@@ -405,19 +559,19 @@ public partial class PersonModel : Node3D
         Rotation = new Vector3(0, Mathf.LerpAngle(Rotation.Y, _yaw, 1 - Mathf.Exp(-dt * 12)), 0);
 
         bool carrying = s.Task is { Kind: TaskKind.Carry, Phase: >= 1 };
-        _carry.Visible = carrying;
+        if (_carry.Visible != carrying) _carry.Visible = carrying;
         if (carrying)
         {
             var first = s.Task!.Msgs.Count > 0 ? g.Messages.GetValueOrDefault(s.Task.Msgs[0]) : null;
             var mat = Mesh3.Mat(first == null ? Gfx.Paper : Gfx.Paper.Lerp(Gfx.NetColor(first.Net), 0.25f));
             if (mat != _carryMat) _carry.MaterialOverride = _carryMat = mat;   // only on a change: each set calls the renderer
-            _carry.Scale = new Vector3(1, 0.5f + 0.25f * System.Math.Min(4, s.Task.Msgs.Count), 1);
+            _carryScale = 0.5f + 0.25f * System.Math.Min(4, s.Task.Msgs.Count);
         }
 
         bool tired = s.Energy < Defs.BreakAt;
         bool sitting = !walking && ((atRest && rest!.Value.Sit) || deskWork);
         Settled = atRest || deskWork;
-        if (_skirt != null) { _skirt.Visible = !sitting; _lap!.Visible = sitting; }
+        if (_hasSkirt && sitting != _seatedSkirt) SetSkirt(sitting);
 
         Pose p = default;
         if (sitting) p = deskWork ? Writing(dt) : TeaBreak(dt);
@@ -427,7 +581,19 @@ public partial class PersonModel : Node3D
         else p = Idle(dt, carrying);
         if (tired && !sitting) p.Lean += 0.14f;
         Apply(p, dt);
+        if (carrying) PlaceCarry();
         Modulate(s.Leaving);
+    }
+
+    float _carryScale = 1;
+
+    /// <summary>The sheaf held in front of the chest: the torso bone's pose, worked out here rather than asked of the engine.</summary>
+    void PlaceCarry()
+    {
+        var hips = new Transform3D(Basis.FromEuler(_rot[BHips]), _hipAt);
+        var torso = hips * new Transform3D(Basis.FromEuler(_rot[BTorso]), _jointAt[BTorso]);
+        var t = torso * _carryOnTorso;
+        _carry.Transform = new Transform3D(t.Basis.ScaledLocal(new Vector3(1, _carryScale, 1)), t.Origin);
     }
 
     /// <summary>Joint angles (radians, about X unless named) and hip height for one frame.</summary>
@@ -550,19 +716,26 @@ public partial class PersonModel : Node3D
     {
         // Ease into the pose so switching between sitting, walking and standing doesn't pop.
         float k = 1 - Mathf.Exp(-dt * (p.Snap ? 10 : 22));
-        static Vector3 L(Vector3 a, Vector3 b, float t) => a.Lerp(b, t);
-        _hips.Position = L(_hips.Position, new Vector3(0, p.HipY, 0), k);
-        _hips.Rotation = L(_hips.Rotation, new Vector3(0, -p.Twist * 0.5f, 0), k);
-        _torso.Rotation = L(_torso.Rotation, new Vector3(p.Lean, p.Twist, 0), k);
-        _head.Rotation = L(_head.Rotation, new Vector3(p.HeadPitch - p.Lean * 0.5f, p.HeadYaw - p.Twist, 0), k);
-        _thighL.Rotation = L(_thighL.Rotation, new Vector3(p.ThighL, 0, 0), k);
-        _thighR.Rotation = L(_thighR.Rotation, new Vector3(p.ThighR, 0, 0), k);
-        _shinL.Rotation = L(_shinL.Rotation, new Vector3(p.ShinL, 0, 0), k);
-        _shinR.Rotation = L(_shinR.Rotation, new Vector3(p.ShinR, 0, 0), k);
-        _armL.Rotation = L(_armL.Rotation, new Vector3(p.ArmL, 0, -p.ArmOutL), k);
-        _armR.Rotation = L(_armR.Rotation, new Vector3(p.ArmR, 0, p.ArmOutR), k);
-        _elbowL.Rotation = L(_elbowL.Rotation, new Vector3(p.ElbowL, 0, 0), k);
-        _elbowR.Rotation = L(_elbowR.Rotation, new Vector3(p.ElbowR, 0, 0), k);
+        _hipAt = _hipAt.Lerp(new Vector3(0, p.HipY, 0), k);
+        Ease(BHips, new Vector3(0, -p.Twist * 0.5f, 0), k);
+        Ease(BTorso, new Vector3(p.Lean, p.Twist, 0), k);
+        Ease(BHead, new Vector3(p.HeadPitch - p.Lean * 0.5f, p.HeadYaw - p.Twist, 0), k);
+        Ease(BThighL, new Vector3(p.ThighL, 0, 0), k);
+        Ease(BThighR, new Vector3(p.ThighR, 0, 0), k);
+        Ease(BShinL, new Vector3(p.ShinL, 0, 0), k);
+        Ease(BShinR, new Vector3(p.ShinR, 0, 0), k);
+        Ease(BArmL, new Vector3(p.ArmL, 0, -p.ArmOutL), k);
+        Ease(BArmR, new Vector3(p.ArmR, 0, p.ArmOutR), k);
+        Ease(BElbowL, new Vector3(p.ElbowL, 0, 0), k);
+        Ease(BElbowR, new Vector3(p.ElbowR, 0, 0), k);
+        _skel.SetBonePosePosition(BHips, _hipAt);
+    }
+
+    void Ease(int bone, Vector3 goal, float k)
+    {
+        var r = _rot[bone].Lerp(goal, k);
+        _rot[bone] = r;
+        _skel.SetBonePoseRotation(bone, Quaternion.FromEuler(r));
     }
 
     bool _fading;
