@@ -194,6 +194,9 @@ Then (user requests, 2026-11-19):
   walking out to it, a far-billeted watch ending within `BusDrive` or anyone of them off watch but still on site). It
   stops with its door at `Commuters.StopPoint`, turns in the gateway to leave. Its passengers' pass checks are one block
   (`BusGap` 1.6 apart, `BusCheck` 1.2 each) that others' checks are scheduled round. Shots: `--farbillet=N`.
+- Out of doors (`PersonModel.Outfit`, commuters and everyone crossing the Park): walkers carry an umbrella in rain or a
+  storm (one shared merged mesh, held in the left hand); after dark (before 06:30, from 19:30) anyone moving shows a dim
+  additive pool of a blacked-out torch or bicycle lamp a step ahead.
 - Draw-call notes: Godot already instances identical mesh+material draws, so many copies of one mesh cost little; distinct
   boxes each cost a draw. `STX_COUNT=1` with `--shot` prints visible surfaces by owner (Stations by type, Buildings by
   kind). Bombe drums are two MultiMeshes per Bombe (`StationModel.TurnDrums`); the sentry, barrier pole and staff car

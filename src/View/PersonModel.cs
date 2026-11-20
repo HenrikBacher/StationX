@@ -518,7 +518,7 @@ public partial class PersonModel : Node3D
         // Off watch: back at the billets, not on the map.
         bool show = !s.Away && !hidden;
         if (Visible != show) Visible = show;
-        if (s.Away) { _placed = false; return; }
+        if (s.Away) { _placed = false; HideOutfit(); return; }
         var target = new Vector3((float)s.X, 0, (float)s.Y);
         bool atRest = rest != null && s.Path.Count == 0;
         bool operating = s.Task is { Kind: TaskKind.Operate } && s.Path.Count == 0;
@@ -544,6 +544,7 @@ public partial class PersonModel : Node3D
         }
         Rotation = new Vector3(0, Mathf.LerpAngle(Rotation.Y, _yaw, 1 - Mathf.Exp(-dt * 12)), 0);
 
+        Outfit(g.Grid.ZoneAt((int)s.X, (int)s.Y) == null, walking, false, g);
         bool carrying = s.Task is { Kind: TaskKind.Carry, Phase: >= 1 };
         if (_carry.Visible != carrying) _carry.Visible = carrying;
         if (carrying)
@@ -563,6 +564,7 @@ public partial class PersonModel : Node3D
         if (sitting) p = deskWork ? Writing(dt) : TeaBreak(dt);
         else if (atRest && !walking && rest!.Value.Play) p = Rounders(dt);
         else if (walking) p = Walk(dt, tired, s.Role == Role.Messenger, carrying);
+        if (walking && !carrying && _umbrella is { Visible: true }) { p.ArmL = -0.55f; p.ElbowL = -1.3f; p.ArmOutL = 0.05f; }
         else if (operating) p = MachineWork(dt);
         else p = Idle(dt, carrying);
         if (tired && !sitting) p.Lean += 0.14f;
@@ -573,7 +575,65 @@ public partial class PersonModel : Node3D
 
     float _carryScale = 1;
 
-    MeshInstance3D? _bike;
+    MeshInstance3D? _bike, _umbrella, _torch;
+    static Mesh? _umbrellaMesh;
+    static StandardMaterial3D? _torchMat;
+
+    /// <summary>Outdoors in the rain: an umbrella (on foot). After dark: the dimmed torch's pool of light on the ground ahead.</summary>
+    void Outfit(bool outside, bool moving, bool riding, GameState g)
+    {
+        bool rain = outside && !riding && g.Weather is Weather.Rain or Weather.Storm;
+        double h = g.MinuteOfDay / 60;
+        bool dark = outside && moving && (h < 6.5 || h >= 19.5);
+        if (rain && _umbrella == null)
+        {
+            if (_umbrellaMesh == null)
+            {
+                var n = new Node3D();
+                var canopy = Mesh3.Dome(n, 0.34f, new Vector3(0, 1.3f, 0.12f), new Color("1c1b1a"));
+                canopy.Scale = new Vector3(1, 0.45f, 1);
+                Mesh3.Cyl(n, 0.012f, 0.012f, 0.62f, new Vector3(0, 1.0f, 0.12f), new Color("2a2622"), 6);
+                Mesh3.Box(n, new Vector3(0.03f, 0.06f, 0.03f), new Vector3(0, 0.7f, 0.12f), new Color("4a3424"));   // the handle
+                var m = Mesh3.MergePainted(n, "Umbrella");
+                _umbrellaMesh = m.Mesh;
+                m.Free();
+            }
+            _umbrella = new MeshInstance3D { Mesh = _umbrellaMesh };
+            AddChild(_umbrella);
+        }
+        if (_umbrella != null && _umbrella.Visible != rain) _umbrella.Visible = rain;
+        if (dark && _torch == null)
+        {
+            // A torch had to be dimmed with tissue paper and pointed down: a faint warm pool a step ahead.
+            _torchMat ??= new StandardMaterial3D
+            {
+                ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+                Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+                BlendMode = BaseMaterial3D.BlendModeEnum.Add,
+                AlbedoTexture = new GradientTexture2D
+                {
+                    Gradient = new Gradient { Colors = new[] { new Color(1, 0.84f, 0.5f, 0.26f), new Color(1, 0.84f, 0.5f, 0) } },
+                    Fill = GradientTexture2D.FillEnum.Radial, FillFrom = new Vector2(0.5f, 0.5f), FillTo = new Vector2(0.5f, 0f), Width = 32, Height = 32,
+                },
+                CullMode = BaseMaterial3D.CullModeEnum.Disabled,
+                DisableReceiveShadows = true,
+            };
+            _torch = new MeshInstance3D
+            {
+                Mesh = new PlaneMesh { Size = new Vector2(0.5f, 0.66f), Material = _torchMat },
+                Position = new Vector3(0, 0.025f, 0.55f),
+                CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+            };
+            AddChild(_torch);
+        }
+        if (_torch != null && _torch.Visible != dark) _torch.Visible = dark;
+    }
+
+    void HideOutfit()
+    {
+        if (_umbrella != null && _umbrella.Visible) _umbrella.Visible = false;
+        if (_torch != null && _torch.Visible) _torch.Visible = false;
+    }
     /// <summary>On the way in or out (<see cref="Commuters"/>): not where the sim has them, so others don't step round them.</summary>
     public bool Commuting { get; private set; }
 
@@ -581,8 +641,9 @@ public partial class PersonModel : Node3D
     /// Off the map in the sim, but walking or cycling between the gate and their door: placed and posed from the
     /// trip, riding a bicycle out of doors, or stopped at the barrier holding out a pass.
     /// </summary>
-    public void SyncCommute(Vector3 at, Vector3 heading, bool riding, bool checking, float dt)
+    public void SyncCommute(Vector3 at, Vector3 heading, bool riding, bool checking, float dt, GameState g)
     {
+        Outfit(at.X < 0 || g.Grid.ZoneAt((int)at.X, (int)at.Z) == null, !checking, riding, g);
         Commuting = true;
         Settled = false;
         if (!Visible) Visible = true;
@@ -603,6 +664,7 @@ public partial class PersonModel : Node3D
         if (_hasSkirt && _seatedSkirt) SetSkirt(false);
         Pose p = riding ? Ride(dt, !checking) : checking ? ShowPass(dt) : Walk(dt, false, false, false);
         if (riding && checking) { p.ArmR = -1.25f; p.ElbowR = -0.25f; p.ArmOutR = 0.2f; }   // astride, pass held out
+        else if (_umbrella is { Visible: true }) { p.ArmL = -0.55f; p.ElbowL = -1.3f; p.ArmOutL = 0.05f; }   // holding it up
         Apply(p, dt);
     }
 

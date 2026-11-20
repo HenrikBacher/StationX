@@ -639,7 +639,7 @@ public partial class Main : Node3D
             }
             if (s.Away && _commuters.Where(s.Id, State.Now, out var cAt, out var heading, out bool riding, out bool checking))
             {
-                m.SyncCommute(cAt, heading, riding, checking, dt);
+                m.SyncCommute(cAt, heading, riding, checking, dt, State);
                 continue;
             }
             bool indoors = roofed && State.Grid.ZoneAt((int)s.X, (int)s.Y) is { Unlocked: true };
