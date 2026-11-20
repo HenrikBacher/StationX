@@ -22,6 +22,7 @@ public partial class Main : Node3D
     public CameraRig Rig = null!;
     public Hud Hud = null!;
     Park3D _park = null!;
+    public Park3D Park => _park;
     Riders _riders = null!;
     Music _music = null!;
     double _nextTrain = 40, _nextPlane = 90, _nextTyping = 3;
@@ -398,6 +399,7 @@ public partial class Main : Node3D
         Soundscape(dt);
         Autosave();
 
+        _park.SetRoofs(Rig.Cam.Size);
         SyncStations(running ? dt : 0);
         SyncPeople(dt);
         _riders.Sync(State, running ? dt : 0, Speed, _park);
@@ -406,13 +408,14 @@ public partial class Main : Node3D
         UpdateGhost();
         UpdateSelectionRing();
         UpdateDayNight();
-        _park.SetRoofs(Rig.Cam.Size);
     }
 
     // ------------------------------------------------------------- syncing
 
     void SyncStations(float dt)
     {
+        // Under solid roofs nothing indoors shows: leave it out of the frame altogether (and out of the shadow passes).
+        bool roofed = _park.RoofsSolid;
         foreach (var st in State.Stations)
         {
             if (!StationModels.TryGetValue(st.Id, out var m))
@@ -423,7 +426,9 @@ public partial class Main : Node3D
                 _stationRoot.AddChild(m);
                 StationModels[st.Id] = m;
             }
-            m.Sync(st, State, dt);
+            bool show = st.Id != MovingStation && !(roofed && !st.Def.Outdoor);
+            if (m.Visible != show) m.Visible = show;
+            if (show) m.Sync(st, State, dt);
         }
         // Every station now has a model, so a model is left over only when there are more models than stations.
         if (StationModels.Count > State.Stations.Count)
@@ -468,6 +473,7 @@ public partial class Main : Node3D
 
     void SyncPeople(float dt)
     {
+        bool roofed = _park.RoofsSolid;
         foreach (var s in State.Staff)
         {
             if (!PersonModels.TryGetValue(s.Id, out var m))
@@ -490,7 +496,8 @@ public partial class Main : Node3D
                 var (at, f) = rm.Seat(r.Seat);
                 rest = new PersonModel.RestSpot(rm.ToGlobal(at), rm.ToGlobal(f), rm.Seated, rm.Type == StationType.Rounders);
             }
-            m.Sync(s, State, dt, face, rest, seat);
+            bool indoors = roofed && State.Grid.ZoneAt((int)s.X, (int)s.Y) is { Unlocked: true };
+            m.Sync(s, State, dt, face, rest, seat, indoors);
         }
         if (PersonModels.Count > State.Staff.Count)
             foreach (var id in PersonModels.Keys.Where(id => State.StaffById(id) == null).ToList())
@@ -762,7 +769,7 @@ public partial class Main : Node3D
         float bestD = 18 * 18;
         foreach (var s in State.Staff)
         {
-            if (!PersonModels.TryGetValue(s.Id, out var pm)) continue;
+            if (!PersonModels.TryGetValue(s.Id, out var pm) || !pm.Visible) continue;   // off watch, or under a roof
             var sp = Rig.Cam.UnprojectPosition(pm.GlobalPosition + new Vector3(0, 0.55f, 0));
             float d = (sp - Mouse).LengthSquared();
             if (d < bestD) { bestD = d; best = s; }
