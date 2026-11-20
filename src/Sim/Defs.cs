@@ -153,6 +153,10 @@ public static partial class Defs
     // ---- Operation Ruthless (autumn 1940) ----
     public const int RuthlessAct = 6;
     public const int RuthlessCost = 300;
+    /// <summary>Matapan: Mavis Lever's "X minus 3" of 25 March 1941 (the decision comes the first morning from then, until the end of May).</summary>
+    public static readonly DateOnly MatapanFrom = new(1941, 3, 25), MatapanUntil = new(1941, 6, 1);
+    public const double MatapanRep = 6;
+    public const int MatapanPoints = 3;
     public const double RuthlessSuccess = 0.4;
     public const int RuthlessPoints = 80;
     public const double RuthlessSuspicion = 18;

@@ -253,6 +253,9 @@ Then (user requests, 2026-11-19):
 - JN-25 code book (`Japan.cs`): `BookRecovered` (from `BookStart` 0.3, +`BookPerDecrypt` 0.02 of what's left per JN-25
   delivered) scales the Japanese desk 1.5× → 0.6× (`BookFactor`); `DailyBook` brings in `Defs.JapaneseBooks` (JN-25C
   1 Aug 1942, JN-25D 1 Apr 1943), keeping `BookKept` 0.25. Desk inspector line. Balance: 39/22/0.
+- Matapan (`Matapan.cs`): a scripted dilemma (`Tag` "matapan", `ScriptedDone`) the first midnight from `Defs.MatapanFrom`
+  (25 Mar 1941) to the end of May with no other dilemma open; option 1 is the Sunderland cover. Header "REGIA MARINA". Balance 39/24/4.
+  Shots: `--modal=matapan`.
 
 ### Graphics overhaul: period realism, CC0 assets allowed
 

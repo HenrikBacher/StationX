@@ -1212,6 +1212,34 @@ public class RuthlessTests
     }
 }
 
+public class MatapanTests
+{
+    [Fact]
+    public void XMinusThreeComesOnceInMarch1941()
+    {
+        var g = GameState.NewGame(3);
+        g.DebugSkipToAct(Campaign.IndexOf("Operation Claymore"));
+        g.Reputation = 100;
+        Dilemma? m = null;
+        for (int i = 0; i < 40 * 24 && m == null; i++)
+        {
+            g.Dilemmas.RemoveAll(d => d.Tag != "matapan");
+            g.Advance(60);
+            g.Reputation = 100;
+            m = g.Dilemmas.Find(d => d.Tag == "matapan");
+            if (m == null) Assert.True(g.Date < Defs.MatapanFrom.AddDays(1), $"{g.Date}");
+        }
+        Assert.NotNull(m);
+        Assert.Equal(3, m!.Options.Count);
+        Assert.True(m.Options[1].Cover);
+        int pts = g.Points;
+        Assert.True(g.ResolveDilemma(m.Id, 1));
+        Assert.Equal(pts + Defs.MatapanPoints, g.Points);
+        for (int i = 0; i < 10; i++) { g.Advance(Defs.MinutesPerDay); g.Reputation = 100; }
+        Assert.DoesNotContain(g.Dilemmas, d => d.Tag == "matapan");
+    }
+}
+
 public class InterceptTests
 {
     [Fact]

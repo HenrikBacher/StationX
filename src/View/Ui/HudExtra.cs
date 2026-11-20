@@ -443,6 +443,11 @@ public partial class Hud
                 S.DebugFlash();
                 if (S.Contracts.LastOrDefault(c => c.Flash && c.State == ContractState.Offered) is { } fc) ShowFlash(fc);
                 break;
+            case "matapan":
+                S.Dilemmas.Clear();
+                S.DebugMatapan();
+                if (S.Dilemmas.Count > 0) ShowDilemma(S.Dilemmas[0]);
+                break;
             case "dilemma" when S.Dilemmas.Count > 0: ShowDilemma(S.Dilemmas[0]); break;
             case "dilemma": S.RaiseDilemma(S.DebugDilemma()); ShowDilemma(S.Dilemmas[0]); break;
             case "end": ShowEnd(true); break;
@@ -701,7 +706,7 @@ public partial class Hud
         v.AddChild(Letterhead());
         v.AddChild(new HSeparator());
         v.AddChild(Ink($"{S.Date:d MMMM yyyy}, {(int)S.MinuteOfDay / 60:00}:{(int)S.MinuteOfDay % 60:00}", 13));
-        v.AddChild(Ink(d.Service == Service.Security ? "SECURITY" : $"ULTRA · {Defs.ServiceNames[d.Service].ToUpperInvariant()}", 13, Fonts.BodyBold, UiTheme.Stamp));
+        v.AddChild(Ink(d.Service == Service.Security ? "SECURITY" : d.Tag == "matapan" ? "ULTRA · REGIA MARINA" : $"ULTRA · {Defs.ServiceNames[d.Service].ToUpperInvariant()}", 13, Fonts.BodyBold, UiTheme.Stamp));
         v.AddChild(Ink(d.Title, 26, Fonts.Heading));
         v.AddChild(Ink(d.Text, 15));
         if (d.Context.Length > 0)
