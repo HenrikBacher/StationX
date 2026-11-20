@@ -491,8 +491,8 @@ public partial class Hud
                 double at = GameState.MilestoneAt(c, next);
                 int need = c.PerDay * next;
                 bool behind = c.Delivered < need && at - S.Now < 8 * 60;
-                v.AddChild(UiTheme.Label(next <= StandingDays(c)
-                        ? $"Day {next} of {StandingDays(c)}: {need} delivered in all by {S.DateOf((int)(at / Defs.MinutesPerDay)):ddd} {(int)(at % Defs.MinutesPerDay) / 60:00}:{(int)(at % 60):00} ({Hours(at - S.Now)}) · milestones met {c.MilestonesMet}/{c.MilestonesChecked}"
+                v.AddChild(UiTheme.Label(next <= c.TotalDays
+                        ? $"Day {next} of {c.TotalDays}: {need} delivered in all by {S.DateOf((int)(at / Defs.MinutesPerDay)):ddd} {(int)(at % Defs.MinutesPerDay) / 60:00}:{(int)(at % 60):00} ({Hours(at - S.Now)}) · milestones met {c.MilestonesMet}/{c.MilestonesChecked}"
                         : $"Milestones met {c.MilestonesMet}/{c.MilestonesChecked}", 12, behind ? Gfx.Bad : UiTheme.Text));
                 v.AddChild(UiTheme.Label($"£{c.MilestonePay:N0} for each day met · £{c.Reward:N0} bonus on completion (half if a day was missed)", 12, UiTheme.TextDim));
             }
@@ -514,7 +514,7 @@ public partial class Hud
             ContractHeader(v, c);
             v.AddChild(UiTheme.Label(c.Flavour, 12, UiTheme.TextDim));
             v.AddChild(UiTheme.Label(c.Standing
-                ? $"{c.PerDay} messages every day for {StandingDays(c)} days · £{c.MilestonePay:N0} each day met, £{c.Reward:N0} bonus · reputation +{c.Rep}. A day missed costs {Defs.MilestoneMissedRep} reputation."
+                ? $"{c.PerDay} messages every day for {c.TotalDays} days · £{c.MilestonePay:N0} each day met, £{c.Reward:N0} bonus · reputation +{c.Rep}. A day missed costs {Defs.MilestoneMissedRep} reputation."
                 : $"{c.Quantity} messages within {Hours(c.Days * Defs.MinutesPerDay)} · £{c.Reward:N0} · reputation +{c.Rep}", 13, UiTheme.Text));
             if (c.Flash)
                 v.AddChild(UiTheme.Label($"Urgent. Ignoring it costs {Defs.FlashIgnoredRep:0} reputation; declining costs {Defs.FlashIgnoredRep / 2:0}. Best taken when today's key is already broken.", 11, Gfx.Warn));
@@ -537,9 +537,6 @@ public partial class Hud
                     c.State == ContractState.Completed ? Gfx.Good : Gfx.Bad));
         }
     }
-
-    /// <summary>The days a standing order asks for, as its title says. (The sim's TotalDays also counts the day of grace.)</summary>
-    static int StandingDays(Contract c) => c.PerDay > 0 ? c.Quantity / c.PerDay : c.TotalDays;
 
     static void ContractHeader(Control v, Contract c)
     {
