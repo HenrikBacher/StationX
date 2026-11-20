@@ -370,6 +370,8 @@ public partial class PersonModel : Node3D
     public record struct RestSpot(Vector3 At, Vector3 Face, bool Sit, bool Play);
 
     /// <param name="seat">For someone operating a desk: the chair to sit on (global) while they work.</param>
+    Material? _carryMat;
+
     public void Sync(Staff s, GameState g, float dt, Vector3? faceTarget, RestSpot? rest = null, Vector3? seat = null)
     {
         // Off watch: back at the billets, not on the map.
@@ -404,7 +406,8 @@ public partial class PersonModel : Node3D
         if (carrying)
         {
             var first = s.Task!.Msgs.Count > 0 ? g.Messages.GetValueOrDefault(s.Task.Msgs[0]) : null;
-            _carry.MaterialOverride = Mesh3.Mat(first == null ? Gfx.Paper : Gfx.Paper.Lerp(Gfx.NetColor(first.Net), 0.25f));
+            var mat = Mesh3.Mat(first == null ? Gfx.Paper : Gfx.Paper.Lerp(Gfx.NetColor(first.Net), 0.25f));
+            if (mat != _carryMat) _carry.MaterialOverride = _carryMat = mat;   // only on a change: each set calls the renderer
             _carry.Scale = new Vector3(1, 0.5f + 0.25f * System.Math.Min(4, s.Task.Msgs.Count), 1);
         }
 
