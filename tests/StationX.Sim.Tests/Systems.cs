@@ -18,6 +18,15 @@ static class TestUtil
     public static Station Teleprinter(GameState g) =>
         g.Stations.FirstOrDefault(s => s.Type == StationType.Inbox) ?? g.Place(StationType.Inbox, 3, 3, 0, free: true)!;
 
+    /// <summary>
+    /// For pipeline tests that aren't about postings: the starting staff (posted to the Mansion) may work anywhere, as
+    /// people added by <see cref="Add"/> do.
+    /// </summary>
+    public static void Unpost(GameState g)
+    {
+        foreach (var s in g.Staff) s.Posted = null;
+    }
+
     public static void Run(GameState g, double days)
     {
         for (double t = 0; t < days * Defs.MinutesPerDay; t += 30)
@@ -42,6 +51,7 @@ static class TestUtil
     public static GameState BombeLine(int seed, bool checking)
     {
         var g = GameState.NewGame(seed);
+        Unpost(g);
         g.DebugSkipToAct(5);
         QuickIntake(g);
         g.Funds = 50000;
@@ -468,6 +478,7 @@ public class MachineTests(ITestOutputHelper output)
     public void TunnyGoesThroughTheTestery()
     {
         var g = GameState.NewGame(13);
+        TestUtil.Unpost(g);
         g.DebugSkipToAct(12);
         g.Researched.Add(ResearchId.Turingery);
         g.Grid.Zone("blockf")!.Unlocked = true;
@@ -1442,8 +1453,12 @@ public class PostingTests
         }
         Assert.Equal(0, outside);
         Assert.True(Stats.Get(g.Stats.Delivered, Net.Red) > 0, "the rest of the Park still gets RED through");
-        Assert.True(g.Post(clerk.Id, null));
-        Assert.Null(clerk.Posted);
+        // Only messengers range over the whole Park: a clerk can be moved, not unposted.
+        Assert.False(g.Post(clerk.Id, null));
+        Assert.Equal("hut6", clerk.Posted);
+        var runner = g.Staff.First(s => s.Role == Role.Messenger);
+        Assert.True(g.Post(runner.Id, "hut6"));
+        Assert.True(g.Post(runner.Id, null));
     }
 
     [Fact]
@@ -1968,6 +1983,7 @@ public class OffizierTests(ITestOutputHelper output)
     {
         // On Easy, so the run reaches the U-110 chapter whatever the balance of the day.
         var g = GameState.NewGame(31, Difficulty.Easy);
+        TestUtil.Unpost(g);
         var ai = new AutoPlayer(g);
         for (int h = 0; h < 24 * 200 && g.Status == GameStatus.Playing && (g.ActIndex < Campaign.OffizierFrom || g.Stats.OffizierRead == 0); h++)
         {

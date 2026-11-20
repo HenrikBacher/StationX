@@ -10,7 +10,13 @@ public partial class Hud
 {
     /// <summary>The Learns list's id for the Bedford Japanese course (roles use their own numbers).</summary>
     const int JapaneseItem = 1000;
+    /// <summary>The watch and building picked on each candidate's card, kept while the panel rebuilds.</summary>
+    readonly Dictionary<int, Shift> _hireShift = new();
+    readonly Dictionary<int, string> _hireZone = new();
     PanelContainer _side = null!;
+    ScrollContainer _sideScroll = null!;
+    /// <summary>For screenshots: scroll the side panel to its foot.</summary>
+    public void ScrollPanelToEnd() => _sideScroll.ScrollVertical = 100000;
     VBoxContainer _sideBox = null!;
     string? _panel;
     string _sideSig = "";
@@ -27,7 +33,7 @@ public partial class Hud
         _side.SetAnchorsPreset(Control.LayoutPreset.LeftWide);
         _side.OffsetLeft = 126; _side.OffsetRight = 126 + 400; _side.OffsetTop = 74; _side.OffsetBottom = -12;
         _root.AddChild(_side);
-        var scroll = new ScrollContainer { HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
+        var scroll = _sideScroll = new ScrollContainer { HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
         _side.AddChild(scroll);
         _sideBox = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
         _sideBox.AddThemeConstantOverride("separation", 8);
@@ -392,9 +398,60 @@ public partial class Hud
                 if (c.Specialties.Count > 0) v.AddChild(UiTheme.Label("Specialist: " + string.Join(", ", c.Specialties.Select(t => Defs.Station(t).Name.ToLowerInvariant())), 12, UiTheme.Accent));
             }
             var id = c.Id;
-            v.AddChild(Row(role, UiTheme.Button("Hire", () => S.Hire(id), S.Funds >= c.Salary,
+            v.AddChild(Row(role, UiTheme.Button("Hire", () =>
+                {
+                    S.Hire(id, _hireShift.TryGetValue(id, out var hs) ? hs : null, _hireZone.TryGetValue(id, out var hz) ? hz : null);
+                    _hireShift.Remove(id);
+                    _hireZone.Remove(id);
+                }, S.Funds >= c.Salary,
                 tooltip: c.Notable != null ? "Reports at once." : $"Vetting and travel: reports in about {Math.Round(Defs.VettingHours(c.Role, S.Difficulty))} hours. Hire ahead of need.")));
+            v.AddChild(HirePosting(c));
         }
+    }
+
+    /// <summary>
+    /// Where a candidate will work: the watch (once there are watches) and the building, both suggested where their
+    /// kind of desk has fewest people. Messengers aren't posted: they carry between buildings.
+    /// </summary>
+    Control HirePosting(Staff c)
+    {
+        int id = c.Id;
+        var (sugShift, sugZone) = S.SuggestPost(c.Role);
+        var row = new HBoxContainer();
+        row.AddThemeConstantOverride("separation", 6);
+        if (GameState.Roams(c.Role))
+            row.AddChild(UiTheme.Label("Carries paper between all the buildings", 12, UiTheme.TextDim));
+        else
+        {
+            var zones = S.PostsFor(c.Role).ToList();
+            string pick = _hireZone.TryGetValue(id, out var z) && zones.Any(x => x.Id == z) ? z : sugZone ?? zones.FirstOrDefault()?.Id ?? "mansion";
+            var where = new OptionButton { FocusMode = Control.FocusModeEnum.None, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, ClipText = true, CustomMinimumSize = new Vector2(80, 0) };
+            for (int i = 0; i < zones.Count; i++)
+            {
+                where.AddItem(zones[i].Name + (zones[i].Id == sugZone ? " ★" : ""), i);
+                if (zones[i].Id == pick) where.Select(i);
+            }
+            where.TooltipText = "The building they're posted to (★ most needed). They work, carry and wait only there until you post them elsewhere (select them in the list: Posted to).";
+            where.ItemSelected += idx => { _hireZone[id] = zones[where.GetItemId((int)idx)].Id; _sideSig = ""; };
+            row.AddChild(where);
+        }
+        if (S.WatchesAvailable)
+        {
+            var watches = new[] { Shift.Day, Shift.Evening, Shift.Night };
+            string? zoneNow = GameState.Roams(c.Role) ? null : _hireZone.TryGetValue(id, out var z2) ? z2 : sugZone;
+            var sug = _hireZone.ContainsKey(id) ? S.SuggestShift(c.Role, zoneNow) : sugShift;
+            var pickShift = _hireShift.TryGetValue(id, out var hs) ? hs : sug;
+            var when = new OptionButton { FocusMode = Control.FocusModeEnum.None, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, ClipText = true, CustomMinimumSize = new Vector2(80, 0) };
+            foreach (var w in watches)
+            {
+                when.AddItem(Defs.Shifts[w].Name + (w == sug ? " ★" : ""), (int)w);
+                if (w == pickShift) when.Select(when.ItemCount - 1);
+            }
+            when.TooltipText = "The watch they'll keep (★ most needed). You can change it later in their details.";
+            when.ItemSelected += idx => _hireShift[id] = (Shift)when.GetItemId((int)idx);
+            row.AddChild(when);
+        }
+        return row;
     }
 
     /// <summary>
@@ -916,14 +973,16 @@ public partial class Hud
         {
             // Posting: keep this person to one building. Messengers and anyone left on "anywhere" do the walking between.
             var post = new OptionButton { FocusMode = Control.FocusModeEnum.None, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
-            post.AddItem("Anywhere needed", -1);
-            var open = S.Grid.Zones.Where(z => z.Unlocked).ToList();
+            bool roams = GameState.Roams(s.Role);
+            if (roams || s.Posted == null) post.AddItem(roams ? "The whole Park" : "Anywhere needed", -1);
+            var open = (roams ? S.Grid.Zones.Where(z => z.Unlocked) : S.PostsFor(s.Role)).ToList();
             for (int i = 0; i < open.Count; i++)
             {
                 post.AddItem(open[i].Name, i);
                 if (s.Posted == open[i].Id) post.Select(post.ItemCount - 1);
             }
-            post.TooltipText = "Posted staff work, carry and wait only in that building.";
+            post.TooltipText = roams ? "Messengers carry paper between the buildings. Posted to one, they run errands only inside it."
+                                     : "They work, carry and wait only in the building they're posted to. Paper bound elsewhere goes down in a tray for a messenger.";
             post.ItemSelected += idx => { int v = post.GetItemId((int)idx); S.Post(id, v < 0 ? null : open[v].Id); _inspSig = ""; };
             _inspBox.AddChild(Row(UiTheme.Label("Posted to", 12, UiTheme.TextDim), post));
         }

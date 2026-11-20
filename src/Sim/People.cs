@@ -530,11 +530,14 @@ public sealed partial class GameState
         var watches = new[] { Shift.Day, Shift.Evening, Shift.Night };
         // On a weekly rota this week's turn decides who has the nights; otherwise night owls take them.
         int week = RotateWatches ? Day / 7 : 0;
+        // Building by building, the count carried on from one to the next: each building gets its watches covered in
+        // turn, and the role as a whole stays even.
         foreach (var group in Staff.Where(s => role == null || s.Role == role).GroupBy(s => s.Role))
         {
             int i = 0;
-            foreach (var s in group.OrderByDescending(s => !RotateWatches && s.Has(Trait.NightOwl)).ThenBy(s => s.Id))
-                s.Shift = watches[(i++ + 2 + week) % 3];
+            foreach (var b in group.GroupBy(s => s.Posted).OrderByDescending(b => b.Count()).ThenBy(b => b.Key))
+                foreach (var s in b.OrderByDescending(s => !RotateWatches && s.Has(Trait.NightOwl)).ThenBy(s => s.Id))
+                    s.Shift = watches[(i++ + 2 + week) % 3];
         }
     }
 
@@ -567,8 +570,8 @@ public sealed partial class GameState
             if (st == null || st.Def.Operator != s.Role) return false;
         }
         s.Pinned = stationId;
-        // Pinning to a desk in another building ends a posting elsewhere.
-        if (stationId is int sid && StationById(sid) is { } pst && s.Posted != null && Grid.ZoneAt(pst.X, pst.Y)?.Id != s.Posted) s.Posted = null;
+        // Pinning to a desk in another building posts them there.
+        if (stationId is int sid && StationById(sid) is { } pst && s.Posted != null && Grid.ZoneAt(pst.X, pst.Y)?.Id is string pz && pz != s.Posted) s.Posted = pz;
         return true;
     }
 
@@ -578,6 +581,8 @@ public sealed partial class GameState
         var s = StaffById(staffId);
         if (s == null) return false;
         if (zoneId != null && Grid.Zone(zoneId) is not { Unlocked: true }) return false;
+        // Only messengers range over the whole Park; everyone else belongs to a building.
+        if (zoneId == null && s.Posted != null && !Roams(s.Role)) return false;
         s.Posted = zoneId;
         if (zoneId != null && s.Pinned is int pid && StationById(pid) is { } pst && Grid.ZoneAt(pst.X, pst.Y)?.Id != zoneId) s.Pinned = null;
         // Someone working or carrying outside their new building finishes nothing there: they're sent over.
@@ -660,6 +665,7 @@ public sealed partial class GameState
             if (HeadOfZone(zoneId) is { } old && old != s) old.HeadOf = null;
             if (s.HeadOf == null) s.HeadStyle = StyleFor(s);
             s.HeadOf = zoneId;
+            s.Posted = zoneId;
             s.Pinned = null;
             Emit(EventKind.Info, $"{s.Name} is now head of {z.Name}, a {Defs.HeadStyles[s.HeadStyle].Name.ToLowerInvariant()} by temperament. They'll manage rather than work a desk.");
         }

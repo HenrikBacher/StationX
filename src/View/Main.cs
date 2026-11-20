@@ -362,6 +362,8 @@ public partial class Main : Node3D
                 Rig.LookAtTile(float.Parse(p[0]), float.Parse(p[1]));
             }
             if (args.TryGetValue("panel", out var panel)) Hud.OpenPanel(panel);
+            // --scroll=end : the open panel scrolled to its foot (the Staff panel's candidates)
+            if (args.ContainsKey("scroll")) Callable.From(() => Callable.From(Hud.ScrollPanelToEnd).CallDeferred()).CallDeferred();
             // --age=H : make every message on the floor H hours older; --inspect=Type : open the busiest station of that type
             if (args.TryGetValue("age", out var age))
                 foreach (var m in State.Messages.Values) m.Created -= double.Parse(age) * 60;

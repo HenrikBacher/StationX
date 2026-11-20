@@ -251,10 +251,18 @@ public sealed partial class GameState
         Rng = shared;
     }
 
-    public bool Hire(int candidateId)
+    /// <summary>
+    /// Hires a candidate onto a watch and into a building (null for either: the suggestion, <see cref="SuggestPost"/>).
+    /// Messengers are never posted: they carry between buildings.
+    /// </summary>
+    public bool Hire(int candidateId, Shift? shift = null, string? zone = null)
     {
         var c = Candidates.Find(x => x.Id == candidateId);
         if (c == null || Funds < c.Salary) return false;
+        var (sugShift, sugZone) = SuggestPost(c.Role);
+        if (zone != null && !PostsFor(c.Role).Any(z => z.Id == zone)) zone = null;
+        c.Posted = Roams(c.Role) ? null : zone ?? sugZone;
+        c.Shift = !WatchesAvailable ? Shift.Office : shift is Shift w && w != Shift.Office ? w : zone == null ? sugShift : SuggestShift(c.Role, c.Posted);
         Funds -= c.Salary;
         Candidates.Remove(c);
         c.X = Grid.Gate.x + 0.5;

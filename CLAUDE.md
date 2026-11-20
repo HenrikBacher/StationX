@@ -233,6 +233,17 @@ Then (user requests, 2026-11-19):
 - Watches: measured in autoplayer games, shortages are spread evenly over the three watches (clerks, linguists at
   peaks); nights are not specially unstaffed any more.
 
+### Since v0.37.0 (2026-11-20)
+
+- Postings for everyone (user request): `Hire(id, shift, zone)` posts each hire (`Postings.cs`: `SuggestPost`, `SuggestShift`,
+  `PostsFor`, `PostingGaps`, `PostingDonor`, `PostsWanted`). Only `Roams(Role.Messenger)`; `Post(id, null)` fails for the
+  rest, pinning to a desk elsewhere re-posts, heads are posted to their hut. `PostUnposted` posts the starting staff and old
+  saves' staff. Candidate cards: building and watch dropdowns (★ suggested; `Hud._hireShift/_hireZone`). Tip `posting`;
+  the autoplayer fills gaps by moving from where most are spare, else hires into the gap, and wants one per watch in each
+  building with the role's desks. `BalanceWatches` counts on building by building. Pipeline tests that use the starting
+  staff in huts call `TestUtil.Unpost` (BombeLine does). Hard rep loss 1.15 → 1.2. Balance: Easy 39, Normal 23, Hard 2.
+  Shots: `--scroll=end` scrolls the open panel to its foot.
+
 ### Graphics overhaul: period realism, CC0 assets allowed
 
 The user chose realism (not a tabletop diorama or poster art) and allowed CC0 assets. Use Poly Haven 1K JPG maps

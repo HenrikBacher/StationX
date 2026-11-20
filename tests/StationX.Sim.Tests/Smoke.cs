@@ -70,6 +70,7 @@ public class PipelineTests
     public void EnigmaWaitsForTheDaysKey()
     {
         var g = GameState.NewGame(3);
+        TestUtil.Unpost(g);
         g.DebugSkipToAct(2);
         g.Funds = 10000;
         g.Grid.Zone("hut6")!.Unlocked = true;

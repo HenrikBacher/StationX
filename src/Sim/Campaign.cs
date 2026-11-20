@@ -695,6 +695,7 @@ public sealed partial class GameState
             p.HomeX = p.X; p.HomeY = p.Y;
             g.Staff.Add(p);
         }
+        g.PostUnposted();
         g.RefreshCandidates();
         g.StartAct(0);
         if (startAct > 0) g.FastForwardTo(startAct);
@@ -726,6 +727,7 @@ public sealed partial class GameState
             p.Y = p.HomeY = Grid.Gate.y + 0.5;
             Staff.Add(p);
         }
+        PostUnposted();
         Events.Clear();
         Emit(EventKind.ActStarted, $"Chapter {Act.Chapter}: {Act.ChapterTitle}. {Act.Title}");
     }

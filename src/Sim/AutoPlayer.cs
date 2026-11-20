@@ -210,7 +210,14 @@ public sealed class AutoPlayer
                 .Select(st => g.Grid.ZoneAt(st.X, st.Y)?.Id).FirstOrDefault(z => z != null && z != here);
             if (other != null) g.Post(a.Id, other);
         }
-        foreach (var a in g.Staff.Where(x => x.Rival == null && x.Posted != null)) g.Post(a.Id, null);
+        // The posting tip: a building whose desks have nobody posted on a watch gets someone from where there are most
+        // to spare, or a new hire for it.
+        foreach (var (gz, gr, gw) in g.PostingGaps().ToList())
+        {
+            if (g.PostingDonor(gr, gw, gz.Id) is { } donor) { g.Post(donor.Id, gz.Id); continue; }
+            var c = g.Candidates.Where(c => c.Role == gr).OrderByDescending(c => c.Skill).FirstOrDefault();
+            if (c != null && g.Funds > c.Salary + 200) g.Hire(c.Id, gw, gz.Id);
+        }
         // The course tip: one idle person a day sent to learn the work of desks that go unstaffed.
         if (UseWorkload && g.Now - _courseAt > Defs.MinutesPerDay && g.CourseAdvice() is var (from, to) && Defs.Course(from, to) is var (_, fee) && g.Funds > fee + 400)
         {
@@ -346,6 +353,8 @@ public sealed class AutoPlayer
         if (g.WatchesAvailable)
             foreach (var r in want.Keys.ToList())
                 if (want[r] > 0) want[r] = Math.Max(3, want[r]);   // one per watch at least
+        // Everyone stays in their building: one in each building with the role's desks, on every watch.
+        foreach (var r in want.Keys.ToList()) want[r] = Math.Max(want[r], g.PostsWanted(r));
         // The social tip: an evening out when spirits are low.
         if (g.CantHoldSocial() == null && g.AverageMorale < Defs.MoraleBaseline - 0.15 && g.Funds > Defs.SocialCost + 300)
             g.HoldSocial();

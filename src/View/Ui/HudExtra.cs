@@ -318,6 +318,12 @@ public partial class Hud
         yield return ("social", S.CantHoldSocial() == null && S.AverageMorale < Defs.MoraleBaseline - 0.15,
             $"Spirits are low across the Park ({S.AverageMorale:P0}), and unhappy people work slower and in the end leave. Staff (H) → Arrange an evening " +
             $"(£{Defs.SocialCost}): the Recreational Club puts on a concert, a revue or a dance, and everyone's spirits rise. Once every {Defs.SocialEveryDays:0} days.");
+        if (S.PostingGap() is var (pz, pr, pw))
+            yield return ("posting", true,
+                $"{pz.Name} has {Defs.Roles[pr].Plural.ToLowerInvariant()}' desks but no {Defs.Roles[pr].Name.ToLowerInvariant()} posted there" +
+                (S.WatchesAvailable ? $" on the {Defs.Shifts[pw].Name.ToLowerInvariant()}" : "") +
+                ". Everyone stays in the building they're posted to: hire one for it (pick the building on the candidate's card), " +
+                "or select someone in Staff (H) and change Posted to.");
         yield return ("japanese", S.JapanOpen && S.JapanWanted && (!S.HasStation(StationType.Japanese) || S.JapaneseReaders < (S.WatchesAvailable ? 3 : 1)),
             "JN-25, the Japanese navy's code, comes in overnight. A hand-cipher desk strips its additive; then it needs a Japanese desk (Build), " +
             $"and only linguists who've been on the Bedford Japanese course can work that: select a linguist, Learns → Japanese ({Defs.JapaneseCourseHours / 24:0} days away, " +
