@@ -673,7 +673,7 @@ public partial class Park3D : Node3D
 
         var north = Sided(0, 0, true);
         Mesh3.Box(north, new Vector3(z.W - 0.6f, 0.14f, 0.5f), new Vector3((x0 + x1) / 2, BackWall + 0.1f, y0 - 0.12f), slate);
-        foreach (float gx in new[] { x0 + 2.5f, (x0 + x1) / 2 + 0.5f, x1 - 3f })
+        foreach (float gx in MansionGables(x0, x1))
         {
             Mesh3.Prism(north, new Vector3(2.2f, 1.1f, WallThick), new Vector3(gx, BackWall + 0.6f, y0), brick);
             Mesh3.Prism(north, new Vector3(2.45f, 1.22f, WallThick * 0.6f), new Vector3(gx, BackWall + 0.62f, y0 - 0.1f), stone);
@@ -826,6 +826,9 @@ public partial class Park3D : Node3D
         _buildings.AddChild(d);
     }
 
+    /// <summary>Where the Mansion's gables stand along its far front.</summary>
+    static float[] MansionGables(float x0, float x1) => new[] { x0 + 2.5f, (x0 + x1) / 2 + 0.5f, x1 - 3f };
+
     /// <summary>Hipped slate on the Mansion, low felt gables on the huts, flat concrete on the brick blocks.</summary>
     void Roof(Zone z)
     {
@@ -849,6 +852,10 @@ public partial class Park3D : Node3D
         {
             const float o = 0.28f;
             roof = Mesh3.Roof(_buildings, x0 - o, x1 + o, y0 - o, y1 + o, BackWall + 0.02f, 1.35f, true, _slate);
+            // Behind each stone-coped gable on the far front, a steep cross roof running back until it dies into the hip,
+            // so the gables stand on a roof of their own rather than as cut-outs on the eaves.
+            foreach (float gx in MansionGables(x0, x1))
+                _roofs.Add(Mesh3.Roof(_buildings, gx - 1.12f, gx + 1.12f, y0 - 0.05f, y0 + 3.9f, BackWall + 0.05f, 1.08f, false, _slate));
         }
         else if (z.Brick)
             roof = Mesh3.Box(_buildings, new Vector3(x1 - x0 + 0.45f, 0.14f, y1 - y0 + 0.45f), new Vector3((x0 + x1) / 2, BackWall + 0.08f, (y0 + y1) / 2), _flatRoof!);

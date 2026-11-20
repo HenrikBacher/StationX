@@ -285,6 +285,9 @@ public partial class Main : Node3D
                 var ai = new AutoPlayer(State);
                 while (State.Day < days && State.Status == GameStatus.Playing)
                 {
+                    // A screenshot is for looking at the Park, not for the autoplayer's luck: keep it in office.
+                    State.Reputation = Math.Max(State.Reputation, 25);
+                    if (State.ActCompletePending) State.ContinueAfterAct();
                     ai.Think();
                     State.Advance(60);
                     State.Events.Clear();
@@ -296,6 +299,7 @@ public partial class Main : Node3D
                 if (target < State.Now) target += Defs.MinutesPerDay;
                 while (State.Now < target && State.Status == GameStatus.Playing)
                 {
+                    State.Reputation = Math.Max(State.Reputation, 25);
                     if (State.ActCompletePending) State.ContinueAfterAct();
                     State.Advance(30);
                     State.Events.Clear();
@@ -849,10 +853,12 @@ public partial class Main : Node3D
 
     Station? StationUnderMouse()
     {
-        // Try the top of tall machines first, then desks, then the floor.
+        // Try the top of tall machines first, then desks, then the floor. Under solid roofs only what stands outdoors.
+        bool roofed = _park.RoofsSolid;
         foreach (float h in new[] { 1.0f, 0.45f, 0f })
-            if (TileUnderMouse(h) is var (x, y) && State.Grid.OccupantAt(x, y) is int id && id >= 0)
-                return State.StationById(id);
+            if (TileUnderMouse(h) is var (x, y) && State.Grid.OccupantAt(x, y) is int id && id >= 0
+                && State.StationById(id) is { } st && !(roofed && !st.Def.Outdoor))
+                return st;
         return null;
     }
 
