@@ -116,6 +116,14 @@ Then (user requests, 2026-11-19):
   per material (`MergeRoofs`; battens `_feltTrim`); the porch has its own non-fading slate. Ground wetness
   (`Park3D.SetWet`: puddles only after rain, dry over ~10 h); rain/snow particles dim at night (`WeatherFx.Sync(light)`);
   snow covers unbuilt plots. Shots: `--days` past ~110 on seed 7 reach VE Day; use ~100 for late shots.
+- Sim performance (3.4× faster per day, allocation 8.7 → 0.9 GB per game, bit-identical). Perf:
+  `PERF=1 [PERF_SEEDS=3,40 PERF_DIFF=Normal] dotnet test tests/StationX.Sim.Tests -c Release --filter Perf.TimePerDay
+  --logger "console;verbosity=detailed"` (ms/day, time and MB per phase; allocations are the steady guide on a busy CPU).
+  Bit-identity: `FINGERPRINT=/path/fp.txt dotnet test ... -c Release --filter Perf.CompareFingerprint` records 12 games'
+  end state on the first run and asserts it after (record on main before a refactor). `INVARIANTS=1 [INVARIANTS_DAYS=320]
+  ... --filter Invariants` checks message bookkeeping, energy/morale ranges, frozen walkers, starved desks. Hot-path rules:
+  no lambdas capturing a loop variable in per-tick loops (move that code to its own method), `StationById`/`StaffById`
+  (`IdIndex<T>`) not scans, no LINQ in anything that runs every tick.
 - Known, not yet fixed: standing orders' `Contract.TotalDays` is one too many (the view uses `Hud.StandingDays`); the
   act-1 briefing says build before accepting; the Mansion's dormers stick out of its roof; no telegraph wires; progress
   bars show through roofs at night; the weekly grant late on is far below wages.
