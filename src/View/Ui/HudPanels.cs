@@ -648,7 +648,7 @@ public partial class Hud
         string sig = st != null
             ? $"st{st.Id}{st.Input.Count}{st.Output.Count}{st.OperatorId}{st.OperatorPresent}{st.Current}{(int)(st.Progress * 20)}{st.PendingRemoval}{st.X},{st.Y}|{string.Join(",", S.PinnedTo(st.Id).Select(p => p.Id))}|{S.Funds >= Defs.MoveCost}|{(int)(st.Wear * 20)}{st.IsDown(S.Now)}{S.Funds >= Defs.ServiceCost}|{(st.Receives == null ? "all" : string.Join(",", st.Receives))}{S.ActiveNets.Count}|{OldestHours(st)}"
             : sf != null ? $"sf{sf.Id}{sf.Task?.Kind}{sf.Task?.Dest}{sf.Leaving}{sf.Decrypts}{sf.Away}{sf.IsSick(S.Now)}{sf.Shift}{sf.Pinned}{sf.Posted}{sf.HeadOf}{sf.HeadStyle}{S.Grid.Zones.Count(z => z.Unlocked)}{(int)(sf.Energy * 10)}{(int)(sf.Morale * 10)}{(int)(sf.Strain * 10)}{sf.Rival}{(sf.Rival != null && S.WithRival(sf))}{sf.OffReason}{sf.Second}{(int)S.Funds / 50}{sf.CarelessKnown}{(int)(sf.Experience / 60)}{sf.Skill}"
-            : $"z{z!.Id}{z.Unlocked}{S.Funds >= z.Cost}{S.ColdZones()?.Contains(z.Id)}";
+            : $"z{z!.Id}{z.Unlocked}{S.Funds >= z.Cost}{S.ColdZones()?.Contains(z.Id)}{S.HotZones()?.Contains(z.Id)}";
         if (sig == _inspSig) return;
         _inspSig = sig;
         Clear(_inspBox);
@@ -966,6 +966,8 @@ public partial class Hud
         }
         if (z.Unlocked && S.ColdZones() is { } cold && cold.Contains(z.Id))
             _inspBox.AddChild(UiTheme.Label("Freezing: no stove. People here tire faster and grumble. Build a coke stove (£60).", 12, Gfx.Warn));
+        if (z.Unlocked && S.HotZones() is { } hot && hot.Contains(z.Id))
+            _inspBox.AddChild(UiTheme.Label($"Sweltering: its Bombes heat the air and nothing draws it out. People here tire faster and grow short-tempered. Build an extractor fan (£{Defs.Station(StationType.Fan).Cost}).", 12, Gfx.Warn));
         if (!z.Available)
         {
             _inspBox.AddChild(UiTheme.Label("The Treasury hasn't authorised this hut yet. It will be needed later in the war.", 13, UiTheme.TextDim));

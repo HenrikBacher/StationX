@@ -50,7 +50,7 @@ Godot lives in `~/.local/opt/godot/` and is linked as `~/.local/bin/godot`. Expo
 
   Machine placement follows where the machines really stood.
 
-  Canteens and tubes go anywhere; coke stoves go in any timber hut. The Huts panel lists what each one takes, and when you place a station the huts that take it are outlined.
+  Canteens and tubes go anywhere; coke stoves go in any timber hut, extractor fans wherever Bombes go. The Huts panel lists what each one takes, and when you place a station the huts that take it are outlined.
 
   Machines (the Bombes and Colossus) keep running once a Wren has set them going. **Pneumatic tubes** carry paper between huts on their own.
 - **Staff** walk messages between stations and between buildings. Messengers go first, then clerks; cryptanalysts, linguists and Wrens would rather stay by their desks, and only carry paper that a busy messenger or clerk hasn't collected within ten minutes (or straight away if none is out on an errand). Nobody walks through anybody: walkers go round people working at a desk or sitting at a table, wait a moment and squeeze past if there's no way round, and step aside when they meet. A day lasts four minutes at 1×.
@@ -73,6 +73,7 @@ Godot lives in `~/.local/opt/godot/` and is linked as `~/.local/bin/godot`. Expo
 - **Put a request first.** Each request in progress has a *Put first* button: every desk, machine and runner then handles its paper before anyone else's. A MOST IMMEDIATE request stops the game with a telegram and a triple ring of the teleprinter bell; accepting it puts it first at once. Until it is answered it throbs at the top of Needs attention.
 - **Weather.** Each day brings English weather: mostly grey. Rain and snow close the rounders pitch, snow and gales slow everyone walking between the huts, and storms garble far more intercepts. Snow and rain fall on the park, and fog hangs over it.
 - **Winter.** From November to March the timber huts are freezing. People in a hut without a **coke stove** (£60, £4 a week in coke) tire 40% faster and slowly lose heart. The Mansion and Block F have central heating.
+- **Summer in the Bombe bay.** From May to September a building with three or more Bombes running is a furnace: everyone working there tires 30% faster and grows short-tempered, unless it has an **extractor fan** (£80, £3 a week; it goes wherever Bombes go).
 - **Illness.** Colds in summer, flu in winter. People who work in freezing huts, are worn out, or are billeted far away catch it more easily, and it spreads: the more already off sick, the more fall ill. The sick stay home for 2–5 days. A **sick bay** in the Mansion (£350) gets them back sooner and halves the spread.
 - **The Blitz.** From late August 1940 to May 1941 the sirens go on about one night in five. Until the all-clear, desk work runs at half pace in the blackout; the Bombes run on. Searchlights sweep the sky. Now and then a stray bomb falls on the Park (as it really did in November 1940), knocking a machine off its mountings and shaking everyone in that hut.
 - **Ministries.** The War Office, Air Ministry, Admiralty and SIS each expect something. A ministry that has been sending requests but has had nothing completed for 10 days complains to the Foreign Office at the weekly accounts (−3 reputation, and again each week). The Needs attention list warns from 6 days.

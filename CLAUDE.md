@@ -145,6 +145,10 @@ Then (user requests, 2026-11-19):
   Balance 2026-11-20: Easy 40, Normal 21, Hard 0 of 40 (main before it: 40/26/2).
 - Top bar: `Hud._quota` under the reputation bar (rate of quota, today; keep it short, the bar overflowed at 1600 late
   on). Staff panel's money line adds `EarnedLastWeek`. Plot signs are signwritten on the board (two non-billboard labels).
+- Summer heat: `StationType.Fan` (appended last; "Extractor fan" £80, after the Bombe research, `AllowedIn` = where
+  Bombes go). `HotZoneList`/`HotZones` (May–Sep, ≥ `HotBombes` 3 running Bombes in a building, no fan): drain ×1.3 and a
+  little morale, like cold. Alert, tip `heat`, zone inspector line, autoplayer builds one. Model `StationModel.Fan`, its
+  hub turned in `Sync` in summer and kept out of the furniture batch.
 - Courses (cross-training): `Staff.Second`, `Defs.Course(from, to)` (Clerk/Messenger/Wren from anyone 12 h £30;
   Linguist↔Cryptanalyst 72 h £80), `Train`/`CantTrain` (away via `SendOff(…, "course")`), worked at `SecondRoleSpeed`
   0.8 in `SpeedFor`, only when `!RoleNeeded(own role)` (`Scheduler.SecondHand`, after the own-role search). `CourseAdvice`

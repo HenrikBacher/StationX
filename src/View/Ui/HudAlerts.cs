@@ -74,6 +74,10 @@ public partial class Hud
             foreach (var z in S.Grid.Zones.Where(z => cold.Contains(z.Id) && S.Stations.Any(s => z.InOuter(s.X, s.Y))))
                 list.Add(new Alert($"{z.Name} is freezing: build a coke stove", Gfx.Warn,
                     () => { _main.CenterOnTile(z.X + z.W / 2f, z.Y + z.H / 2f); ShowZone(z); }));
+        if (S.HotZones() is { } hot)
+            foreach (var z in S.Grid.Zones.Where(z => hot.Contains(z.Id)))
+                list.Add(new Alert($"{z.Name} is sweltering with its Bombes running: build an extractor fan", Gfx.Warn,
+                    () => { _main.CenterOnTile(z.X + z.W / 2f, z.Y + z.H / 2f); ShowZone(z); }));
         foreach (var st in S.Stations.Where(s => s.Def.Operator is Role && !s.Obsolete && s.Input.Count > 0 && !S.CanBeStaffed(s)))
             Station(st, $"Nobody can work the {st.Def.Name.ToLowerInvariant()}: hire a {RoleWord(st.Def.Operator!.Value)}", Gfx.Warn);
         // What the workload record shows has held for most of the last day (not a passing moment).

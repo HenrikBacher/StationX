@@ -13,6 +13,7 @@ public enum StationType
     Canteen, CommonRoom, Rounders, Checking, Tube, OutstationLink,
     Testery, Colossus, TunnyMachine,
     Stove, SickBay, Index, TrafficAnalysis, HeathRobinson,
+    Fan,
 }
 
 public enum Family { Hand, Enigma, Lorenz }
@@ -518,6 +519,9 @@ public static partial class Defs
         [StationType.Stove] = new(StationType.Stove, "Coke stove",
             "The timber huts were bitterly cold. From November to March, people in a hut without a stove tire faster and grumble. Brick buildings have central heating.",
             60, 1, 1, null, 0, 0, null, 0, Upkeep: 4),
+        [StationType.Fan] = new(StationType.Fan, "Extractor fan",
+            $"The Bombe bays were hot, loud and airless. From May to September, a hut with {HotBombes} or more Bombes running wears out whoever works there and sours their temper, unless a fan draws the air through.",
+            80, 1, 1, null, 0, 0, ResearchId.Bombe, 0, Upkeep: 3),
         [StationType.SickBay] = new(StationType.SickBay, "Sick bay",
             "Two iron beds, a screen and a nursing sister in the Mansion. The sick get well sooner and pass less on.",
             350, 2, 1, null, 0, 0, null, 2, Upkeep: 15),
@@ -627,10 +631,14 @@ public static partial class Defs
     /// <summary>Buildings with central heating: no stove needed, and none allowed.</summary>
     public static bool Heated(string zoneId) => zoneId is "mansion" or "blockf";
     public const double ColdDrainMult = 1.4;
+    /// <summary>Running Bombes in one building that make it a furnace in summer, and what the heat does without a fan.</summary>
+    public const int HotBombes = 3;
+    public const double HotDrainMult = 1.3, HotMoralePerMinute = 0.00005;
     public const double ColdMoralePerMinute = 0.00006;
 
     public static bool AllowedIn(string zoneId, StationType t) =>
         t == StationType.Stove ? !Heated(zoneId) :
+        t == StationType.Fan ? AllowedIn(zoneId, StationType.Bombe) || AllowedIn(zoneId, StationType.Bombe4) :
         t == StationType.SickBay ? zoneId == "mansion" :
         Everywhere.Contains(t) || !ZoneRoles.TryGetValue(zoneId, out var r) || r.Allows.Contains(t);
 

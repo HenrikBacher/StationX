@@ -254,6 +254,8 @@ public partial class Hud
             "More staff than billets: the newest are lodged miles away, slower and unhappy. Requisition more billets from Staff (H).");
         yield return ("cold", S.Winter && S.ColdZones() is { Count: > 0 },
             "Winter. People in a timber hut without a coke stove tire faster and fall ill more. A stove is £60.");
+        yield return ("heat", S.HotZones() is not null,
+            $"Summer in the Bombe bay: with {Defs.HotBombes} or more Bombes running, the hut is a furnace, and the Wrens there tire faster and grow short-tempered. An extractor fan (£{Defs.Station(StationType.Fan).Cost}, under Build) draws the air through.");
         yield return ("worn", S.Stations.Any(s => s.Wears && s.Wear > 0.7 && !s.IsDown(S.Now)),
             "A machine is badly worn (the orange lamp). Service it from its panel while it's idle: an hour now saves five hours of breakdown later.");
         yield return ("stale", S.ActiveNets.Any(n => S.Stale(n, S.Day)),

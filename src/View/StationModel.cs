@@ -62,6 +62,7 @@ public partial class StationModel : Node3D
         foreach (var n in _valves) live.Add(n);
         if (_glow != null) live.Add(_glow);
         if (_canister != null) live.Add(_canister);
+        if (_fanHub != null) live.Add(_fanHub);
         var taken = new List<MeshInstance3D>();
         void Collect(Node n, Transform3D parent)
         {
@@ -116,6 +117,7 @@ public partial class StationModel : Node3D
             case StationType.Checking: Checking(); break;
             case StationType.Tube: Tube(); break;
             case StationType.Stove: Stove(); break;
+            case StationType.Fan: Fan(); break;
             case StationType.SickBay: SickBay(); break;
             case StationType.OutstationLink: Teleprinter(); OutstationSign(); break;
             case StationType.Testery: Desk(); Testery(); break;
@@ -259,6 +261,39 @@ public partial class StationModel : Node3D
         _glow = Mesh3.Box(this, new Vector3(0.14f, 0.08f, 0.02f), new Vector3(0, 0.22f, 0.235f), new Color("ff6a2a"), 2f);
         Mesh3.Cyl(this, 0.1f, 0.08f, 0.14f, new Vector3(0.32f, 0.07f, 0.22f), new Color("3a342c"), 10);
         Mesh3.Sphere(this, 0.07f, new Vector3(0.32f, 0.15f, 0.22f), new Color("1a1816"));
+    }
+
+    /// <summary>The blades of an extractor fan, turned in code while the summer heat is on.</summary>
+    Node3D? _fanHub;
+
+    void Fan()
+    {
+        // A standing extractor: an iron cabinet trunked up to the roof, a round cowl with a guard, three blades.
+        var iron = new Color("3c4038");
+        Mesh3.BoxAt(this, -0.3f, 0, -0.18f, 0.6f, 0.75f, 0.32f, iron);
+        Mesh3.Box(this, new Vector3(0.26f, 0.9f, 0.22f), new Vector3(0, 1.2f, -0.04f), iron.Darkened(0.15f));
+        var cowl = Mesh3.Cyl(this, 0.26f, 0.26f, 0.08f, new Vector3(0, 0.42f, 0.17f), iron.Lightened(0.1f), 18);
+        cowl.Rotation = new Vector3(Mathf.Pi / 2, 0, 0);
+        var hole = Mesh3.Cyl(this, 0.22f, 0.22f, 0.02f, new Vector3(0, 0.42f, 0.205f), new Color("121210"), 18);
+        hole.Rotation = new Vector3(Mathf.Pi / 2, 0, 0);
+        _fanHub = new Node3D { Position = new Vector3(0, 0.42f, 0.215f) };
+        AddChild(_fanHub);
+        for (int k = 0; k < 3; k++)
+        {
+            var blade = Mesh3.Box(_fanHub, new Vector3(0.07f, 0.19f, 0.01f), new Vector3(0, 0.1f, 0), new Color("8a8478"));
+            var arm = new Node3D { Rotation = new Vector3(0, 0, k * Mathf.Tau / 3) };
+            _fanHub.AddChild(arm);
+            blade.Reparent(arm, false);
+            blade.Rotation = new Vector3(0, 0.5f, 0);
+        }
+        Mesh3.Sphere(_fanHub, 0.035f, Vector3.Zero, new Color("2a2a26"));
+        foreach (float r in new[] { 0.08f, 0.16f, 0.24f })
+        {
+            var ring = Mesh3.Cyl(this, r, r, 0.012f, new Vector3(0, 0.42f, 0.23f), new Color("2a2a26"), 18);
+            ring.Rotation = new Vector3(Mathf.Pi / 2, 0, 0);
+        }
+        Mesh3.Box(this, new Vector3(0.5f, 0.012f, 0.012f), new Vector3(0, 0.42f, 0.235f), new Color("2a2a26"));
+        Mesh3.Box(this, new Vector3(0.012f, 0.5f, 0.012f), new Vector3(0, 0.42f, 0.235f), new Color("2a2a26"));
     }
 
     void SickBay()
@@ -875,6 +910,7 @@ public partial class StationModel : Node3D
             var mat = Mesh3.Mat(working ? new Color("ff9a3a") : new Color("6a4a28"), working ? flicker : 0);
             foreach (var v in _valves) v.MaterialOverride = mat;
         }
+        if (_fanHub != null && g.Summer) _fanHub.RotateObjectLocal(Vector3.Back, 14 * dt);
         if (_glow != null && Type is StationType.Rounders)
         {
             bool playing = g.Staff.Exists(p => p.Task is { Kind: TaskKind.Rest } t && t.Dest == st.Id && p.Path.Count == 0);

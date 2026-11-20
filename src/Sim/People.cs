@@ -42,6 +42,7 @@ public sealed partial class GameState
         double hour = MinuteOfDay / 60;
         bool night = hour >= 20 || hour < 6;
         var cold = ColdZoneList();
+        var hot = HotZoneList();
         // The tea tables open this tick: nothing in the loop below opens, closes, builds or removes one.
         _openRests.Clear();
         foreach (var st in Stations)
@@ -100,6 +101,11 @@ public sealed partial class GameState
                     s.Chilled = true;
                     drain *= Defs.ColdDrainMult;
                     s.Morale = Math.Max(0, s.Morale - Defs.ColdMoralePerMinute * dt);
+                }
+                if (hot != null && Grid.ZoneAt((int)s.X, (int)s.Y) is { } hz && hot.Contains(hz))
+                {
+                    drain *= Defs.HotDrainMult;
+                    s.Morale = Math.Max(0, s.Morale - Defs.HotMoralePerMinute * dt);
                 }
                 if (s.Has(Trait.Tireless)) drain *= 0.7;
                 if (AllHands && !OnWatch(s)) drain *= Defs.AllHandsDrain;
@@ -355,6 +361,33 @@ public sealed partial class GameState
     }
 
     public bool Winter => Date.Month is 11 or 12 or 1 or 2 or 3;
+    public bool Summer => Date.Month is >= 5 and <= 9;
+
+    readonly List<Zone> _hotZones = new();
+    readonly Dictionary<Zone, int> _bombesRunning = new();
+
+    /// <summary>
+    /// Buildings with HotBombes or more Bombes running and no extractor fan, in summer; null otherwise. A list kept for
+    /// reuse: this runs every tick.
+    /// </summary>
+    List<Zone>? HotZoneList()
+    {
+        if (!Summer) return null;
+        _hotZones.Clear();
+        _bombesRunning.Clear();
+        foreach (var st in Stations)
+            if (st.Type is StationType.Bombe or StationType.Bombe4 && st.Working && !st.IsDown(Now) && Grid.ZoneAt(st.X, st.Y) is { } z)
+                _bombesRunning[z] = _bombesRunning.GetValueOrDefault(z) + 1;
+        if (_bombesRunning.Count == 0) return null;
+        foreach (var (z, n) in _bombesRunning)
+            if (n >= Defs.HotBombes) _hotZones.Add(z);
+        foreach (var st in Stations)
+            if (st.Type == StationType.Fan && !st.PendingRemoval && Grid.ZoneAt(st.X, st.Y) is { } z) _hotZones.Remove(z);
+        return _hotZones.Count > 0 ? _hotZones : null;
+    }
+
+    /// <summary>Building ids sweltering now (see <see cref="HotZoneList"/>), for the view; null when none.</summary>
+    public HashSet<string>? HotZones() => HotZoneList() is { } hot ? hot.Select(z => z.Id).ToHashSet() : null;
 
     /// <summary>True if this person is standing in one of the cold zones.</summary>
     public bool IsCold(Staff s, HashSet<string>? cold) =>

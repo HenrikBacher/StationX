@@ -264,6 +264,11 @@ public sealed class AutoPlayer
                     && g.Funds > Defs.Station(StationType.Stove).Cost + 50)
                     TryBuildIn(StationType.Stove, z);
 
+        // The heat tip: an extractor fan in a Bombe hut that swelters.
+        if (g.HotZones() is { } hot)
+            foreach (var z in g.Grid.Zones.Where(z => hot.Contains(z.Id)))
+                if (g.Funds > Defs.Station(StationType.Fan).Cost + 50) TryBuildIn(StationType.Fan, z);
+
         YService(saving);
 
         // A sick bay once flu season comes.
