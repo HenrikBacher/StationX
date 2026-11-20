@@ -36,7 +36,7 @@ state, so the work can be resumed on any machine.
 
 ## Current work (2026-11-19)
 
-Last release **v0.36.0** (Chiefs reports, geese, smoke, Graphics setting, commuters through the gate); v0.35.0 had the Telegraph crossword, the Prime Minister's visit, Let N go, bicycles; v0.34.0 had courses, Bombe-bay heat; v0.33.0 had Whitehall's quota, Workload panel, kisses; v0.32.0 put a request first, MOST IMMEDIATE telegrams; v0.31.0 had dispatch riders and the gate, music and ambience, failable operations; v0.30.0 had the
+Last release **v0.37.0** (JN-25 and the Japanese desk, the Recreational Club, the billets bus, umbrellas and torches, smoother frames); v0.36.0 had Chiefs reports, geese, smoke, the Graphics setting, commuters through the gate; v0.35.0 had the Telegraph crossword, the Prime Minister's visit, Let N go, bicycles; v0.34.0 had courses, Bombe-bay heat; v0.33.0 had Whitehall's quota, Workload panel, kisses; v0.32.0 put a request first, MOST IMMEDIATE telegrams; v0.31.0 had dispatch riders and the gate, music and ambience, failable operations; v0.30.0 had the
 campaign to VE Day with great operations, Y-stations, the variety engine and update sheets;
 v0.29.0 had idle tea breaks and patch updates; v0.28.0 had breaks, watches, collisions, the updater. Before that **v0.27.0**: cold handovers, the stranded-staff fix, intelligence freshness by service, security sweeps,
 merged static building meshes (`Park3D.MergeStatic`; screenshots print draw calls). v0.26.0 had overhaul parts 1–5
@@ -208,7 +208,7 @@ Then (user requests, 2026-11-19):
   `--graphics=0|1|2`. Settings → Graphics (`Main.ApplyGraphics`): High (default) ~10 ms GPU, Balanced (no SSIL, FXAA,
   4k shadows) ~8, Low (also no SSAO/glow, 2k shadows, 0.75 scale FSR) ~5. The sun uses 2 cascades (4 looked the same).
 
-### Since v0.36.0 (2026-11-20)
+### In v0.37.0 (2026-11-20)
 
 - Smoother frames: the save serializer warms up on a worker thread 20 s after launch (`SaveGame.WarmUp`, first save 178 → 24 ms; at launch it made the self-test's timed input flaky), toasts go
   up one a frame (`Hud.ShowNextToast`), GC in `SustainedLowLatency`; `--bench` lists the five worst frames, slow event
