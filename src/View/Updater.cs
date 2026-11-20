@@ -216,7 +216,7 @@ public static class Updater
         if (!OperatingSystem.IsWindows())
             File.SetUnixFileMode(exe, File.GetUnixFileMode(exe) | UnixFileMode.UserExecute | UnixFileMode.GroupExecute | UnixFileMode.OtherExecute);
         OS.CreateProcess(exe, Array.Empty<string>());
-        ((SceneTree)Engine.GetMainLoop()).Quit();
+        Main.QuitGame();
     }
 
     /// <summary>
@@ -236,7 +236,7 @@ public static class Updater
             $"start \"\" \"{exe}\"\r\n" +
             "del \"%~f0\"\r\n");
         Process.Start(new ProcessStartInfo("cmd.exe", $"/c \"{script}\"") { CreateNoWindow = true, UseShellExecute = false });
-        ((SceneTree)Engine.GetMainLoop()).Quit();
+        Main.QuitGame();
     }
 
     static void Notify() => Callable.From(() => Changed?.Invoke()).CallDeferred();

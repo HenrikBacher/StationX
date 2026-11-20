@@ -431,7 +431,7 @@ public partial class Hud
                      ("Load game", () => ShowSaves(false)),
                      ("Settings", ShowSettings),
                      ("New game", ShowNewGame),
-                     ("Quit to desktop", () => GetTree().Quit()),
+                     ("Quit to desktop", () => Main.QuitGame()),
                  })
         {
             var b = PaperButton(label, act);

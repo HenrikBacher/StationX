@@ -72,8 +72,72 @@ public partial class Main : Node3D
     double _lastMinute;
     double _stampCooldown;
 
+    /// <summary>The running game, for code outside the scene (the updater) that has to quit it.</summary>
+    public static Main? Instance { get; private set; }
+    bool _quitting;
+
+    /// <summary>
+    /// Quits cleanly, by every path: the Quit buttons, the window's close button, screenshots, the self-test and the
+    /// updater's restart.
+    ///
+    /// Godot's own shutdown can abort ("FATAL: Condition "!rc_owner" is true" in
+    /// <c>_instance_binding_reference_callback</c>, after a screenful of "Leaked unsafe reference" lines): a C# wrapper
+    /// of a mesh (or SurfaceTool) that is garbage but not yet finalized gets finalized on .NET's finalizer thread while
+    /// the engine is already tearing the C# bindings down. Meshes held only by the scene become garbage when the scene
+    /// is freed, and the park's merged meshes and models make hundreds of them. So the world is freed first, in an
+    /// ordinary frame, and the garbage is collected and finalized while the engine still runs; only then does the tree
+    /// quit, with nothing left for the finalizer thread to race.
+    /// </summary>
+    public static void QuitGame(int exitCode = 0)
+    {
+        if (Instance is { } m && IsInstanceValid(m) && m.IsInsideTree()) m.BeginQuit(exitCode);
+        else if (Engine.GetMainLoop() is SceneTree tree)
+        {
+            DrainFinalizers();
+            tree.Quit(exitCode);
+        }
+    }
+
+    async void BeginQuit(int exitCode)
+    {
+        if (_quitting) return;
+        _quitting = true;
+        SetProcess(false);
+        SetProcessInput(false);
+        SetProcessUnhandledInput(false);
+        foreach (var child in GetChildren()) child.QueueFree();
+        var tree = GetTree();
+        // Two frames: the first frees the nodes, the second lets the renderer let go of their meshes.
+        await ToSignal(tree, SceneTree.SignalName.ProcessFrame);
+        await ToSignal(tree, SceneTree.SignalName.ProcessFrame);
+        DrainFinalizers();
+        tree.Quit(exitCode);
+    }
+
+    static void DrainFinalizers()
+    {
+        for (int i = 0; i < 2; i++)
+        {
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+        }
+    }
+
+    public override void _Notification(int what)
+    {
+        // The window's close button: quit the same careful way (auto-accept is off, see _Ready).
+        if (what == NotificationWMCloseRequest) QuitGame();
+    }
+
+    public override void _ExitTree()
+    {
+        if (Instance == this) Instance = null;
+    }
+
     public override void _Ready()
     {
+        Instance = this;
+        GetTree().AutoAcceptQuit = false;
         CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
         CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
         Fonts.Load();
@@ -373,13 +437,13 @@ public partial class Main : Node3D
                 GetViewport().GetTexture().GetImage().SavePng(_shotPath!);
                 GD.Print($"Saved screenshot to {_shotPath} ({Performance.GetMonitor(Performance.Monitor.RenderTotalDrawCallsInFrame)} draw calls, " +
                          $"{Performance.GetMonitor(Performance.Monitor.RenderTotalObjectsInFrame)} objects, {Performance.GetMonitor(Performance.Monitor.RenderTotalPrimitivesInFrame) / 1000:0}k primitives)");
-                GetTree().Quit();
+                QuitGame();
             }
         }
         if (_filming && ++_filmTick % _filmEvery == 0)
         {
             GetViewport().GetTexture().GetImage().SavePng(_shotPath!.Replace(".png", $"-{_filmIdx:000}.png"));
-            if (++_filmIdx >= _film) GetTree().Quit();
+            if (++_filmIdx >= _film) QuitGame();
         }
 
         bool running = (!Paused && !Hud.ModalOpen && _shotPath == null) || _filming;

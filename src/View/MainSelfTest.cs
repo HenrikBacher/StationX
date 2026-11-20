@@ -245,6 +245,6 @@ public partial class Main
             Check(false, "exception: " + e);
         }
         GD.Print(_testFails.Count == 0 ? "SELFTEST OK" : $"SELFTEST FAILED ({_testFails.Count})");
-        GetTree().Quit(_testFails.Count == 0 ? 0 : 1);
+        QuitGame(_testFails.Count == 0 ? 0 : 1);
     }
 }

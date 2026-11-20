@@ -115,7 +115,7 @@ public partial class Hud
         row.AddChild(PaperButton("New game…", ShowNewGame));
         if (Saves.List().Any(x => x.info != null)) row.AddChild(PaperButton("Load…", () => ShowSaves(false)));
         row.AddChild(PaperButton("Settings", ShowSettings));
-        row.AddChild(PaperButton("Quit", () => GetTree().Quit()));
+        row.AddChild(PaperButton("Quit", () => Main.QuitGame()));
         v.AddChild(row);
         _titleShowing = true;
         HookUpdater();
@@ -135,7 +135,7 @@ public partial class Hud
         _modalLayer.Visible = true;
         await System.Threading.Tasks.Task.WhenAny(Updater.Checking, System.Threading.Tasks.Task.Delay(4000));
         _waitingForCheck = false;
-        if (!IsInsideTree()) return;
+        if (!IsInstanceValid(this) || !IsInsideTree()) return;
         if (Updater.Latest != null && !Updater.Busy) ShowUpdate(true);
         else ShowTitle();
     }
@@ -144,22 +144,31 @@ public partial class Hud
     {
         if (_updaterHooked) return;
         _updaterHooked = true;
-        Updater.Changed += () =>
+        Updater.Changed += OnUpdaterChanged;
+    }
+
+    /// <summary>The updater's event is static: let go of it when the HUD goes, so it never calls a freed one.</summary>
+    public override void _ExitTree()
+    {
+        if (_updaterHooked) Updater.Changed -= OnUpdaterChanged;
+        _updaterHooked = false;
+    }
+
+    void OnUpdaterChanged()
+    {
+        if (!IsInstanceValid(this) || !IsInsideTree() || _waitingForCheck) return;
+        if (_progressOpen)
         {
-            if (!IsInsideTree() || _waitingForCheck) return;
-            if (_progressOpen)
+            if (!Updater.Busy) ShowUpdateProgress(_updateBackToTitle);   // failed: say why, and offer a way back
+            else
             {
-                if (!Updater.Busy) ShowUpdateProgress(_updateBackToTitle);   // failed: say why, and offer a way back
-                else
-                {
-                    if (_updateStatus != null) _updateStatus.Text = Updater.Status ?? "";
-                    if (_updateBar != null) _updateBar.Value = Math.Max(0, Updater.Progress);
-                }
+                if (_updateStatus != null) _updateStatus.Text = Updater.Status ?? "";
+                if (_updateBar != null) _updateBar.Value = Math.Max(0, Updater.Progress);
             }
-            else if (_updateOpen) ShowUpdate(_updateBackToTitle);   // the patch check finished: the size may have changed
-            // A check that finishes late still offers the update straight away, over the title or the game.
-            else if (Updater.Latest != null && !_offerShown && (_titleShowing || !ModalOpen)) ShowUpdate(_titleShowing);
-        };
+        }
+        else if (_updateOpen) ShowUpdate(_updateBackToTitle);   // the patch check finished: the size may have changed
+        // A check that finishes late still offers the update straight away, over the title or the game.
+        else if (Updater.Latest != null && !_offerShown && (_titleShowing || !ModalOpen)) ShowUpdate(_titleShowing);
     }
 
     /// <summary>What the new version brings, and the player's go-ahead to install it.</summary>
@@ -310,7 +319,7 @@ public partial class Hud
         }
         row.AddChild(PaperButton("New game…", ShowNewGame));
         row.AddChild(PaperButton("New campaign", () => { CloseModal(); _main.NewGame(Random.Shared.Next(100000), showTitle: false); }));
-        row.AddChild(PaperButton("Quit", () => GetTree().Quit()));
+        row.AddChild(PaperButton("Quit", () => Main.QuitGame()));
         v.AddChild(row);
     }
 }
