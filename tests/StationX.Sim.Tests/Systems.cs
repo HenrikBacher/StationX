@@ -1672,6 +1672,9 @@ public class StandingOrderTests
         var c = g.MakeStanding(new ContractTemplate(Net.Red, 6, 6, 3, 3));
         Assert.True(c.Standing);
         Assert.Equal(c.PerDay * Defs.StandingDays, c.Quantity);
+        Assert.Equal(Defs.StandingDays, c.TotalDays);
+        // The last day is checked by the deadline, not after it.
+        Assert.True(GameState.MilestoneAt(c, c.TotalDays) <= c.AcceptedAt + c.Days * Defs.MinutesPerDay + 1e-9);
         g.Contracts.Add(c);
         Assert.True(g.Accept(c.Id));
         // Spread over the days: no more than a day's quota (plus one) comes in on the first day.

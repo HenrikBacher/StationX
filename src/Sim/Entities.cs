@@ -264,7 +264,8 @@ public sealed class Contract
     public int MilestonesMet { get; set; }
     /// <summary>Paid for each milestone met (the completion Reward is the bonus on top).</summary>
     public int MilestonePay { get; set; }
-    public int TotalDays => (int)Math.Floor(Days);
+    /// <summary>The days a standing order asks for (its Days also hold the day of grace for the last day's traffic).</summary>
+    public int TotalDays => PerDay > 0 ? Quantity / PerDay : (int)Math.Floor(Days);
     public ContractState State { get; set; }
     public List<double> SpawnTimes { get; set; } = new();
 }
