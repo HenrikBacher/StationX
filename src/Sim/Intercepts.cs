@@ -97,6 +97,7 @@ public static class Intercepts
             Net.Abwehr => $"ISOS {r.Next(1000, 9999)}",
             Net.Dolphin or Net.Shark => $"ZTPG/{r.Next(1000, 99999)}",
             Net.Tunny => $"ZTPGU/{r.Next(100, 9999)}",
+            Net.Werft => $"NS/W/{r.Next(100, 9999)}",
             _ => $"CX/MSS/{r.Next(100, 2999)}/T{r.Next(1, 60)}",
         };
         return new InterceptText(station, log, preamble, cipher, raw, de, en, serial, garbled);
@@ -138,7 +139,7 @@ public static class Intercepts
     {
         Net.Red or Net.LightBlue or Net.Brown => "RAF CHICKSANDS",
         Net.Chaffinch => "WAR OFFICE Y, BEAUMANOR",
-        Net.Dolphin or Net.Shark => "ADMIRALTY Y, SCARBOROUGH",
+        Net.Dolphin or Net.Shark or Net.Werft => "ADMIRALTY Y, SCARBOROUGH",
         Net.Abwehr => "R.S.S. ARKLEY",
         Net.Tunny => "FOREIGN OFFICE, KNOCKHOLT",
         _ => "METROPOLITAN POLICE, DENMARK HILL",
@@ -281,6 +282,13 @@ public static class Intercepts
             P("AN ABWEHR HAMBURG VON KO PORTUGAL LISSABON", "To: Abwehr Hamburg. From: Abwehr station, Lisbon."),
             P("AN ABWEHR BERLIN VON KO SPANIEN MADRID", "To: Abwehr Berlin. From: Abwehr station, Madrid."),
             P("AN KO SPANIEN VON NEBENSTELLE ALGECIRAS", "To: Abwehr station, Madrid. From: sub-station, Algeciras."),
+        }),
+        Net.Werft => Pick(r, new[]
+        {
+            P("AN HAFENKOMMANDANT BREST VON KRIEGSMARINEWERFT BREST", "To: Port commandant, Brest. From: Naval dockyard, Brest."),
+            P("AN MARINEGRUPPE WEST VON MARINEWETTERDIENST", "To: Naval Group West. From: Naval weather service."),
+            P("AN KRIEGSMARINEWERFT KIEL VON HAFENSCHUTZFLOTTILLE KIEL", "To: Naval dockyard, Kiel. From: Harbour defence flotilla, Kiel."),
+            P("AN ADMIRAL NORWEGEN VON MARINEWERFT TRONDHEIM", "To: Admiral Norway. From: Naval dockyard, Trondheim."),
         }),
         Net.Tunny => Pick(r, new[]
         {
@@ -591,6 +599,32 @@ public static class Intercepts
                 if (In(d, 1942, 10, 15, 1942, 11, 10))
                     Now(P("GROSSER GELEITZUG IN GIBRALTAR ZIEL VERMUTLICH MALTA ODER DAKAR", "Large convoy at Gibraltar, destination probably Malta or Dakar."),
                         P($"AGENT {agent.de} BESTAETIGT LANDUNG IN NORWEGEN GEPLANT", $"Agent {agent.en} confirms a landing in Norway is planned."));
+                break;
+            }
+            case Net.Werft:
+            {
+                // The dockyards' and weather stations' stereotyped reports: dull, regular, and sent again in DOLPHIN.
+                var w = new Tale(r, d);
+                w.Set("port", Pick(r, new[] { P("BREST", "Brest"), P("LORIENT", "Lorient"), P("SAINT NAZAIRE", "St Nazaire"), P("KIEL", "Kiel"), P("WILHELMSHAVEN", "Wilhelmshaven"), P("BERGEN", "Bergen"), P("TRONDHEIM", "Trondheim") }));
+                w.Set("time", t);
+                int boat = r.Next(30, 600);
+                w.Set("boat", Digits(boat), $"U-{boat}");
+                w.Set("n", Digits(b), b.ToString());
+                w.Set("days", Digits(c), c.ToString());
+                w.Set("force", Digits(b % 9 + 1), (b % 9 + 1).ToString());
+                w.Set("vis", Digits(a % 20 + 1), (a % 20 + 1).ToString());
+                w.Set("dir", Pick(r, new[] { P("NORD", "north"), P("NORDWEST", "north-west"), P("WEST", "west"), P("SUEDWEST", "south-west"), P("OST", "east") }));
+                Add(w.Pair("WETTERBEOBACHTUNG {port} {time} WIND {dir} STAERKE {force} SICHT {vis} SEEMEILEN {BEDECKT|REGEN|DIESIG|KLAR}",
+                           "Weather at {port}, {time}: wind {dir} force {force}, visibility {vis} miles, {overcast|rain|hazy|clear}."),
+                    w.Pair("U {boat} {EINGEDOCKT|AUSGEDOCKT} {port} WERFTLIEGEZEIT {days} TAGE", "{boat} {docked|undocked} at {port}. Time in dockyard {days} days."),
+                    w.Pair("MINENSUCHBOOT M {n} {KLAR|BEDINGT KLAR} AB {time}", "Minesweeper M {n} {ready|partly ready} from {time}."),
+                    w.Pair("SPERRBRECHER {n} {EINGELAUFEN|AUSGELAUFEN} {port} {time}", "Sperrbrecher {n} {entered|left} {port} at {time}."),
+                    w.Pair("HAFENSCHUTZFLOTTILLE {port} KEINE BESONDEREN {VORKOMMNISSE|EREIGNISSE}", "Harbour defence flotilla, {port}: nothing {unusual|special} to report."),
+                    w.Pair("WEG {GRUEN|ROT|BLAU} VOR {port} GERAEUMT {FREI|BEDINGT FREI}", "Route {Green|Red|Blue} off {port} swept. {Open|Open with care}."));
+                if (In(d, 1941, 3, 22, 1942, 2, 11))
+                    Now(w.Pair("SCHARNHORST {UND GNEISENAU |}IM DOCK BREST {AUSBESSERUNG|INSTANDSETZUNG} DAUERT AN", "SCHARNHORST {and GNEISENAU |}in dock at Brest. {Repairs|Refit} continuing."));
+                if (In(d, 1942, 1, 16, 1944, 11, 12))
+                    Now(w.Pair("TIRPITZ {LIEGEPLATZ|NETZSPERRE} {FAETTENFJORD|KAAFJORD} {UNVERAENDERT|VERSTAERKT}", "TIRPITZ: {berth|anti-torpedo nets} at {Fættenfjord|Kåfjord} {unchanged|strengthened}."));
                 break;
             }
             case Net.Tunny:

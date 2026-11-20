@@ -143,6 +143,7 @@ public partial class Hud
         if (st.InspectionsPassed + st.InspectionsFailed > 0) more.Add($"visits from Whitehall: {st.InspectionsPassed} impressed, {st.InspectionsFailed} not");
         if (st.MilestonesMet + st.MilestonesMissed > 0) more.Add($"standing-order days met {st.MilestonesMet} of {st.MilestonesMet + st.MilestonesMissed}");
         if (st.OpsWithheld > 0) more.Add($"{st.OpsWithheld} operations held back to protect the source");
+        if (st.Kisses > 0) more.Add($"{st.Kisses} days' naval keys kissed from WERFT");
         if (st.CribsDragged > 0) more.Add($"{st.CribsDragged} cribs placed by hand");
         if (st.BanburiesSlid > 0) more.Add($"{st.BanburiesSlid} Banbury sheets slid by hand");
         if (st.TypexSlips > 0) more.Add($"{st.TypexSlips} Typex runs set up wrongly and done again");
@@ -221,6 +222,8 @@ public partial class Hud
             "The Germans have changed a habit and our cribs for one network are poor for a few days (see the key panel). Its Bombe runs take longer: give it more Bombe time or take fewer of its requests.");
         yield return ("sixta", S.ActIndex >= Defs.SixtaFromAct && S.Stations.Any(s => s.Type == StationType.Crib) && !S.Stations.Any(s => s.Type == StationType.TrafficAnalysis),
             "Hut 6's traffic analysts read what's outside a message: callsigns, frequencies, who sends to whom. A traffic-analysis desk (Build, B) by the crib desks logs two of each network's messages a day, and that key's cribs and Bombe runs go quicker.");
+        yield return ("kisses", S.KissesOpen && !S.ReadWerft,
+            "Hut 8's best cribs are kisses: the same text sent twice, once in a cipher we already read. The dockyards and weather stations send their routine reports in WERFT, a dockyard hand cipher, and again in DOLPHIN. On the Enigma keys card, set WERFT to Read: a hand-cipher desk reads it each morning, and that day's naval key gets a perfect crib, a far quicker menu and a shorter Bombe run. Only good for the day it was sent.");
         yield return ("typexslip", S.Stats.TypexSlips > 0,
             "A Typex came out as gibberish: the Wren set a wheel one place out, and the message goes through again. Green or worn-out operators slip more often; experienced, rested Wrens and Typex specialists rarely do.");
         yield return ("staleintel", S.Messages.Values.Any(S.IsStale),

@@ -259,6 +259,9 @@ public sealed class AutoPlayer
         // The weekly rota, as the nights tip says, once people have been stuck on nights for over a week.
         if (g.LongNights > 0 && !g.RotateWatches) g.SetRotation(true);
 
+        // The kisses tip: read WERFT for the naval keys' cribs.
+        if (g.KissesOpen && !g.ReadWerft) g.SetReadWerft(true);
+
         // A security sweep once the Abwehr's suspicion is high, as the papers tip says.
         if (g.SuspicionOf(Service.Security) >= 50 && g.CanSecuritySweep() == null)
             g.SecuritySweep();

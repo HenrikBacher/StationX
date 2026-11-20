@@ -37,7 +37,8 @@ public sealed partial class GameState
 
     public static YStationDef YStationOf(Net net) => Defs.YStations.First(y => y.Nets.Contains(net));
 
-    public int CoverOf(Net n) => Cover.GetValueOrDefault(n);
+    /// <summary>Sets on a network. WERFT is taken down on the naval sets' frequencies, so it shares their cover.</summary>
+    public int CoverOf(Net n) => n == Net.Werft ? Math.Max(Cover.GetValueOrDefault(Net.Dolphin), Cover.GetValueOrDefault(Net.Shark)) : Cover.GetValueOrDefault(n);
     public int SpareSets => Math.Max(0, ReceiverSets - Cover.Values.Sum());
 
     /// <summary>Networks the Y service is taking down now: the ones in play.</summary>

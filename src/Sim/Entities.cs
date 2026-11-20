@@ -278,6 +278,8 @@ public sealed class Stats
     public int CribsDragged { get; set; }
     public int BanburiesSlid { get; set; }
     public int OffizierRead { get; set; }
+    /// <summary>Days' naval keys given a perfect crib by a WERFT signal read the same day.</summary>
+    public int Kisses { get; set; }
     /// <summary>Decrypts delivered more than a day after they were intercepted.</summary>
     public int LateDecrypts { get; set; }
     /// <summary>Typex runs that came out as gibberish because the wheels were set wrong.</summary>

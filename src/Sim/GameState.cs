@@ -123,6 +123,7 @@ public sealed partial class GameState
 
         TickYService();
         TickContracts();
+        TickKisses();
         TickStaff(dt);
         MoveStaff(dt);
         WorkStations(dt);
@@ -139,6 +140,7 @@ public sealed partial class GameState
             NextScheduleAt = Now + 2;
             AllotCover();
             ReleaseHeld();
+            FileUnwantedWerft();
             AssignCarriers();
             Schedule();
             FinishRemovals();
@@ -178,6 +180,7 @@ public sealed partial class GameState
         foreach (var d in new[] { SixtaLogged, SixtaRouted })
             foreach (var k in d.Keys.ToList())
                 if (int.Parse(k[(k.IndexOf(':') + 1)..]) < cutoff) d.Remove(k);
+        KissedKeys.RemoveWhere(k => int.Parse(k[(k.IndexOf(':') + 1)..]) < cutoff);
     }
 
     // ------------------------------------------------------------- movement
@@ -456,7 +459,7 @@ public sealed partial class GameState
             if (!Messages.TryGetValue(id, out var m)) continue;
             // Networks put First come first; then only live requests set the order: work for a request already
             // missed or met waits until the rest is done.
-            double due = ContractById(m.ContractId) is { State: ContractState.Active } c ? WorkDue(c) : double.MaxValue;
+            double due = m.Net == Net.Werft ? KissDue(m) : ContractById(m.ContractId) is { State: ContractState.Active } c ? WorkDue(c) : double.MaxValue;
             var key = (Prio(m), Rank(m), due);
             if (key.CompareTo(bestKey) < 0) { bestKey = key; best = id; }
         }
@@ -614,7 +617,8 @@ public sealed partial class GameState
                 t *= BombeFactor(m);
                 break;
             case StationType.Crib:
-                if (Gardened(m.Net, m.Day)) t *= 0.5;
+                if (Kissed(m.Net, m.Day)) t *= Defs.KissCribMult;
+                else if (Gardened(m.Net, m.Day)) t *= 0.5;
                 else if (Stale(m.Net, m.Day)) t *= Defs.StaleCribMult;
                 if (Analysed(m.Net, m.Day)) t *= Defs.SixtaCribMult;
                 break;
@@ -640,8 +644,9 @@ public sealed partial class GameState
         if (Researched.Contains(ResearchId.DiagonalBoard)) t *= 0.5;
         if (m.Rerun) t *= 0.5;
         if (Analysed(m.Net, m.Day)) t *= Defs.SixtaBombeMult;
+        if (Kissed(m.Net, m.Day)) t *= Defs.KissBombeMult;
         if (!HasStation(StationType.Checking)) t *= 1.25;
-        if (Stale(m.Net, m.Day) && !Gardened(m.Net, m.Day)) t *= Defs.StaleBombeMult;
+        if (Stale(m.Net, m.Day) && !Gardened(m.Net, m.Day) && !Kissed(m.Net, m.Day)) t *= Defs.StaleBombeMult;
         return t;
     }
 
@@ -684,6 +689,8 @@ public sealed partial class GameState
                     m.HoldUntil = Now + Rng.Range(60, 150);
                     break;
                 }
+                // WERFT that can no longer kiss anything isn't worth a cryptanalyst's time: it's filed unread.
+                if (m.Net == Net.Werft && (!ReadWerft || !KissWanted(m))) { FileWerft(m, read: false); return; }
                 m.Next = net.Family == Family.Hand ? StationType.HandCipher
                     : KeyBroken(m.Net, m.Day) ? Defs.DecryptStep(m.Net) : null;
                 if (m.Next == null && WantsAnalysis(m)) { m.Next = StationType.TrafficAnalysis; Bump(SixtaRouted, m); }
@@ -698,11 +705,12 @@ public sealed partial class GameState
                 if ((op?.Energy ?? 1) < 0.3) p -= 0.1;
                 if (!Rng.Chance(p)) { Requeue(st, m); return; }
                 if (m.Offizier) Stats.OffizierRead++;
+                if (m.Net == Net.Werft) { Kiss(m); return; }
                 m.Next = StationType.Translation;
                 break;
             }
             case StationType.Crib:
-                m.CribQuality = Gardened(m.Net, m.Day) ? 0.99
+                m.CribQuality = Kissed(m.Net, m.Day) ? Defs.KissCribQuality : Gardened(m.Net, m.Day) ? 0.99
                     : Math.Min(0.97, 0.62 + 0.11 * (op?.Skill ?? 2) + ((op?.Specialties.Contains(st.Type) ?? false) ? 0.1 : 0) + ((op?.Has(Trait.CrosswordFiend) ?? false) ? 0.08 : 0));
                 m.Next = AfterCrib(m.Net);
                 break;

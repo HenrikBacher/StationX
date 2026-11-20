@@ -52,6 +52,15 @@ public static class Handbook
                 new[] { S(StationType.Registration), S(StationType.Crib), Opt(StationType.Banburismus, "Bombe runs far shorter"), S(StationType.Bombe, "SHARK: four-wheel Bombe") },
                 new[] { S(StationType.Typex), S(StationType.HandCipher, "Offizier messages only"), S(StationType.Translation) },
             }),
+        new("Kisses: WERFT",
+            "From Operation Claymore. The dockyards and weather stations sent their routine reports in WERFT, a hand cipher (about three hours' work a signal), and the same text " +
+            "again in naval Enigma. Turn on WERFT on the Enigma keys card: once a hand-cipher desk has read one of the day's signals, that day's " +
+            "DOLPHIN and SHARK keys are kissed. The menu takes a third of the time, the Bombe run is a fifth shorter, and the stop holds. Only good for the day it was sent.",
+            new[] { Net.Werft },
+            new[]
+            {
+                new[] { Opt(StationType.Inbox, "for traffic over a teleprinter line; riders bring the rest to registration"), S(StationType.Registration), S(StationType.HandCipher, "the kiss: a perfect crib"), S(StationType.Crib, "today's naval key"), S(StationType.Bombe, "a shorter run") },
+            }),
         new("TUNNY",
             "The German high command's teleprinter cipher, the Lorenz machine. The wheel settings are found by hand in the Testery, faster on Newman's " +
             "Heath Robinson, fastest on Colossus. Then a Tunny machine prints the plain text.",
