@@ -42,6 +42,9 @@ public sealed class Zone
 public sealed partial class Grid
 {
     public const int Width = 48;
+    /// <summary>The lake in front of the Mansion: an ellipse. Older saves have it at 23 down; new games further south, clear of Hut 7.</summary>
+    public const double LakeX = 9.5, LakeRadiusX = 6.0, LakeRadiusY = 4.2, NewLakeY = 24.6;
+    public double LakeY { get; set; } = 23.0;
     public const int Height = 32;
     public static readonly (int x, int y) Gate = (0, 13);
 
@@ -94,13 +97,16 @@ public sealed partial class Grid
         g.AddZone(new Zone { Id = "hut11", Name = "Hut 11", X = 34, Y = 2, W = 12, H = 7, DoorX = 39, DoorY = 8, Cost = 1200 });
         g.AddZone(new Zone { Id = "hut3", Name = "Hut 3", X = 20, Y = 17, W = 12, H = 7, DoorX = 25, DoorY = 17, Cost = 1000 });
         g.AddZone(new Zone { Id = "hut8", Name = "Hut 8", X = 34, Y = 17, W = 12, H = 7, DoorX = 39, DoorY = 17, Cost = 1500 });
+        // Hut 7, between the drive and the lake: the Japanese naval section from 1942.
+        g.AddZone(new Zone { Id = "hut7", Name = "Hut 7", X = 2, Y = 15, W = 10, H = 5, DoorX = 7, DoorY = 15, Cost = 700 });
         g.AddZone(new Zone { Id = "blockf", Name = "Block F", X = 19, Y = 25, W = 27, H = 6, DoorX = 25, DoorY = 25, Cost = 2500, Brick = true });
 
         // The lake in front of the Mansion.
+        g.LakeY = NewLakeY;
         for (int y = 0; y < Height; y++)
             for (int x = 0; x < Width; x++)
             {
-                double dx = (x + 0.5 - 9.5) / 6.0, dy = (y + 0.5 - 23.0) / 4.2;
+                double dx = (x + 0.5 - LakeX) / LakeRadiusX, dy = (y + 0.5 - g.LakeY) / LakeRadiusY;
                 if (dx * dx + dy * dy < 1.0) g.Set(x, y, Tile.Water);
             }
 

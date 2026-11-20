@@ -44,8 +44,10 @@ public sealed class AutoPlayer
         [StationType.Colossus] = new[] { "blockf" },
         [StationType.HeathRobinson] = new[] { "blockf" },
         [StationType.TunnyMachine] = new[] { "blockf", "hut3" },
-        [StationType.Japanese] = new[] { "hut3", "mansion", "hut8" },
+        [StationType.Japanese] = new[] { "hut7", "hut3", "mansion", "hut8" },
     };
+
+    string? JapaneseZone() => g.Stations.FirstOrDefault(s => s.Type == StationType.Japanese) is { } d ? g.Grid.ZoneAt(d.X, d.Y)?.Id : null;
 
     int Want(StationType t)
     {
@@ -225,11 +227,24 @@ public sealed class AutoPlayer
                 .OrderBy(s => s.Skill).FirstOrDefault();
             if (who != null && g.Train(who.Id, to)) _courseAt = g.Now;
         }
+        // The JN-25 tip: readers are posted to the Japanese desk's building, one on each watch.
+        if (JapaneseZone() is string jdz)
+            foreach (var w in g.WatchesAvailable ? new[] { Shift.Day, Shift.Evening, Shift.Night } : new[] { Shift.Office })
+            {
+                if (g.Staff.Any(s => s.Has(Trait.Japanese) && s.Posted == jdz && s.Shift == w && !s.Leaving)) continue;
+                var reader = g.Staff.Where(s => s.Has(Trait.Japanese) && s.Role == Role.Linguist && s.Posted != jdz && !s.Leaving && s.HeadOf == null && s.Pinned == null)
+                    .OrderBy(s => s.Shift == w ? 0 : 1).FirstOrDefault();
+                if (reader == null) break;
+                g.Post(reader.Id, jdz);
+                if (reader.Shift != w) g.SetShift(reader.Id, w);
+            }
         // The JN-25 tip: linguists to the Bedford course until each watch has a Japanese reader (one course a day).
         if (g.JapanOpen && g.JapanWanted && Have(StationType.Japanese) > 0 && g.Now - _japaneseAt > Defs.MinutesPerDay &&
             g.JapaneseReaders < (g.WatchesAvailable ? 3 : 1) && g.Funds > Defs.JapaneseCourseCost + 300)
         {
-            var who = g.Staff.Where(s => g.CantLearnJapanese(s) == null && s.Pinned == null && s.Available).OrderBy(s => s.Skill).FirstOrDefault();
+            string? jz = JapaneseZone();
+            var who = g.Staff.Where(s => g.CantLearnJapanese(s) == null && s.Pinned == null && s.Available)
+                .OrderBy(s => s.Posted == jz ? 0 : 1).ThenBy(s => s.Skill).FirstOrDefault();
             if (who != null && g.LearnJapanese(who.Id)) _japaneseAt = g.Now;
         }
         if (g.MaxSuspicion > 60) g.SetPolicy(Policy.Cautious);

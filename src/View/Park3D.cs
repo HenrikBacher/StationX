@@ -209,6 +209,7 @@ public partial class Park3D : Node3D
     void Rebuild()
     {
         var g = State!.Grid;
+        Lake.Place(g.LakeY);
         var (paint, mask) = PaintGround(g);
         _groundMat = Ground.Make(paint, mask);
         _groundMat?.SetShaderParameter("wet", _wet);
@@ -240,7 +241,7 @@ public partial class Park3D : Node3D
         var lake = new MeshInstance3D
         {
             Mesh = new CylinderMesh { TopRadius = 1, BottomRadius = 1, Height = 0.02f, RadialSegments = 48, Rings = 1 },
-            Position = new Vector3(9.5f, 0.01f, 23f),
+            Position = new Vector3(Water.CentreX, 0.01f, Water.CentreZ),
             Scale = new Vector3(5.9f, 1, 4.1f),
             MaterialOverride = new StandardMaterial3D { AlbedoColor = new Color(0.22f, 0.3f, 0.32f, 0.6f), Transparency = BaseMaterial3D.TransparencyEnum.Alpha, Roughness = 0.12f, Metallic = 0.35f },
         };
@@ -405,7 +406,7 @@ public partial class Park3D : Node3D
                 float grass = 1 - gravel - earth;
 
                 // Lake
-                float lx = (fx - 9.5f) / 6.0f, ly = (fy - 23f) / 4.2f;
+                float lx = (fx - Water.CentreX) / Water.RadiusX, ly = (fy - Water.CentreZ) / Water.RadiusZ;
                 float ld = lx * lx + ly * ly;
                 if (ld < 1.0f)
                 {

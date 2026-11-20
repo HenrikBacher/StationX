@@ -99,4 +99,38 @@ public class JapanTests
         Assert.True(g.BookRecovered < before * 0.5);
         Assert.Contains(g.Events, e => e.Text.Contains("JN-25C"));
     }
+
+    [Fact]
+    public void Hut7OpensWithTheBlackout()
+    {
+        var g = GameState.NewGame(7);
+        var hut7 = g.Grid.Zone("hut7");
+        Assert.NotNull(hut7);
+        Assert.False(hut7!.Available);
+        Assert.True(Defs.AllowedIn("hut7", StationType.Japanese));
+        Assert.False(Defs.AllowedIn("hut7", StationType.Bombe));
+        g.DebugSkipToAct(Campaign.JapanFrom);
+        Assert.True(hut7.Available);
+        // Nothing of the lake inside it.
+        for (int y = hut7.Y; y < hut7.Y + hut7.H; y++)
+            for (int x = hut7.X; x < hut7.X + hut7.W; x++)
+                Assert.NotEqual(Tile.Water, g.Grid.Get(x, y));
+    }
+
+    [Fact]
+    public void AnOldSavesLakeKeepsHut7Out()
+    {
+        var old = Grid.CreateBletchley();
+        Assert.Equal(Grid.NewLakeY, old.LakeY);
+        // An older Park: the lake where it was, no Hut 7.
+        old.Zones.RemoveAll(z => z.Id == "hut7");
+        for (int y = 15; y < 20; y++)
+            for (int x = 2; x < 12; x++)
+            {
+                double dx = (x + 0.5 - Grid.LakeX) / Grid.LakeRadiusX, dy = (y + 0.5 - 23.0) / Grid.LakeRadiusY;
+                if (dx * dx + dy * dy < 1.0) old.Set(x, y, Tile.Water);
+            }
+        old.AddMissingZones();
+        Assert.Null(old.Zone("hut7"));
+    }
 }

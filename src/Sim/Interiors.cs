@@ -65,6 +65,7 @@ public static class Interiors
                      new() { R("Corridor", 20, 26, 25, 1, corridor: true), R("Testery", 20, 27, 10, 3), R("Newmanry", 30, 27, 15, 3) }),
         "hut11" => (new(), new() { R("Bombe Room", 35, 3, 10, 5) }),
         "hut1" => (new(), new() { R("Bombe Room", 14, 16, 5, 3) }),
+        "hut7" => (new(), new() { R("Japanese Naval Section", 3, 16, 8, 3) }),
         _ => (new(), new()),
     };
 }

@@ -69,6 +69,7 @@ public static class SaveGame
         // Saves from before Hut 1 existed.
         g.Grid.AddMissingZones();
         if (g.ActIndex >= 3 && g.Grid.Zone("hut1") is { Unlocked: false } hut1) hut1.Available = true;
+        if (g.JapanOpen && g.Grid.Zone("hut7") is { Unlocked: false } hut7) hut7.Available = true;
         if (g.Billets <= 0) g.Billets = Math.Max(Defs.StartBillets, (g.Staff.Count + 9) / 10 * 10);
         // Saves from before everyone was posted to a building.
         g.PostUnposted();

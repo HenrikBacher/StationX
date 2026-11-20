@@ -5,7 +5,17 @@ namespace StationX.View;
 /// <summary>The lake: wind ripples, rain rings, sky reflection and sun glints; ice in a cold snap.</summary>
 public partial class Water : MeshInstance3D
 {
-    public const float CentreX = 9.5f, CentreZ = 23f, RadiusX = 6.0f, RadiusZ = 4.2f;
+    public const float CentreX = 9.5f, RadiusX = (float)Sim.Grid.LakeRadiusX, RadiusZ = (float)Sim.Grid.LakeRadiusY;
+    /// <summary>The lake's centre down the Park: from the save (new games have it a little further south, clear of Hut 7).</summary>
+    public static float CentreZ { get; private set; } = 23f;
+
+    /// <summary>Puts the lake where this game's grid has it.</summary>
+    public void Place(double centreZ)
+    {
+        CentreZ = (float)centreZ;
+        Position = new Vector3(CentreX, 0.012f, CentreZ);
+        _mat?.SetShaderParameter("centre", new Vector2(CentreX, CentreZ));
+    }
 
     const string Code = @"
 shader_type spatial;

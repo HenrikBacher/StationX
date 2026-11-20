@@ -270,6 +270,10 @@ Then (user requests, 2026-11-19):
   changes; warm emission at the pane edges × night. `MergeStatic` accepts that material, so no extra draws.
   `Park3D.SetNight`: ceiling lamps only in occupied buildings, hooded door lamps (`DoorLamp`, out in a raid), and desk
   lamps (`StationModel.DeskLamps` now (light, owner)) only where someone is at the desk.
+- Hut 7 (`hut7`, x2..11 y15..19, £700, Available from the Blackout's `OnStart` and on load): the Japanese section's desks.
+  To fit it the lake moved south: `Grid.LakeY` is saved (old saves 23, new games `NewLakeY` 24.6); `Water.CentreZ` and
+  the view's lake paint follow it (`Water.Place` in `Park3D.Rebuild`). Old saves' lake keeps Hut 7 out (`AddMissingZones`).
+  The autoplayer posts a Japanese reader to the desk's building on each watch (the `japanese` tip says so). Balance 40/23/1.
 
 ### Graphics overhaul: period realism, CC0 assets allowed
 

@@ -419,7 +419,11 @@ public static class Campaign
                 new ContractTemplate(Net.Red, 6, 10, 3, 4, 1),
                 new ContractTemplate(Net.LightBlue, 6, 10, 3, 4, 1),
             },
-            OnStart = g => g.SharkBlackout = true,
+            OnStart = g =>
+            {
+                g.SharkBlackout = true;
+                if (g.Grid.Zone("hut7") is { Unlocked: false } hut7) hut7.Available = true;
+            },
         },
         new()
         {

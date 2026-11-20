@@ -687,6 +687,8 @@ public static partial class Defs
         ["hut8"] = new("Naval Enigma: cribs, Banburismus, the naval decoding room's Typex machines, and naval translation.",
             new[] { StationType.Inbox, StationType.Registration, StationType.Crib, StationType.Banburismus, StationType.Typex,
                     StationType.Translation, StationType.Index, StationType.Dispatch, StationType.TrafficAnalysis, StationType.Japanese }),
+        ["hut7"] = new("The Japanese naval section, from 1942: JN-25 off the Kilindini cables, its additive stripped and its groups looked up in the book.",
+            new[] { StationType.Registration, StationType.HandCipher, StationType.Japanese, StationType.Dispatch, StationType.Index }),
         ["blockf"] = new("The Testery and the Newmanry: Tunny by hand and by Colossus.",
             new[] { StationType.Inbox, StationType.Registration, StationType.Testery, StationType.Colossus, StationType.HeathRobinson, StationType.TunnyMachine,
                     StationType.Translation, StationType.Index, StationType.Dispatch }),
