@@ -748,7 +748,7 @@ public partial class Hud
         if (!_inspector.Visible) { _inspSig = ""; return; }
 
         string sig = st != null
-            ? $"st{st.Id}{st.Input.Count}{st.Output.Count}{st.OperatorId}{st.OperatorPresent}{st.Current}{(int)(st.Progress * 20)}{st.PendingRemoval}{st.X},{st.Y}|{string.Join(",", S.PinnedTo(st.Id).Select(p => p.Id))}|{S.Funds >= Defs.MoveCost}|{(int)(st.Wear * 20)}{st.IsDown(S.Now)}{S.Funds >= Defs.ServiceCost}|{(st.Receives == null ? "all" : string.Join(",", st.Receives))}{S.ActiveNets.Count}|{OldestHours(st)}"
+            ? $"st{st.Id}{st.Input.Count}{st.Output.Count}{st.OperatorId}{st.OperatorPresent}{st.Current}{(int)(st.Progress * 20)}{st.PendingRemoval}{st.X},{st.Y}|{string.Join(",", S.PinnedTo(st.Id).Select(p => p.Id))}|{S.Funds >= Defs.MoveCost}|{(int)(st.Wear * 20)}{st.IsDown(S.Now)}{S.Funds >= Defs.ServiceCost}|{(st.Receives == null ? "all" : string.Join(",", st.Receives))}{S.ActiveNets.Count}|{OldestHours(st)}|{(int)(S.BookRecovered * 100)}"
             : sf != null ? $"sf{sf.Id}{sf.Task?.Kind}{sf.Task?.Dest}{sf.Leaving}{sf.Decrypts}{sf.Away}{sf.IsSick(S.Now)}{sf.Shift}{sf.Pinned}{sf.Posted}{sf.HeadOf}{sf.HeadStyle}{S.Grid.Zones.Count(z => z.Unlocked)}{(int)(sf.Energy * 10)}{(int)(sf.Morale * 10)}{(int)(sf.Strain * 10)}{sf.Rival}{(sf.Rival != null && S.WithRival(sf))}{sf.OffReason}{sf.Second}{(int)S.Funds / 50}{sf.CarelessKnown}{(int)(sf.Experience / 60)}{sf.Skill}"
             : $"z{z!.Id}{z.Unlocked}{S.Funds >= z.Cost}{S.ColdZones()?.Contains(z.Id)}{S.HotZones()?.Contains(z.Id)}";
         if (sig == _inspSig) return;
@@ -835,6 +835,9 @@ public partial class Hud
             }
         }
         if (st.Wears) InspectWear(st);
+        if (st.Type == StationType.Japanese)
+            _inspBox.AddChild(UiTheme.Label($"Code book {S.BookName}: {S.BookRecovered * 100:0}% recovered, so a message takes {S.BookFactor:0.0}× the usual time here. " +
+                                            "Every JN-25 decrypt fills in more of the book.", 12, S.BookRecovered < 0.4 ? Gfx.Warn : UiTheme.TextDim));
         int oldest = OldestHours(st);
         if (oldest >= 8)
         {

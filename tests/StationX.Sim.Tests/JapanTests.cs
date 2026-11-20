@@ -81,4 +81,22 @@ public class JapanTests
         Assert.InRange(readers, 25, 80);   // about a quarter
         Assert.DoesNotContain(Enumerable.Range(0, 50).Select(_ => g.NewPerson(Role.Clerk, 2)), p => p.Has(Trait.Japanese));
     }
+
+    [Fact]
+    public void TheBookFillsInAndANewBookSetsItBack()
+    {
+        var g = GameState.NewGame(7);
+        g.ActIndex = Campaign.JapanFrom;
+        Assert.Equal(Defs.BookStart, g.BookRecovered);
+        double slow = g.BookFactor;
+        for (int i = 0; i < 60; i++) g.DebugRecoverBook();
+        Assert.True(g.BookRecovered > 0.7, $"{g.BookRecovered}");
+        Assert.True(g.BookFactor < slow * 0.7);
+        Assert.Equal("JN-25B", g.BookName);
+        double before = g.BookRecovered;
+        g.DebugBookChange();
+        Assert.Equal("JN-25C", g.BookName);
+        Assert.True(g.BookRecovered < before * 0.5);
+        Assert.Contains(g.Events, e => e.Text.Contains("JN-25C"));
+    }
 }

@@ -50,6 +50,42 @@ public sealed partial class GameState
         return true;
     }
 
+    /// <summary>How much of the current JN-25 code book is recovered (0..1): the Japanese desk works faster the more is known.</summary>
+    public double BookRecovered { get; set; } = Defs.BookStart;
+    /// <summary>New books brought in since JN-25B (an index into <see cref="Defs.JapaneseBooks"/>, plus one).</summary>
+    public int BookChanges { get; set; }
+    public string BookName => BookChanges == 0 ? "JN-25B" : Defs.JapaneseBooks[BookChanges - 1].name;
+
+    /// <summary>The Japanese desk's time for a message, by how much of the book is known.</summary>
+    public double BookFactor => Defs.BookSlowest - (Defs.BookSlowest - Defs.BookFastest) * BookRecovered;
+
+    /// <summary>Every group read fills in the book a little: each decrypt recovers a share of what's still unknown.</summary>
+    void RecoverBook() => BookRecovered = Math.Min(1, BookRecovered + Defs.BookPerDecrypt * (1 - BookRecovered));
+
+    public void DebugRecoverBook() => RecoverBook();
+    /// <summary>For tests: Tokyo's next book comes in now.</summary>
+    public void DebugBookChange()
+    {
+        if (BookChanges >= Defs.JapaneseBooks.Length) return;
+        var (from, _) = Defs.JapaneseBooks[BookChanges];
+        ActDate = ActDate.AddDays(Math.Max(0, from.DayNumber - Date.DayNumber));
+        DailyBook();
+    }
+
+    /// <summary>At midnight: on the historical dates Tokyo brings in a new book, and the recovery starts over (a little carries).</summary>
+    void DailyBook()
+    {
+        while (BookChanges < Defs.JapaneseBooks.Length && Date >= Defs.JapaneseBooks[BookChanges].from)
+        {
+            var (_, name) = Defs.JapaneseBooks[BookChanges++];
+            double before = BookRecovered;
+            BookRecovered = Defs.BookStart * Defs.BookKept + before * Defs.BookKept;
+            if (JapanOpen)
+                Emit(EventKind.Bad, $"Tokyo has brought in a new code book, {name}. Of the {before * 100:0}% of the old book we had recovered, only {BookRecovered * 100:0}% " +
+                                    "carries over: the Japanese desk is slow again until the new groups are read out of the traffic.");
+        }
+    }
+
     /// <summary>A linguist candidate may already have been through the Bedford course (own dice: the main game's rolls don't move).</summary>
     void MaybeJapanese(Staff p)
     {

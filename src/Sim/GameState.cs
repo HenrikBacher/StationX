@@ -212,6 +212,7 @@ public sealed partial class GameState
         DailySupplies();
         DailyCrossword();
         DailySecurity();
+        DailyBook();
         PlanFrequencyChanges();
         foreach (var k in Flows.Keys.ToList())
             if ((Flows[k] *= 0.5) < 0.25) Flows.Remove(k);
@@ -693,6 +694,9 @@ public sealed partial class GameState
             case StationType.HandCipher:
                 t *= m.Offizier ? Defs.OffizierMult : net.Difficulty;
                 break;
+            case StationType.Japanese:
+                t *= BookFactor;
+                break;
             case StationType.Zygalski:
                 if (Researched.Contains(ResearchId.Cillies)) t *= 0.6;
                 break;
@@ -965,6 +969,7 @@ public sealed partial class GameState
         Points += PointsFor(m);
         if (IsStale(m)) Stats.LateDecrypts++;
         OnDecryptUsed(m);
+        if (m.Net == Net.Jn25) RecoverBook();
         var c = ContractById(m.ContractId);
         if (c != null && c.State == ContractState.Active) c.Delivered++;
     }

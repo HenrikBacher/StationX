@@ -313,6 +313,10 @@ public static partial class Defs
     /// <summary>The Bedford Japanese course, squeezed: away five days, and they come back reading naval Japanese.</summary>
     public const double JapaneseCourseHours = 120;
     public const int JapaneseCourseCost = 90;
+    /// <summary>JN-25's code book: share recovered at the start, gained per decrypt (of what's left), and the Japanese desk's time from none to all of it.</summary>
+    public const double BookStart = 0.3, BookPerDecrypt = 0.02, BookSlowest = 1.5, BookFastest = 0.6, BookKept = 0.25;
+    /// <summary>When Tokyo brought in new books: JN-25C, then JN-25D.</summary>
+    public static readonly (DateOnly from, string name)[] JapaneseBooks = { (new(1942, 8, 1), "JN-25C"), (new(1943, 4, 1), "JN-25D") };
     /// <summary>Chance a linguist candidate has been through the Bedford course, once JN-25 is in play.</summary>
     public const double JapaneseCandidateChance = 0.25;
     /// <summary>Tokyo's working day reaches the Park overnight: JN-25 goes out between 22:00 and 08:00 by our clocks.</summary>

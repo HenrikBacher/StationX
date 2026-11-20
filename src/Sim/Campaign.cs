@@ -728,6 +728,7 @@ public sealed partial class GameState
             Staff.Add(p);
         }
         PostUnposted();
+        DailyBook();   // books already changed by the chapter's date
         Events.Clear();
         Emit(EventKind.ActStarted, $"Chapter {Act.Chapter}: {Act.ChapterTitle}. {Act.Title}");
     }

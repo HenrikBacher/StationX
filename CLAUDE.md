@@ -250,6 +250,9 @@ Then (user requests, 2026-11-19):
   machines with wear ≥ `FitterServiceAt` (free, half the time, `Station.QuietService`: no announcement). `Station.FitterId`
   holds the job. Not idle in `IdleShare` or the idle finding, not in `PostingGaps`; `PostsWanted` counts buildings with ≥ 3
   of their machines. Tip `fitters` after the first breakdown; the autoplayer hires one per watch. Balance: 39/24/1.
+- JN-25 code book (`Japan.cs`): `BookRecovered` (from `BookStart` 0.3, +`BookPerDecrypt` 0.02 of what's left per JN-25
+  delivered) scales the Japanese desk 1.5× → 0.6× (`BookFactor`); `DailyBook` brings in `Defs.JapaneseBooks` (JN-25C
+  1 Aug 1942, JN-25D 1 Apr 1943), keeping `BookKept` 0.25. Desk inspector line. Balance: 39/22/0.
 
 ### Graphics overhaul: period realism, CC0 assets allowed
 
