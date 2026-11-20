@@ -123,6 +123,9 @@ public sealed partial class GameState
             case { } mole when mole.StartsWith("mole"):
                 MoleAction(mole);
                 break;
+            case "flu":
+                FluPrecautions = true;
+                break;
             case "artist-drop":
                 ArtistAction(true);
                 break;

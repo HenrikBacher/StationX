@@ -177,6 +177,9 @@ public static partial class Defs
     /// <summary>The mole (from the Blackout to D-Day): suspicion a day while leaking, days before MI5 brings names, and what each ending costs or brings.</summary>
     public const double MoleLeakAir = 1.2, MoleLeakArmy = 0.8, MoleMovedMorale = 0.08, MoleCaughtRep = 3, MoleRelief = 10, MoleWrongMorale = 0.04, MoleWrongRep = 3;
     public const int MoleNoticeDays = 6;
+    /// <summary>Flu waves: how much likelier illness is, the share precautions leave, the chance each winter day of a warning, its notice and length.</summary>
+    public const double FluWaveMult = 3, FluPrecautionShare = 0.5, FluChance = 0.03;
+    public const int FluWarningDays = 3, FluDays = 14, FluPrecautionCost = 150;
     /// <summary>The Wicked Uncles' early letter: offered below this reputation from Claymore; what it brings, and the proper channels instead.</summary>
     public const double UnclesAt = 25, UnclesRep = 10, UnclesMorale = 0.04, UnclesChannelsRep = 4;
     public const int UnclesFunds = 2000, UnclesChannelsFunds = 500, UnclesWrens = 3;

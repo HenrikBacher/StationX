@@ -307,6 +307,10 @@ Then (user requests, 2026-11-19):
   vs `HerringClues`). Options: dismiss each (`Action` "mole:id"), and at index 1 move all three (`"mole-move:ids"`, re-posted,
   state 3). Wrong dismissal: −morale, −3 rep, `MoleCleared`, asked again; too few left and MI5 finds them. `--modal=mole`.
   Balance 40/24/2.
+- Flu waves (`Flu.cs`): illness already existed (`SpreadIllness`). `DailyFlu` (own dice 0xF1A0, `FluChance` 0.03 a winter day from
+  act 1, once per `FluWinter`) raises a dilemma (`Tag` "flu") `FluWarningDays` 3 ahead; the wave lasts `FluDays` 14 and multiplies
+  `SpreadIllness`'s chance by `FluMult` (`FluWaveMult` 3, × `FluPrecautionShare` 0.5 with precautions, `Action` "flu", £150). Top bar
+  "flu coming"/"FLU". `--modal=flu`. Balance 39/22/1.
 
 ### Graphics overhaul: period realism, CC0 assets allowed
 

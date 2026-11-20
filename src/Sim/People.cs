@@ -451,8 +451,8 @@ public sealed partial class GameState
     {
         int sick = SickCount;
         bool bay = HasSickBay;
-        double baseChance = (Winter ? Defs.SickChanceWinter : Defs.SickChanceSummer)
-                            + Defs.SickContagion * Math.Min(sick, 8) * (bay ? Defs.SickBayContagion : 1);
+        double baseChance = ((Winter ? Defs.SickChanceWinter : Defs.SickChanceSummer)
+                             + Defs.SickContagion * Math.Min(sick, 8) * (bay ? Defs.SickBayContagion : 1)) * FluMult;
         var fallen = new List<Staff>();
         foreach (var s in Staff)
         {
@@ -480,6 +480,7 @@ public sealed partial class GameState
         MaybeMatapan();
         MaybeBrusa();
         DailyAmericans();
+        DailyFlu();
         SpreadIllness();
         _heads = HeadsToday(inNow: false);
         DailyStrain();

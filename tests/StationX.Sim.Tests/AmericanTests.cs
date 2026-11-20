@@ -212,3 +212,27 @@ public class MoleTests
         Assert.Equal(3, g.MoleState);
     }
 }
+
+public class FluTests
+{
+    [Fact]
+    public void AWaveIsWarnedOfAndPrecautionsHalveIt()
+    {
+        var g = GameState.NewGame(3);
+        g.DebugSkipToAct(2);
+        g.Dilemmas.Clear();
+        g.DebugFlu();
+        var d = g.Dilemmas.Single(x => x.Tag == "flu");
+        Assert.True(g.FluComing);
+        Assert.Equal(1, g.FluMult);
+        int funds = g.Funds;
+        Assert.True(g.ResolveDilemma(d.Id, 1));
+        Assert.Equal(funds - Defs.FluPrecautionCost, g.Funds);
+        g.Now = g.FluFrom + 60;
+        Assert.True(g.FluWave);
+        Assert.Equal(Defs.FluWaveMult * Defs.FluPrecautionShare, g.FluMult, 6);
+        g.Now = g.FluUntil + 60;
+        Assert.False(g.FluWave);
+        Assert.Equal(1, g.FluMult);
+    }
+}
