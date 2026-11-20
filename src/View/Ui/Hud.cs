@@ -220,7 +220,7 @@ public partial class Hud : CanvasLayer
         string sky = S.Weather switch { Weather.Fine => "fine", Weather.Overcast => "overcast", Weather.Rain => "rain", Weather.Fog => "fog", Weather.Snow => "snow", _ => "gale" };
         if (S.RaidOn) sky += " · AIR RAID";
         if (S.PowerCut) sky += " · POWER CUT";
-        if (S.InspectionDue) sky += $" · VISIT {(S.InspectionAt - S.Day * Defs.MinutesPerDay >= Defs.MinutesPerDay ? "tomorrow " : "")}{(int)(S.InspectionAt % Defs.MinutesPerDay / 60):00}:00";
+        if (S.InspectionDue) sky += $" · {(S.PmVisit ? "PM " : "")}VISIT {(S.InspectionAt - S.Day * Defs.MinutesPerDay >= Defs.MinutesPerDay ? "tomorrow " : "")}{(int)(S.InspectionAt % Defs.MinutesPerDay / 60):00}:00";
         if (S.AllHands) sky += " · ALL HANDS";
         _time.Text = $"{m / 60:00}:{m % 60:00} · {sky} · {shift} · {S.OnDutyCount}/{S.Staff.Count} on duty{mode}";
         _pauseBtn.SetPressedNoSignal(_main.Paused);

@@ -366,6 +366,7 @@ public partial class Main : Node3D
             if (args.TryGetValue("quarter", out var q)) { Rig.SetQuarter(int.Parse(q)); _park.SetView(Rig.Quarter); }
             if (args.ContainsKey("flows")) ShowFlows = true;
             if (args.TryGetValue("modal", out var modal)) Hud.ShowNamed(modal);
+            if (args.ContainsKey("visitor")) State.DebugVisitor();
             if (args.ContainsKey("rider") && State.Stations.FirstOrDefault(s => s.Type == StationType.Registration) is { } reg) State.DebugRider(reg.Id);
             _shotFrames = 30;
             if (args.TryGetValue("film", out var fm)) _film = int.Parse(fm);
@@ -475,6 +476,7 @@ public partial class Main : Node3D
         SyncStations(running ? dt : 0);
         SyncPeople(dt);
         _riders.Sync(State, running ? dt : 0, Speed, _park);
+        _park.SetVisitor(State.VisitorHere);
         PanKeys(dt);
         UpdateHover();
         UpdateGhost();

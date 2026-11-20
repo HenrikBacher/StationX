@@ -28,7 +28,7 @@ public class CrosswordTests
         Assert.True(g.HoldCrossword());
         Assert.Equal(5000 - Defs.CrosswordCost, g.Funds);
         Assert.NotNull(g.CantHoldCrossword());   // under way
-        Assert.Empty(g.Candidates.Where(c => c.Crossword));
+        Assert.DoesNotContain(g.Candidates, c => c.Crossword);
 
         TestUtil.Run(g, Defs.CrosswordDays + 1);
         var won = g.Candidates.Where(c => c.Crossword).ToList();

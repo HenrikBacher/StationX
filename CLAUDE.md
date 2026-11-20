@@ -164,6 +164,10 @@ Then (user requests, 2026-11-19):
   `CrosswordRecruits` (3) skilled cryptanalysts with `CrosswordFiend` after 3 days (`DailyCrossword`, own dice); they carry
   `Staff.Crossword` so the weekly refresh keeps them. Staff panel row, tip `crossword`, the autoplayer runs one when short
   of cryptanalysts. Balance: Easy 40, Normal 22, Hard 4.
+- The Prime Minister's visit: a scripted inspection (`PmVisit`, `ScriptedDone` "pm1941") announced `PmVisitAfterDays` (2) into
+  Barbarossa for 11:00 next day, before the op decision; `PrimeMinisterLeaves`: morale +`PmMorale` always, rep +5 / +1 / −3,
+  no grant cut. Tip `pmvisit`, top bar "PM VISIT". `VisitedAt`/`VisitorHere` show a staff car (`Park3D.StaffCar`, in the
+  gate node, `SetVisitor`) from 30 min before a visit to 2 h after; shots: `--visitor`. Balance: Easy 40, Normal 21, Hard 2.
 
 ### Graphics overhaul: period realism, CC0 assets allowed
 

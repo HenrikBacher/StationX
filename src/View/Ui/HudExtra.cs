@@ -280,7 +280,10 @@ public partial class Hud
             "People due a tea break are standing about because every seat is taken, and they get no rest until one frees up. Build another canteen table (Build, B), best one in each busy hut so nobody walks far for a cup.");
         yield return ("stores", S.StoresLow,
             "The stores are running low: every message needs its dockets and worksheets at registration, and without them the desks work at half speed. Order more under Staff; the lorry takes most of a day. A standing order reorders by itself, at a quarter more.");
-        yield return ("inspection", S.InspectionDue,
+        yield return ("pmvisit", S.PmVisit,
+            "The Prime Minister is coming. He judges what he sees as any visitor would: in-trays, broken machines, faces, a request about to be missed, the account, " +
+            "and the watch standing about. Whatever he finds, his speech on the lawn lifts everyone's spirits; a good showing earns more reputation than any visit from Whitehall.");
+        yield return ("inspection", S.InspectionDue && !S.PmVisit,
             "A visitor from Whitehall is coming. They judge what they see: overflowing in-trays, broken machines, glum faces, a request about to be missed, an overdrawn account, " +
             "and how many of the watch stand about with nothing to do (the Treasury counts heads: Workload, U, shows which roles are idle, so hire no more of them). " +
             "A smooth-running Park earns reputation; a shambles loses it, and a quarter of next week's grant.");

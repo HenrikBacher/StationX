@@ -230,6 +230,9 @@ public static partial class Defs
     public const int InspectionEveryDays = 9;
     public const double InspectionGoodRep = 2;
     public const double InspectionBadRep = 2;
+    // The Prime Minister's visit (Barbarossa chapter).
+    public const int PmVisitAfterDays = 2;
+    public const double PmGoodRep = 5, PmFairRep = 1, PmBadRep = 3, PmMorale = 0.12;
     /// <summary>A visitor marks the Park down when this share of the watch stands idle, and up when no more than this does.</summary>
     public const double InspectionIdleShare = 0.6, InspectionBusyShare = 0.3;
     /// <summary>Share of the next weekly grant the Treasury withholds after a visit that went badly.</summary>
