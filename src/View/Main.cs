@@ -25,6 +25,7 @@ public partial class Main : Node3D
     public Park3D Park => _park;
     Riders _riders = null!;
     Bikes _bikes = null!;
+    Geese _geese = null!;
     Music _music = null!;
     double _nextTrain = 40, _nextPlane = 90, _nextTyping = 3;
     int _lastHour = -1;
@@ -215,6 +216,8 @@ public partial class Main : Node3D
         AddChild(_riders);
         _bikes = new Bikes { Name = "Bikes" };
         AddChild(_bikes);
+        _geese = new Geese { Name = "Geese" };
+        AddChild(_geese);
         _music = new Music { Name = "Music" };
         AddChild(_music);
         _stationRoot = new Node3D { Name = "Stations" };
@@ -482,6 +485,7 @@ public partial class Main : Node3D
         _riders.Sync(State, running ? dt : 0, Speed, _park);
         _park.SetVisitor(State.VisitorHere);
         _bikes.Sync(State, dt, _park.PolesAt);
+        _geese.Sync(running ? dt : 0, Mathf.Clamp((_snowCover - 0.4f) * 2f, 0, 1));
         PanKeys(dt);
         UpdateHover();
         UpdateGhost();

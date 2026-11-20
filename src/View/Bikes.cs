@@ -97,7 +97,7 @@ public partial class Bikes : Node3D
         Mesh3.Box(temp, alongX ? new Vector3(len, 0.03f, 0.03f) : new Vector3(0.03f, 0.03f, len), railAt, steel);
         foreach (float p in new[] { a - side * 0.15f, b + side * 0.15f })
             Mesh3.Box(temp, new Vector3(0.035f, 0.2f, 0.035f), At(p, -0.12f) + new Vector3(0, 0.1f, 0), steel);
-        AddChild(Merge(temp, $"Rack{z.Id}"));
+        AddChild(Mesh3.MergePainted(temp, $"Rack{z.Id}"));
 
         int seed = 0;
         foreach (char ch in z.Id) seed = seed * 31 + ch;   // a stable hash (string.GetHashCode varies per run)
@@ -112,7 +112,7 @@ public partial class Bikes : Node3D
                 float skew = (Gfx.Rand01(seed, k, 3) - 0.5f) * 0.25f;
                 Bike(bikes, At(along, 0.05f), yaw + skew, Frames[(int)(Gfx.Rand01(seed, k, 7) * Frames.Length * 0.999f)]);
             }
-            var level = Merge(bikes, $"Bikes{z.Id}_{n}");
+            var level = Mesh3.MergePainted(bikes, $"Bikes{z.Id}_{n}");
             level.Visible = false;
             AddChild(level);
             rack.Levels[n - 1] = level;
@@ -145,27 +145,5 @@ public partial class Bikes : Node3D
         Mesh3.Box(b, new Vector3(0.09f, 0.025f, 0.055f), new Vector3(-0.09f, 0.31f, 0), new Color("3b2a1c"));         // saddle
         Mesh3.Box(b, new Vector3(0.025f, 0.025f, 0.2f), new Vector3(0.15f, 0.35f, 0), frame);                        // handlebars
         Mesh3.Box(b, new Vector3(0.14f, 0.012f, 0.04f), new Vector3(-0.22f, 0.27f, 0), frame).RotationDegrees = new Vector3(0, 0, -20);  // rear mudguard
-    }
-
-    /// <summary>Everything built under a node, as one mesh coloured per vertex.</summary>
-    static MeshInstance3D Merge(Node3D root, string name)
-    {
-        var pm = new Mesh3.PaintedMesh();
-        void Walk(Node n, Transform3D parent)
-        {
-            foreach (var c in n.GetChildren())
-            {
-                if (c is not Node3D c3) continue;
-                var xf = parent * c3.Transform;
-                if (c is MeshInstance3D mi && mi.Mesh != null)
-                    for (int s = 0; s < mi.Mesh.GetSurfaceCount(); s++)
-                        if (Mesh3.Paintable(mi.MaterialOverride ?? mi.GetSurfaceOverrideMaterial(s) ?? mi.Mesh.SurfaceGetMaterial(s), out var col, out _))
-                            pm.Add(mi.Mesh, s, xf, col);
-                Walk(c, xf);
-            }
-        }
-        Walk(root, Transform3D.Identity);
-        root.Free();
-        return new MeshInstance3D { Name = name, Mesh = pm.Commit(Mesh3.PaintMat(false)) };
     }
 }

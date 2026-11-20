@@ -76,6 +76,28 @@ public static class Mesh3
         return PaintMat(false);
     }
 
+    /// <summary>Everything built under a node (in Mat's plain colours), as one mesh coloured per vertex; frees the node.</summary>
+    public static MeshInstance3D MergePainted(Node3D root, string name)
+    {
+        var pm = new PaintedMesh();
+        void Walk(Node n, Transform3D parent)
+        {
+            foreach (var c in n.GetChildren())
+            {
+                if (c is not Node3D c3) continue;
+                var xf = parent * c3.Transform;
+                if (c is MeshInstance3D mi && mi.Mesh != null)
+                    for (int s = 0; s < mi.Mesh.GetSurfaceCount(); s++)
+                        if (Paintable(mi.MaterialOverride ?? mi.GetSurfaceOverrideMaterial(s) ?? mi.Mesh.SurfaceGetMaterial(s), out var col, out _))
+                            pm.Add(mi.Mesh, s, xf, col);
+                Walk(c, xf);
+            }
+        }
+        Walk(root, Transform3D.Identity);
+        root.Free();
+        return new MeshInstance3D { Name = name, Mesh = pm.Commit(PaintMat(false)) };
+    }
+
     /// <summary>A mesh surface's triangles, read from the engine once and kept.</summary>
     public sealed record Tris(Vector3[] V, Vector3[] N, int[] I);
     static readonly Dictionary<(Mesh, int), Tris> TrisOf = new();

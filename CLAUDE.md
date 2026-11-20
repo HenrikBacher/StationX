@@ -172,6 +172,8 @@ Then (user requests, 2026-11-19):
   not from the cached report; idlest `SpareHand`s, no heads or notables), `LetGo`. The autoplayer doesn't use it.
 - Bicycle racks (`Bikes.cs`): beside each open building's door (the Mansion's clear of its porch), filled with up to 6
   bicycles by how many are in the building (the far-billeted come by bus); one merged mesh per fill level, two draws a rack.
+- Geese on the lake (`Geese.cs`, real-time, still while paused, standing on ice). `Mesh3.MergePainted` merges a node of
+  plain-colour parts into one vertex-coloured mesh (used by the bikes and geese). Statistics charts: scale, dates, hover.
 
 ### Graphics overhaul: period realism, CC0 assets allowed
 
