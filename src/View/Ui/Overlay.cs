@@ -25,8 +25,13 @@ public partial class Overlay : Control
         var s = Main.State;
         if (s == null || Main.Hud.ModalOpen) return;
         float zoom = 18f / Main.Rig.Cam.Size;
-        if (Main.ShowFlows) DrawFlows(s);
-        if (Main.Hud.PanelId == "workload") DrawUse(s, zoom);
+        // The flow view and the workload view share the floor: one dimming, and with both on the workload ring
+        // (which carries the paper waiting too) stands in for the flow view's, so two rings never sit on one desk.
+        bool use = Main.Hud.PanelId == "workload";
+        if (Main.ShowFlows || use) DrawRect(GetViewportRect(), new Color(0.08f, 0.07f, 0.05f, 0.35f));
+        if (Main.ShowFlows) DrawFlows(s, rings: !use);
+        if (use) DrawUse(s, zoom);
+        if (Main.ShowFlows) DrawFlowKey(use);
         if (Main.BuildType is StationType bt && !Defs.Station(bt).Outdoor) DrawAllowedZones(s, bt);
 
         foreach (var st in s.Stations)
@@ -81,10 +86,8 @@ public partial class Overlay : Control
     /// Lines for where paper has gone recently (thicker = more), and a ring on each desk coloured by how long
     /// the oldest message in its in tray has waited.
     /// </summary>
-    void DrawFlows(GameState s)
+    void DrawFlows(GameState s, bool rings)
     {
-        var dim = new Color(0.08f, 0.07f, 0.05f, 0.35f);
-        DrawRect(GetViewportRect(), dim);
         foreach (var (key, amount) in s.Flows)
         {
             var parts = key.Split('>');
@@ -102,19 +105,50 @@ public partial class Overlay : Control
             float ah = 6 + w;
             DrawColoredPolygon(new[] { midp + dir * ah, midp - dir * ah * 0.6f + n * ah * 0.7f, midp - dir * ah * 0.6f - n * ah * 0.7f }, col);
         }
+        if (!rings) return;
         foreach (var st in s.Stations)
         {
             if (st.IsRest || !Main.StationModels.TryGetValue(st.Id, out var m)) continue;
-            double oldest = 0;
-            foreach (var id in st.Input)
-                if (s.Messages.TryGetValue(id, out var msg)) oldest = Math.Max(oldest, s.Now - msg.Since);
+            double oldest = Oldest(s, st);
             var c = Screen(m.GlobalPosition + new Vector3(0, 0.05f, 0));
-            var col = st.Input.Count == 0 ? new Color(0.6f, 0.6f, 0.55f, 0.5f)
-                : oldest < 30 ? Gfx.Good : oldest < 120 ? Gfx.Warn : Gfx.Bad;
+            var col = UseLook.Wait(st.Input.Count, oldest);
             DrawArc(c, 16, 0, Mathf.Tau, 28, new Color(0, 0, 0, 0.6f), 6, true);
             DrawArc(c, 16, 0, Mathf.Tau, 28, col, 4, true);
             if (st.Input.Count > 0)
-                Tag(c + new Vector2(18, 6), oldest >= 60 ? $"{st.Input.Count} · {(int)(oldest / 60)}h {(int)(oldest % 60)}m" : $"{st.Input.Count} · {(int)oldest}m", col, 11);
+                Tag(c + new Vector2(18, 6), UseLook.Waiting(st.Input.Count, oldest), col, 11);
+        }
+    }
+
+    static double Oldest(GameState s, Station st)
+    {
+        double oldest = 0;
+        foreach (var id in st.Input)
+            if (s.Messages.TryGetValue(id, out var msg)) oldest = Math.Max(oldest, s.Now - msg.Since);
+        return oldest;
+    }
+
+    /// <summary>A key for the flow view, low on the right of the screen.</summary>
+    void DrawFlowKey(bool withUse)
+    {
+        var font = Fonts.Body;
+        const int size = 11;
+        var parts = new System.Collections.Generic.List<(string, Color?)> { ("FLOW VIEW  lines: where paper went, thicker for more", null) };
+        if (withUse) parts.Add(("rings: the Workload panel's day; tags: busy, and paper waiting", null));
+        else foreach (var (w, c) in UseLook.WaitKey) parts.Add((w, c));
+        float width = 0;
+        foreach (var (t, c) in parts) width += font.GetStringSize(t, HorizontalAlignment.Left, -1, size).X + (c != null ? 16 : 0) + 14;
+        var vp = GetViewportRect().Size;
+        var at = new Vector2(vp.X - width - 16, vp.Y - 18);   // bottom right, clear of the side panel
+        DrawRect(new Rect2(at - new Vector2(8, 14), new Vector2(width + 8, 22)), new Color(0, 0, 0, 0.6f));
+        foreach (var (t, c) in parts)
+        {
+            if (c is Color col)
+            {
+                DrawArc(at + new Vector2(5, -4), 5, 0, Mathf.Tau, 16, col, 2.5f, true);
+                at.X += 16;
+            }
+            DrawString(font, at, t, HorizontalAlignment.Left, -1, size, new Color(1, 1, 1, 0.75f));
+            at.X += font.GetStringSize(t, HorizontalAlignment.Left, -1, size).X + 14;
         }
     }
 
@@ -124,7 +158,6 @@ public partial class Overlay : Control
     /// </summary>
     void DrawUse(GameState s, float zoom)
     {
-        DrawRect(GetViewportRect(), new Color(0.08f, 0.07f, 0.05f, 0.35f));
         var ink = new Color(0, 0, 0, 0.65f);
         foreach (var st in s.Stations)
         {
@@ -132,11 +165,13 @@ public partial class Overlay : Control
             var c = Screen(m.GlobalPosition + new Vector3(0, 0.05f, 0));
             const float r = 15;
             DrawArc(c, r, 0, Mathf.Tau, 32, ink, 9, true);
-            double total = log.Total();
+            // Over its open hours, as in the panel: after hours (before there are watches) left out.
+            double total = log.Total() - log.In((int)DeskUse.Closed);
             float a = -Mathf.Pi / 2;
             if (total > 0)
                 for (int k = 0; k < log.States; k++)
                 {
+                    if (k == (int)DeskUse.Closed) continue;
                     float sweep = (float)(log.In(k) / total) * Mathf.Tau;
                     if (sweep <= 0.01f) continue;
                     DrawArc(c, r, a, a + sweep, Math.Max(3, (int)(32 * sweep / Mathf.Tau)), UseLook.Desk[k], 6, true);
@@ -147,9 +182,11 @@ public partial class Overlay : Control
             DrawCircle(c, 5, UseLook.Desk[(int)now]);
             if (zoom > 0.6f && total > 0)
             {
-                double open = total - log.In((int)DeskUse.Closed);
-                int busy = open > 0 ? (int)Math.Round(log.In((int)DeskUse.Working) / open * 100) : 0;
-                Tag(c + new Vector2(r + 4, 6), st.Input.Count > 0 ? $"{busy}% · {st.Input.Count} in tray" : $"{busy}%", UseLook.Desk[(int)now], 11);
+                int busy = (int)Math.Round(log.In((int)DeskUse.Working) / total * 100);
+                // Paper waiting in the flow view's words and colour, so the two views read alike.
+                if (st.Input.Count > 0)
+                    Tag(c + new Vector2(r + 4, 6), $"{busy}% busy · {UseLook.Waiting(st.Input.Count, Oldest(s, st))}", UseLook.Wait(st.Input.Count, Oldest(s, st)), 11);
+                else Tag(c + new Vector2(r + 4, 6), $"{busy}% busy", UseLook.Desk[(int)now] with { A = 1 }, 11);
             }
         }
         foreach (var p in s.Staff)
