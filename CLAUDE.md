@@ -36,7 +36,7 @@ state, so the work can be resumed on any machine.
 
 ## Current work (2026-11-19)
 
-Last release **v0.35.0** (Telegraph crossword, the Prime Minister's visit, Let N go, bicycles); v0.34.0 had courses, Bombe-bay heat; v0.33.0 had Whitehall's quota, Workload panel, kisses; v0.32.0 put a request first, MOST IMMEDIATE telegrams; v0.31.0 had dispatch riders and the gate, music and ambience, failable operations; v0.30.0 had the
+Last release **v0.36.0** (Chiefs reports, geese, smoke, Graphics setting, commuters through the gate); v0.35.0 had the Telegraph crossword, the Prime Minister's visit, Let N go, bicycles; v0.34.0 had courses, Bombe-bay heat; v0.33.0 had Whitehall's quota, Workload panel, kisses; v0.32.0 put a request first, MOST IMMEDIATE telegrams; v0.31.0 had dispatch riders and the gate, music and ambience, failable operations; v0.30.0 had the
 campaign to VE Day with great operations, Y-stations, the variety engine and update sheets;
 v0.29.0 had idle tea breaks and patch updates; v0.28.0 had breaks, watches, collisions, the updater. Before that **v0.27.0**: cold handovers, the stranded-staff fix, intelligence freshness by service, security sweeps,
 merged static building meshes (`Park3D.MergeStatic`; screenshots print draw calls). v0.26.0 had overhaul parts 1–5
@@ -158,7 +158,7 @@ Then (user requests, 2026-11-19):
   (`TelegraphLine`, `Wire`: sagging segments, a terminal post by the Mansion); nothing indoors shows under solid roofs.
   Shots hold reputation ≥ 25 so `--days` always reaches the date (seed 7 now loses on Normal around day 60).
 
-### In v0.35.0 (2026-11-20)
+### In v0.35.0 and v0.36.0 (2026-11-20)
 
 - Telegraph crossword (`Crossword.cs`, from `Defs.CrosswordFrom` 13 Jan 1942): `HoldCrossword` (£75, every 28 days) sends
   `CrosswordRecruits` (3) skilled cryptanalysts with `CrosswordFiend` after 3 days (`DailyCrossword`, own dice); they carry
