@@ -14,19 +14,21 @@ public static class UseLook
 {
     // Quiet and after hours are faint: time nobody needed the desk isn't something to act on, and the colours that
     // are (working, no paper, paper with nobody at it) must stand out against them.
-    public static readonly Color Desk4 = new(0.49f, 0.47f, 0.42f, 0.30f);
-
     public static readonly Color[] Desk =
     {
         Gfx.Good,                           // working
         Gfx.Warn,                           // staffed or ready, no paper
         Gfx.Bad,                            // paper, nobody at it
+        new("d9967c"),                      // paper, someone on the way
         new("8a62a8"),                      // out of action
-        Desk4,                              // quiet
+        new(0.49f, 0.47f, 0.42f, 0.30f),    // quiet
         new(0.25f, 0.23f, 0.19f, 0.18f),    // after hours
     };
 
-    public static readonly string[] DeskWords = { "working", "no paper", "paper, nobody at it", "out of action", "quiet", "after hours" };
+    public static readonly string[] DeskWords = { "working", "no paper", "paper, nobody at it", "someone on the way", "out of action", "quiet", "after hours" };
+
+    /// <summary>The states that go in a desk key: all but after hours.</summary>
+    public const int DeskKey = 6;
 
     public static readonly Color[] Person =
     {
@@ -249,13 +251,13 @@ public partial class Hud
         }
 
         _sideBox.AddChild(UiTheme.Caps("Desks and machines", 12, UiTheme.Accent));
-        _sideBox.AddChild(Legend(UseLook.Desk.Take(5).ToArray(), UseLook.DeskWords.Take(5).ToArray()));
+        _sideBox.AddChild(Legend(UseLook.Desk.Take(UseLook.DeskKey).ToArray(), UseLook.DeskWords.Take(UseLook.DeskKey).ToArray()));
         if (r.Steps.Count == 0) _sideBox.AddChild(UiTheme.Label("No desks yet.", 12, UiTheme.TextDim));
         foreach (var st in r.Steps)
         {
             double busy = st.OfOpen(DeskUse.Working);
             string right = $"{Math.Round(busy * 100):0}% busy" + (st.Waiting > 0 ? $" · {st.Waiting} waiting" : "");
-            var colour = busy >= 0.75 && st.Waiting > st.Count ? Gfx.Bad : st.OfOpen(DeskUse.Unstaffed) >= 0.2 ? Gfx.Warn : UiTheme.Text;
+            var colour = busy >= 0.75 && st.Waiting > st.Count ? Gfx.Bad : st.OfOpen(DeskUse.Unstaffed) + st.OfOpen(DeskUse.Coming) >= 0.2 ? Gfx.Warn : UiTheme.Text;
             var t = st.Type;
             var trend = Trend(d => d.Steps.TryGetValue(t, out var x) ? x : null);
             bool spare = st.Count > 1 && st.Peak < st.Count && r.Hours >= 12;
@@ -437,7 +439,7 @@ public partial class Hud
             SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
             TooltipText = person
                 ? "The last 24 hours, hour by hour: working (green), carrying (light blue), walking (blue), on a break (lilac), idle (amber); off watch is left faint."
-                : "The last 24 hours, hour by hour: working (green), no paper (amber), paper with nobody at it (red), out of action (purple); quiet and after hours are left faint.",
+                : "The last 24 hours, hour by hour: working (green), no paper (amber), paper with nobody at it (red), someone on the way (salmon), out of action (purple); quiet and after hours are left faint.",
         };
     }
 }

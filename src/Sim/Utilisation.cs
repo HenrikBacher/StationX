@@ -14,6 +14,8 @@ public enum DeskUse
     Starved,
     /// <summary>Paper waiting (or a message half done) and nobody working it.</summary>
     Unstaffed,
+    /// <summary>Paper waiting and someone given the desk, but still on the way to it (often from another building).</summary>
+    Coming,
     /// <summary>Broken down, being serviced, or stopped by a power cut.</summary>
     Down,
     /// <summary>Nobody at it and nothing for it.</summary>
@@ -190,7 +192,7 @@ public sealed partial class GameState
         StationType.Colossus, StationType.TunnyMachine, StationType.Translation, StationType.Index, StationType.Dispatch,
     };
 
-    public const int DeskStates = 6;
+    public const int DeskStates = 7;
 
     public static bool Tracked(Station st) => st.Def.Operator != null;
 
@@ -261,7 +263,8 @@ public sealed partial class GameState
         if (st.IsDown(Now) || Unpowered(st)) return DeskUse.Down;
         if (st.Working) return DeskUse.Working;
         if (!WatchesAvailable && !AllHands && !Defs.Shifts[Shift.Office].OnDuty(MinuteOfDay)) return DeskUse.Closed;
-        if (st.Current != null || (st.Input.Count > 0 && !st.Obsolete)) return DeskUse.Unstaffed;
+        if (st.Current != null || (st.Input.Count > 0 && !st.Obsolete))
+            return st.OperatorId != null && !st.OperatorPresent ? DeskUse.Coming : DeskUse.Unstaffed;
         return st.OperatorPresent || st.IsMachine ? DeskUse.Starved : DeskUse.Quiet;
     }
 
@@ -336,7 +339,7 @@ public sealed partial class GameState
     static double Demand(UseLog log, int slot)
     {
         double total = log.SlotTotal(slot);
-        return total > 0 ? (log.In(slot, (int)DeskUse.Working) + log.In(slot, (int)DeskUse.Unstaffed)) / total : 0;
+        return total > 0 ? (log.In(slot, (int)DeskUse.Working) + log.In(slot, (int)DeskUse.Unstaffed) + log.In(slot, (int)DeskUse.Coming)) / total : 0;
     }
 
     /// <summary>A demand in desks or people as a whole number: 1.1 is one most of the time, 1.3 needs a second.</summary>
@@ -596,6 +599,11 @@ public sealed partial class GameState
                     (WatchesAvailable ? " or move some to that watch." : "."),
                     8 + unstaffed * 10 + s.Waiting / (double)s.Count, s.Type, role));
             }
+            double coming = s.OfOpen(DeskUse.Coming);
+            if (coming >= 0.2 && def.Operator is Role far && StationById(s.Worst ?? -1) is { } w && Grid.ZoneAt(w.X, w.Y) is { } zone)
+                list.Add(new UseFinding("far",
+                    $"{name} waited {P(coming)} of the time for someone walking over to them. Post some {PluralWord(far)} to {zone.Name} (pick one in Staff, then Posted to) so they wait close by.",
+                    5 + coming * 10, s.Type, far));
             if (down >= 0.15)
                 list.Add(new UseFinding("down", $"{name} were out of action {P(down)} of the last day. Service them before they wear out.", 6 + down * 10, s.Type));
         }

@@ -104,6 +104,14 @@ public class UtilisationTests
         Assert.Equal("unstaffed", r.Top?.Kind);
         Assert.Contains("Translation desks", r.Top!.Text);
 
+        // A linguist sent for: on the way, not "nobody", until they sit down.
+        TestUtil.Add(g, Role.Linguist, 3.5, 8.5);
+        for (int i = 0; i < 10 && desk.OperatorId == null; i++) g.Advance(1);
+        Assert.NotNull(desk.OperatorId);
+        Assert.Equal(DeskUse.Coming, g.DeskState(desk));
+        for (int i = 0; i < 60 && !desk.OperatorPresent; i++) g.Advance(1);
+        Assert.Equal(DeskUse.Working, g.DeskState(desk));
+
         desk.DownUntil = g.Now + 30;
         Assert.Equal(DeskUse.Down, g.DeskState(desk));
     }
