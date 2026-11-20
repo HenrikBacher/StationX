@@ -322,6 +322,8 @@ public sealed partial class GameState
 
     /// <summary>What the ministries have paid for requests since the last weekly accounts: most of the Park's income.</summary>
     public int EarnedThisWeek { get; set; }
+    /// <summary>What they paid in the week to the last accounts.</summary>
+    public int EarnedLastWeek { get; set; }
 
     void Earn(int amount)
     {
@@ -356,6 +358,7 @@ public sealed partial class GameState
             $"Weekly accounts: Treasury grant £{grant}, requests £{EarnedThisWeek} this week; wages £{wages}, upkeep £{upkeep}." +
             (QuotaActive ? $" Whitehall expects {IntelQuota} fresh decrypts a day; we are delivering {IntelRate:0}." + (ExpectationMult > 0 ? " Reputation slips while we fall short." : "")
              : DailyExpectation > 0 ? " Whitehall expects more every month; reputation slips unless you keep delivering." : ""));
+        EarnedLastWeek = EarnedThisWeek;
         EarnedThisWeek = 0;
     }
 

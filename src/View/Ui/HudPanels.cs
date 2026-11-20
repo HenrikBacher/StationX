@@ -210,7 +210,8 @@ public partial class Hud
     void StaffPanel()
     {
         _sideBox.AddChild(UiTheme.Heading($"Staff ({S.Staff.Count})"));
-        _sideBox.AddChild(UiTheme.Label($"Wages £{S.WeeklyWages:N0} and upkeep £{S.WeeklyUpkeep:N0} a week, against a Treasury grant of £{S.WeeklyGrant:N0}.", 13, UiTheme.TextDim));
+        _sideBox.AddChild(UiTheme.Label($"Wages £{S.WeeklyWages:N0} and upkeep £{S.WeeklyUpkeep:N0} a week, against a Treasury grant of £{S.WeeklyGrant:N0}" +
+                                        (S.EarnedLastWeek > 0 ? $" and £{S.EarnedLastWeek:N0} the ministries paid for requests last week." : "; the ministries pay for each request delivered."), 13, UiTheme.TextDim));
         var morale = UiTheme.Label($"Morale {Pct(S.AverageMorale)} · energy of those on duty {Pct(S.AverageEnergy)}", 13,
             S.AverageMorale < 0.35 ? Gfx.Bad : S.AverageMorale < 0.5 ? Gfx.Warn : UiTheme.Text);
         morale.TooltipText = "Tired people work slower. Canteens restore energy; the common room and rounders restore morale. Two days of very low morale and people ask for a transfer.";
