@@ -372,10 +372,12 @@ public partial class PersonModel : Node3D
     /// <param name="seat">For someone operating a desk: the chair to sit on (global) while they work.</param>
     Material? _carryMat;
 
-    public void Sync(Staff s, GameState g, float dt, Vector3? faceTarget, RestSpot? rest = null, Vector3? seat = null)
+    /// <param name="hidden">Indoors under solid roofs: kept in place but not drawn or posed.</param>
+    public void Sync(Staff s, GameState g, float dt, Vector3? faceTarget, RestSpot? rest = null, Vector3? seat = null, bool hidden = false)
     {
         // Off watch: back at the billets, not on the map.
-        Visible = !s.Away;
+        bool show = !s.Away && !hidden;
+        if (Visible != show) Visible = show;
         if (s.Away) { _placed = false; return; }
         var target = new Vector3((float)s.X, 0, (float)s.Y);
         bool atRest = rest != null && s.Path.Count == 0;
@@ -393,6 +395,7 @@ public partial class PersonModel : Node3D
         var moved = _shown - before;
         float speed = dt > 0 ? moved.Length() / dt : 0;
         bool walking = s.Path.Count > 0 || speed > 0.15f;
+        if (hidden) { Settled = atRest || deskWork; return; }
         if (moved.LengthSquared() > 0.00002f && !deskWork) _yaw = Mathf.Atan2(moved.X, moved.Z);
         else if (faceTarget is Vector3 ft)
         {

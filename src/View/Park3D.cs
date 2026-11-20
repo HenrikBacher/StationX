@@ -47,6 +47,13 @@ public partial class Park3D : Node3D
     bool _roofed;
     /// <summary>Camera sizes (tiles of view height) over which the roofs fade in.</summary>
     public const float RoofsFrom = 22, RoofsFull = 28;
+    /// <summary>How far the roofs have faded in, 0..1.</summary>
+    public float RoofAlpha => _roofAlpha;
+    /// <summary>
+    /// The roofs are fully on: every wall stands and nothing inside a building can be seen, so what's indoors (desks,
+    /// machines, people) needn't be drawn at all.
+    /// </summary>
+    public bool RoofsSolid => _roofAlpha >= 0.999f;
 
     /// <summary>Parts belonging to one or two sides of a building (0 N, 1 E, 2 S, 3 W).</summary>
     readonly List<(Node3D node, int a, int b, bool tall)> _sided = new();

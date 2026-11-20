@@ -29,31 +29,35 @@ public partial class Overlay : Control
         if (Main.Hud.PanelId == "workload") DrawUse(s, zoom);
         if (Main.BuildType is StationType bt && !Defs.Station(bt).Outdoor) DrawAllowedZones(s, bt);
 
+        // Markers over desks and machines indoors go under the roofs as they fade in, like the rooms' painted names.
+        float roofed = Main.Park.RoofAlpha;
         foreach (var st in s.Stations)
         {
-            if (!Main.StationModels.TryGetValue(st.Id, out var model)) continue;
+            _fade = st.Def.Outdoor ? 1 : 1 - roofed;
+            if (_fade < 0.01f || !Main.StationModels.TryGetValue(st.Id, out var model)) continue;
             var top = Screen(model.TopPoint);
             if (st.Current != null)
             {
                 float w = 34;
                 var bg = new Rect2(top - new Vector2(w / 2, 3), new Vector2(w, 6));
-                DrawRect(bg.Grow(1), new Color(0, 0, 0, 0.6f));
-                DrawRect(new Rect2(bg.Position, new Vector2(w * (float)st.Progress, 6)), st.OperatorPresent ? Gfx.Brass : Gfx.Warn);
+                DrawRect(bg.Grow(1), F(new Color(0, 0, 0, 0.6f)));
+                DrawRect(new Rect2(bg.Position, new Vector2(w * (float)st.Progress, 6)), F(st.OperatorPresent ? Gfx.Brass : Gfx.Warn));
             }
             else if (st.Def.Operator != null && st.Input.Count > 0 && st.OperatorId == null && !st.Obsolete)
             {
-                DrawCircle(top, 10, Gfx.Ink);
-                DrawCircle(top, 8.5f, Gfx.Warn);
-                DrawString(Fonts.BodyBold, top + new Vector2(-8, 5.5f), "!", HorizontalAlignment.Center, 16, 15, Gfx.Ink);
+                DrawCircle(top, 10, F(Gfx.Ink));
+                DrawCircle(top, 8.5f, F(Gfx.Warn));
+                DrawString(Fonts.BodyBold, top + new Vector2(-8, 5.5f), "!", HorizontalAlignment.Center, 16, 15, F(Gfx.Ink));
             }
             if (st.PendingRemoval || st.Obsolete)
             {
-                DrawLine(top + new Vector2(-8, -8), top + new Vector2(8, 8), Gfx.Bad, 3);
-                DrawLine(top + new Vector2(8, -8), top + new Vector2(-8, 8), Gfx.Bad, 3);
+                DrawLine(top + new Vector2(-8, -8), top + new Vector2(8, 8), F(Gfx.Bad), 3);
+                DrawLine(top + new Vector2(8, -8), top + new Vector2(-8, 8), F(Gfx.Bad), 3);
             }
             if (zoom > 0.7f && (st.Input.Count > 7 || st.Output.Count > 7))
                 Tag(top + new Vector2(14, 22), $"{st.Input.Count} in · {st.Output.Count} out", UiTheme.PanelEdge, 11);
         }
+        _fade = 1;
 
         if (Main.Ghost is { Problem: string prob } g && Main.GhostModel != null)
             Tag(Screen(Main.GhostModel.TopPoint) + new Vector2(-40, -10), prob, Gfx.Bad);
@@ -179,13 +183,17 @@ public partial class Overlay : Control
         }
     }
 
+    /// <summary>How much of the station markers being drawn shows (they fade under the roofs).</summary>
+    float _fade = 1;
+    Color F(Color c) => c with { A = c.A * _fade };
+
     void Tag(Vector2 at, string text, Color edge, int size = 13)
     {
         var font = Fonts.Body;
         var sz = font.GetStringSize(text, HorizontalAlignment.Left, -1, size);
         var r = new Rect2(at - new Vector2(5, sz.Y), sz + new Vector2(10, 7));
-        DrawRect(r, UiTheme.PaperBg);
-        DrawRect(r, edge, false, 1.5f);
-        DrawString(font, at + new Vector2(0, -3), text, HorizontalAlignment.Left, -1, size, UiTheme.PaperInk);
+        DrawRect(r, F(UiTheme.PaperBg));
+        DrawRect(r, F(edge), false, 1.5f);
+        DrawString(font, at + new Vector2(0, -3), text, HorizontalAlignment.Left, -1, size, F(UiTheme.PaperInk));
     }
 }
