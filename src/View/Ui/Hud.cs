@@ -93,6 +93,7 @@ public partial class Hud : CanvasLayer
     public override void _Process(double delta)
     {
         ApplyScale();
+        ShowNextToast();
         if (!ModalOpen && _main.Interactive && S.Status == GameStatus.Playing
             && S.Contracts.FirstOrDefault(c => c.Flash && c.State == ContractState.Offered && !_flashShown.Contains(c.Id)) is { } flash)
             ShowFlash(flash);
@@ -500,8 +501,22 @@ public partial class Hud : CanvasLayer
         _root.AddChild(_feed);
     }
 
+    readonly Queue<(string text, EventKind kind)> _toasts = new();
+
+    /// <summary>
+    /// Queues a line for the feed. They go up one a frame: each new wrapped label lays the feed out again, and the
+    /// handful that come at midnight all at once made a visible stutter.
+    /// </summary>
     public void Toast(string text, EventKind kind = EventKind.Info)
     {
+        _toasts.Enqueue((text, kind));
+        while (_toasts.Count > 6) _toasts.Dequeue();   // the feed keeps six; older ones would only be pushed off
+    }
+
+    void ShowNextToast()
+    {
+        if (_toasts.Count == 0) return;
+        var (text, kind) = _toasts.Dequeue();
         var p = new PanelContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
         var edge = kind switch { EventKind.Good => Gfx.Good, EventKind.Bad => Gfx.Bad, _ => UiTheme.PanelEdge };
         var sb = UiTheme.Box(UiTheme.Panel with { A = 0.92f }, edge, 4, 10, 5);

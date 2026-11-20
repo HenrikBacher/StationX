@@ -251,6 +251,8 @@ public partial class Main : Node3D
         Hud = new Hud(this) { Name = "Hud" };
         AddChild(Hud);
         _ = SaveGame.WarmUp();
+        // No blocking full collections while playing: the Park's midnight bookkeeping set one off, a 9 ms frame.
+        System.Runtime.GCSettings.LatencyMode = System.Runtime.GCLatencyMode.SustainedLowLatency;
         Settings.ApplyGraphics = ApplyGraphics;
         Settings.Apply();
 
@@ -524,7 +526,13 @@ public partial class Main : Node3D
         BenchMark(0);
         foreach (var e in State.Events)
         {
+            long t0 = _benching ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;
             Hud.OnEvent(e);
+            if (_benching)
+            {
+                double ms = (System.Diagnostics.Stopwatch.GetTimestamp() - t0) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+                if (ms > 1) GD.Print($"BENCH event {ms:0.0} ms {e.Kind}: {e.Text[..Math.Min(70, e.Text.Length)]}");
+            }
             switch (e.Kind)
             {
                 case EventKind.Good: Sound.Play("chime", 0.7f); break;
@@ -594,6 +602,8 @@ public partial class Main : Node3D
     long _benchAt;
     readonly double[] _benchMs = new double[6], _benchThis = new double[6], _benchWorst = new double[6];
     double _benchWorstFrame;
+    (int g0, int g1, int g2) _benchGc;
+    readonly List<(double ms, string what)> _benchSpikes = new();
     string _benchWorstAt = "";
     double _benchProcess, _benchCpu, _benchGpu, _benchDraws, _benchWall;
     long _benchStart;
@@ -616,11 +626,20 @@ public partial class Main : Node3D
     {
         if (_benchFrame == 0) _benchStart = System.Diagnostics.Stopwatch.GetTimestamp();
         double total = _benchThis.Sum();
+        int gc0 = GC.CollectionCount(0), gc1 = GC.CollectionCount(1), gc2 = GC.CollectionCount(2);
+        string gcs = (gc2 > _benchGc.g2 ? " gen2" : gc1 > _benchGc.g1 ? " gen1" : gc0 > _benchGc.g0 ? " gen0" : "");
+        _benchGc = (gc0, gc1, gc2);
+        if (_benchFrame > 0)
+        {
+            _benchSpikes.Add((total, $"{total,6:0.0} ms day {State.Day} {State.Now % 1440 / 60:00}:{State.Now % 60:00}{gcs}: " +
+                string.Join(", ", BenchParts.Select((p, i) => $"{p} {_benchThis[i]:0.0}"))));
+            if (_benchSpikes.Count > 40) { _benchSpikes.Sort((a, b) => b.ms.CompareTo(a.ms)); _benchSpikes.RemoveRange(5, _benchSpikes.Count - 5); }
+        }
         if (_benchFrame > 0 && total > _benchWorstFrame)
         {
             _benchWorstFrame = total;
             _benchThis.CopyTo(_benchWorst, 0);
-            _benchWorstAt = $"day {State.Day} {State.Now % 1440 / 60:00}:{State.Now % 60:00}";
+            _benchWorstAt = $"day {State.Day} {State.Now % 1440 / 60:00}:{State.Now % 60:00}{gcs}";
         }
         var vp = GetViewport().GetViewportRid();
         _benchProcess += Performance.GetMonitor(Performance.Monitor.TimeProcess) * 1000;
@@ -634,6 +653,8 @@ public partial class Main : Node3D
         for (int i = 0; i < BenchParts.Length; i++) GD.Print($"BENCH {BenchParts[i],-10} {_benchMs[i] / n,7:0.000} ms");
         GD.Print($"BENCH {"main",-10} {_benchMs.Sum() / n,7:0.000} ms (of process {_benchProcess / n:0.000} ms)");
         GD.Print($"BENCH {"worst",-10} {_benchWorstFrame,7:0.000} ms at {_benchWorstAt}: " + string.Join(", ", BenchParts.Select((p, i) => $"{p} {_benchWorst[i]:0.0}")));
+        _benchSpikes.Sort((a, b) => b.ms.CompareTo(a.ms));
+        foreach (var (_, what) in _benchSpikes.Take(5)) GD.Print($"BENCH spike {what}");
         GD.Print($"BENCH {"render cpu",-10} {_benchCpu / n,7:0.000} ms, gpu {_benchGpu / n:0.000} ms, {_benchDraws / n:0} draws");
         var sw = System.Diagnostics.Stopwatch.StartNew();
         string json = SaveGame.Save(State);
