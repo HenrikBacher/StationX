@@ -116,6 +116,13 @@ Then (user requests, 2026-11-19):
   per material (`MergeRoofs`; battens `_feltTrim`); the porch has its own non-fading slate. Ground wetness
   (`Park3D.SetWet`: puddles only after rain, dry over ~10 h); rain/snow particles dim at night (`WeatherFx.Sync(light)`);
   snow covers unbuilt plots. Shots: `--days` past ~110 on seed 7 reach VE Day; use ~100 for late shots.
+- Workload round 2: `DeskUse.Coming` ("someone on the way") is apart from `Unstaffed`; finding `far` says post people
+  nearer. `StepUse.Peak` = most desks worked at once. `RoleWatch` (report `Staffing`, `r.Watch(role, shift)`) gives
+  on/needed per role and watch (`Short`/`Spare`); `SpareHand(p)` = idle ≥ 60% of ≥ 4 h on watch. `UseDays` (last 30 days,
+  percent) is written at midnight and saved; the save-comparing tests clear it. `UseReport.Lasting` drives Needs attention
+  (`stuck` ≥ 12 h, `nobody` ≥ 5 h of a watch, one `spare` line). `UseLook.Wait`/`Waiting` are shared by the flow and
+  workload overlays; with both on only the workload rings show. Staff panel: per-person day bar, idlest first, watch
+  table on/needed. Statistics: desks busy and staff idle charts.
 - Sim performance (3.4× faster per day, allocation 8.7 → 0.9 GB per game, bit-identical). Perf:
   `PERF=1 [PERF_SEEDS=3,40 PERF_DIFF=Normal] dotnet test tests/StationX.Sim.Tests -c Release --filter Perf.TimePerDay
   --logger "console;verbosity=detailed"` (ms/day, time and MB per phase; allocations are the steady guide on a busy CPU).
