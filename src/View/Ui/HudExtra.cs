@@ -180,6 +180,9 @@ public partial class Hud
         {
             Values = values,
             FirstDay = firstDay,
+            Fmt = fmt,
+            DayLabel = d => S.DateOf(d).ToString("d MMM yyyy"),
+            TooltipText = tip,
             Min = min ?? Math.Min(0, values.Min()),
             Max = max ?? Math.Max(1, values.Max() * 1.1),
             Color = color,
@@ -718,23 +721,48 @@ public partial class Hud
 }
 
 /// <summary>A small line chart of daily figures.</summary>
+/// <summary>
+/// A day-by-day line with its scale at the left edge, dated at both ends; hovering shows the day and its value.
+/// </summary>
 public partial class LineChart : Control
 {
     public double[] Values = Array.Empty<double>();
     public int FirstDay;
     public double Min, Max = 1;
     public Color Color = Colors.White;
+    public string Fmt = "0";
+    /// <summary>How a game day is written (a date); "day N" if not set.</summary>
+    public Func<int, string>? DayLabel;
+    int _hover = -1;
 
-    public override void _Ready() => MouseFilter = MouseFilterEnum.Ignore;
+    public override void _Ready()
+    {
+        MouseFilter = MouseFilterEnum.Pass;
+        MouseExited += () => { _hover = -1; QueueRedraw(); };
+    }
+
+    public override void _GuiInput(InputEvent e)
+    {
+        if (e is not InputEventMouseMotion m || Values.Length < 2) return;
+        int i = Math.Clamp((int)Math.Round(m.Position.X / Math.Max(1, Size.X) * (Values.Length - 1)), 0, Values.Length - 1);
+        if (i != _hover) { _hover = i; QueueRedraw(); }
+    }
+
+    string Day(int day) => DayLabel?.Invoke(day) ?? $"day {day + 1}";
 
     public override void _Draw()
     {
-        // The plot leaves a strip at the bottom for the date, so the line never runs through it.
+        // The plot leaves a strip at the bottom for the dates, so the line never runs through it.
         var full = Size;
         var size = new Vector2(full.X, full.Y - 12);
         DrawRect(new Rect2(Vector2.Zero, size), new Color(0, 0, 0, 0.2f));
         for (int k = 1; k < 4; k++)
             DrawLine(new Vector2(0, size.Y * k / 4), new Vector2(size.X, size.Y * k / 4), new Color(1, 1, 1, 0.05f));
+        var font = Fonts.Body;
+        var dim = new Color(1, 1, 1, 0.4f);
+        // The scale: top and bottom of the plot.
+        DrawString(font, new Vector2(3, 10), Max.ToString(Fmt), HorizontalAlignment.Left, -1, 9, dim);
+        DrawString(font, new Vector2(3, size.Y - 2), Min.ToString(Fmt), HorizontalAlignment.Left, -1, 9, dim);
         if (Values.Length < 2) return;
         double span = Math.Max(1e-6, Max - Min);
         var pts = new Vector2[Values.Length];
@@ -747,8 +775,20 @@ public partial class LineChart : Control
         DrawColoredPolygon(fill, Color with { A = 0.12f });
         DrawPolyline(pts, Color, 2, true);
         DrawCircle(pts[^1], 3, Color);
-        var font = Fonts.Body;
-        DrawString(font, new Vector2(0, full.Y - 1), $"day {FirstDay + 1}", HorizontalAlignment.Left, -1, 10, new Color(1, 1, 1, 0.4f));
-        DrawString(font, new Vector2(0, full.Y - 1), $"day {FirstDay + Values.Length}", HorizontalAlignment.Right, full.X, 10, new Color(1, 1, 1, 0.4f));
+        if (_hover >= 0 && _hover < pts.Length)
+        {
+            // The day under the mouse: a rule, a dot, and its date and value in the strip below.
+            var p = pts[_hover];
+            DrawLine(new Vector2(p.X, 0), new Vector2(p.X, size.Y), new Color(1, 1, 1, 0.25f));
+            DrawCircle(p, 3.5f, Color);
+            string text = $"{Day(FirstDay + _hover)}: {Values[_hover].ToString(Fmt)}";
+            float w = font.GetStringSize(text, HorizontalAlignment.Left, -1, 10).X;
+            float x = Mathf.Clamp(p.X - w / 2, 0, full.X - w);
+            DrawRect(new Rect2(x - 3, size.Y, w + 6, 12), new Color(0.1f, 0.1f, 0.09f, 0.95f));
+            DrawString(font, new Vector2(x, full.Y - 1), text, HorizontalAlignment.Left, -1, 10, Color.Lightened(0.3f));
+            return;
+        }
+        DrawString(font, new Vector2(0, full.Y - 1), Day(FirstDay), HorizontalAlignment.Left, -1, 10, dim);
+        DrawString(font, new Vector2(0, full.Y - 1), Day(FirstDay + Values.Length - 1), HorizontalAlignment.Right, full.X, 10, dim);
     }
 }
