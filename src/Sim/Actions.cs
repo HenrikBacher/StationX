@@ -295,6 +295,15 @@ public sealed partial class GameState
     /// <summary>For tests.</summary>
     public void DebugWeeklyAccounts() => WeeklyAccounts();
 
+    /// <summary>What the ministries have paid for requests since the last weekly accounts: most of the Park's income.</summary>
+    public int EarnedThisWeek { get; set; }
+
+    void Earn(int amount)
+    {
+        Funds += amount;
+        EarnedThisWeek += amount;
+    }
+
     void WeeklyAccounts()
     {
         int grant = WeeklyGrant, wages = WeeklyWages, upkeep = WeeklyUpkeep;
@@ -318,10 +327,19 @@ public sealed partial class GameState
             LastServed[issuer] = Now - (Defs.NeglectDays - 7) * Defs.MinutesPerDay;   // they complain again next week if still ignored
             Emit(EventKind.Bad, $"The {Defs.IssuerNames[issuer]} complains to the Foreign Office that Bletchley has done nothing for it in {days:0} days. Reputation falls.");
         }
-        Emit(grant >= wages + upkeep ? EventKind.Info : EventKind.Bad,
-            $"Weekly accounts: Treasury grant £{grant}, wages £{wages}, upkeep £{upkeep}." +
-            (DailyExpectation > 0 ? " Whitehall expects more every month; reputation slips unless you keep delivering." : ""));
+        Emit(grant + EarnedThisWeek >= wages + upkeep ? EventKind.Info : EventKind.Bad,
+            $"Weekly accounts: Treasury grant £{grant}, requests £{EarnedThisWeek} this week; wages £{wages}, upkeep £{upkeep}." +
+            (QuotaActive ? $" Whitehall expects {IntelQuota} fresh decrypts a day; we are delivering {IntelRate:0}." + (ExpectationMult > 0 ? " Reputation slips while we fall short." : "")
+             : DailyExpectation > 0 ? " Whitehall expects more every month; reputation slips unless you keep delivering." : ""));
+        EarnedThisWeek = 0;
     }
+
+    /// <summary>
+    /// Reputation lost when a request runs out of time: a little for missing it at all, the rest by what's still owed,
+    /// so a request short by one decrypt costs far less than one barely started.
+    /// </summary>
+    public static double MissedRep(Contract c) =>
+        Defs.MissedRepBase + (4 - Defs.MissedRepBase + c.Rep) * Math.Clamp(1 - (double)c.Delivered / Math.Max(1, c.Quantity), 0, 1);
 
     /// <summary>Ministries that have been asking (an offer in the last fortnight) and had nothing completed, with days since they last had something.</summary>
     public IEnumerable<(Issuer issuer, double days)> NeglectedMinistries()
@@ -346,6 +364,41 @@ public sealed partial class GameState
     public int WeeklyWages => Staff.Sum(s => s.Salary);
     /// <summary>Reputation lost each morning, before difficulty: what have you done for us lately?</summary>
     public double DailyExpectation => ActIndex < 1 ? 0 : Defs.ExpectationBase + Defs.ExpectationPerAct * Math.Min(ActIndex, Defs.IntensityCap);
+
+    /// <summary>Whether Whitehall now judges the Park by a daily quota of decrypts.</summary>
+    public bool QuotaActive => ActIndex >= Defs.QuotaFromAct;
+
+    /// <summary>
+    /// Fresh decrypts a day Whitehall expects: a share of what this act's ministries would ask for if every request
+    /// were taken (offers at their full rate, of the act's usual size). 0 before the quota starts.
+    /// </summary>
+    public int IntelQuota
+    {
+        get
+        {
+            if (!QuotaActive) return 0;
+            var pool = Act.Pool.Where(p => p.Requires == null || Researched.Contains(p.Requires.Value)).ToList();
+            double w = pool.Sum(p => p.Weight);
+            if (w <= 0) return 0;
+            double qty = pool.Sum(p => p.Weight * (p.MinQty + p.MaxQty) / 2.0) / w * Defs.TrafficScale(ActIndex);
+            return Math.Max(1, (int)Math.Round(Defs.QuotaShare(ActIndex) * 24 / Act.OfferEveryHours * qty));
+        }
+    }
+
+    /// <summary>Decrypts a day as Whitehall counts them (fresh in full), over the last two days on record.</summary>
+    public double IntelRate
+    {
+        get
+        {
+            var last = History.Skip(Math.Max(0, History.Count - 2)).ToList();
+            // Days recorded before the quota was counted (older saves) count what they delivered.
+            return last.Count == 0 ? IntelQuota : last.Average(d => d.Fresh > 0 || d.Delivered == 0 ? d.Fresh : d.Delivered);
+        }
+    }
+
+    /// <summary>How hard the daily slip falls: twice the shortfall from the quota, at most double; a little even once it's met.</summary>
+    public double ExpectationMult => !QuotaActive || IntelQuota <= 0 ? 1
+        : Math.Clamp(Defs.QuotaSlope * (1 - IntelRate / IntelQuota), Defs.QuotaFloor, Defs.QuotaMaxMult);
     public int WeeklyUpkeep => Stations.Sum(s => s.Def.Upkeep) + OutstationBombes * Defs.OutstationUpkeep;
     public int WeeklyGrant => (int)((Defs.GrantBase + Defs.GrantPerRep * Reputation) * Defs.Difficulties[Difficulty].GrantMult * WarMood);
 
@@ -663,7 +716,7 @@ public sealed partial class GameState
                         var pol = Defs.Policies[Policy];
                         int reward = (int)(c.Reward * pol.Reward);
                         if (c.Standing) reward = FinishStanding(c, reward);
-                        Funds += reward;
+                        Earn(reward);
                         AdjustRep(c.Rep * pol.Rep, "Requests completed");
                         ChangeMorale(0.02);
                         Stats.ContractsCompleted++;
@@ -678,7 +731,7 @@ public sealed partial class GameState
                         Stats.ContractsFailed++;
                         ResolveOperation(c, won: false);
                         // A standing order's missed days have already cost something each.
-                        AdjustRep(c.Standing ? -(1 + 0.5 * (c.TotalDays - c.MilestonesMet)) : -(4 + c.Rep), "Missed deadlines");
+                        AdjustRep(c.Standing ? -(1 + 0.5 * (c.TotalDays - c.MilestonesMet)) : -MissedRep(c), "Missed deadlines");
                         ChangeMorale(-0.04);
                         Emit(EventKind.Bad, $"Missed deadline: {c.Title} for the {Defs.IssuerNames[c.Issuer]}. Reputation falls.");
                         if (c.Tag != null) (retries ??= new()).Add(c);

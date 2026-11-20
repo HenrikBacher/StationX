@@ -135,6 +135,20 @@ public static partial class Defs
     public const double ExpectationBase = 0.5;
     /// <summary>Above this balance at the weekly accounts, the Treasury claws back part of the grant.</summary>
     public const int TreasuryComfortable = 2500;
+    /// <summary>
+    /// Whitehall's quota: from the Battle of Britain the Park is judged by the intelligence it delivers. It expects a
+    /// share of what the ministries ask for (the act's offers at full rate) as fresh decrypts a day, averaged over the
+    /// last two days: QuotaShareFrom at first, QuotaSharePerAct more each act, up to QuotaShareMax. The daily slip is
+    /// multiplied by QuotaSlope times the shortfall (so half the quota slips as before), never less than QuotaFloor
+    /// (Whitehall soon gets used to miracles) and up to QuotaMaxMult.
+    /// </summary>
+    public const int QuotaFromAct = 5;
+    /// <summary>Reputation a missed request always costs; the rest of its full cost (4 + its reputation) scales with what's still owed.</summary>
+    public const double MissedRepBase = 2.5;
+    public const double QuotaShareFrom = 0.5, QuotaSharePerAct = 0.04, QuotaShareMax = 0.8, QuotaSlope = 2.25, QuotaMaxMult = 2.25, QuotaFloor = 0.6;
+    public static double QuotaShare(int act) => Math.Min(QuotaShareMax, QuotaShareFrom + QuotaSharePerAct * Math.Max(0, act - QuotaFromAct));
+    /// <summary>What a decrypt counts for against the quota once stale, and once dead (fresh counts 1).</summary>
+    public const double QuotaStale = 0.75, QuotaDead = 0.5;
     // ---- Operation Ruthless (autumn 1940) ----
     public const int RuthlessAct = 6;
     public const int RuthlessCost = 300;
@@ -204,6 +218,8 @@ public static partial class Defs
     public const int InspectionEveryDays = 9;
     public const double InspectionGoodRep = 2;
     public const double InspectionBadRep = 2;
+    /// <summary>A visitor marks the Park down when this share of the watch stands idle, and up when no more than this does.</summary>
+    public const double InspectionIdleShare = 0.6, InspectionBusyShare = 0.3;
     /// <summary>Share of the next weekly grant the Treasury withholds after a visit that went badly.</summary>
     public const double InspectionGrantCut = 0.25;
     public const double CrisisChance = 0.07;            // per day, scaled by difficulty's wear multiplier
@@ -293,7 +309,7 @@ public static partial class Defs
     public const double TreasuryClawback = 0.4;
     public const double ExpectationPerAct = 0.17;
     public const double SellRefund = 0.5;
-    public const int MaxOffers = 3;
+    public const int MaxOffers = 5;
     public const double OfferLifetimeDays = 1.5;
     public const int MoveCost = 25;
     public const int OutstationBombeCost = 1500;

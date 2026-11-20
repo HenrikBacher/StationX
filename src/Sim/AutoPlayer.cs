@@ -15,6 +15,9 @@ public sealed class AutoPlayer
 
     /// <summary>Times people have queued for tea: each one, as the tip says, is another canteen table.</summary>
     int _teaQueues;
+
+    /// <summary>Requests taken on beyond the usual workload while the Park has capacity to spare.</summary>
+    const int SpareRequests = 2;
     double _teaQueueSeenAt = -1e9;
 
     static readonly Dictionary<StationType, string[]> PreferredZones = new()
@@ -163,6 +166,9 @@ public sealed class AutoPlayer
             if (g.CanBuyDf(sv) == null) g.BuyDf(sv);
         }
     }
+
+    /// <summary>Whether to act on the Workload panel's findings (spare capacity, idle roles); off to measure what they're worth.</summary>
+    public bool UseWorkload { get; set; } = true;
 
     /// <summary>Whether to carry on into the Tunny chapter after winning.</summary>
     public bool ContinuePastEnigma { get; set; }
@@ -315,8 +321,12 @@ public sealed class AutoPlayer
             foreach (var r in want.Keys.ToList())
                 if (want[r] > 0) want[r] = Math.Max(3, want[r]);   // one per watch at least
         int before = g.Staff.Count;
+        // The visits tip: the Treasury counts heads, so hire no more of a role the Workload panel shows standing idle
+        // (unless its desks also go unstaffed).
+        var findings = UseWorkload && g.UseHours >= 6 ? g.Utilisation().Findings : new List<UseFinding>();
         foreach (var (role, n) in want)
         {
+            if (findings.Any(f => f.Kind == "idle" && f.Role == role) && !findings.Any(f => f.Kind == "unstaffed" && f.Role == role)) continue;
             int have = g.Staff.Count(s => s.Role == role && !s.Leaving);
             while (have < n)
             {
@@ -340,6 +350,9 @@ public sealed class AutoPlayer
         int active = g.Contracts.Count(c => c.State == ContractState.Active);
         if (g.Contracts.Any(c => c.State == ContractState.Active && c.Tag != null)) active += 2;   // focus on the urgent one
         int capacity = 2 + Have(StationType.Bombe) + Have(StationType.Bombe4) + Have(StationType.HandCipher) / 2;
+        // The quota tip: short of Whitehall's quota with the desks idle (Workload's finding), take on more requests on
+        // networks whose key is already broken today: they cost only Typex and translation time.
+        bool spare = findings.Any(f => f.Kind == "spare");
         // Flash requests: only if today's key is already out (or it's a hand cipher and a desk is free); otherwise say so.
         foreach (var f in g.Contracts.Where(c => c.Flash && c.State == ContractState.Offered).ToList())
         {
@@ -351,10 +364,11 @@ public sealed class AutoPlayer
         }
         foreach (var c in g.Contracts.Where(c => c.State == ContractState.Offered && !c.Flash).OrderByDescending(c => c.Reward).ToList())
         {
-            if (active >= capacity) break;
             var nd = Defs.NetOf(c.Net);
+            bool readToday = spare && nd.Family != Family.Hand && g.KeyBroken(c.Net, g.Day);
+            if (active >= capacity + (readToday ? SpareRequests : 0)) continue;
             if (nd.Family != Family.Hand &&
-                g.Contracts.Count(x => x.State == ContractState.Active && x.Net == c.Net) >= 2) continue;
+                g.Contracts.Count(x => x.State == ContractState.Active && x.Net == c.Net) >= (readToday ? 3 : 2)) continue;
             if (g.LockedDown(c.Net) || g.SuspicionOf(nd.Service) > 80) continue;
             bool can = nd.Family == Family.Hand ? Have(StationType.HandCipher) > 0
                 : (g.KeyRoute(c.Net) != null || g.KeyBroken(c.Net, g.Day)) && Have(Defs.DecryptStep(c.Net)) > 0;

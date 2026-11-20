@@ -10,7 +10,8 @@ public class UtilisationTests
     {
         var g = GameState.NewGame(seed);
         g.TrackUse = track;
-        var ai = new AutoPlayer(g);
+        // The autoplayer reads the Workload panel's findings as a player would; here only the bookkeeping is on trial.
+        var ai = new AutoPlayer(g) { UseWorkload = false };
         while (g.Status == GameStatus.Playing && g.Day < days)
         {
             if (g.ActCompletePending) g.ContinueAfterAct();

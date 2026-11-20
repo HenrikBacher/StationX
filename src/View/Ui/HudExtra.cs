@@ -240,6 +240,10 @@ public partial class Hud
         yield return ("operation", S.CurrentOp != null,
             "A great operation starts on a fixed day, whatever the Park does. Its readiness, under the objectives, counts the act's 'before' objectives, how unsuspecting the Germans still are, " +
             "and a decision a few days before. Hover it for the figures. Keep suspicion low and deliver the objectives in time.");
+        yield return ("quota", S.QuotaActive,
+            $"Whitehall now judges the Park by what it delivers: it expects {S.IntelQuota} fresh decrypts a day (hover over the reputation bar). Short of it, reputation slips, " +
+            "over twice as fast with nothing delivered; meet it and it slips only a little. Air and naval news counts for less after 16 hours. When Workload (U) shows desks and people standing idle, " +
+            "the Park can take on more requests: a request on a network whose key is already broken each day costs only Typex and translation time.");
         yield return ("vetting", S.Staff.Any(s => s.Arriving(S.Now)),
             "New recruits are vetted and put on a train: they take most of a day to report. Hire ahead of need, not when the pile is already on the desk.");
         yield return ("raid", S.RaidOn,
@@ -275,7 +279,9 @@ public partial class Hud
         yield return ("stores", S.StoresLow,
             "The stores are running low: every message needs its dockets and worksheets at registration, and without them the desks work at half speed. Order more under Staff; the lorry takes most of a day. A standing order reorders by itself, at a quarter more.");
         yield return ("inspection", S.InspectionDue,
-            "A visitor from Whitehall is coming. They judge what they see: overflowing in-trays, broken machines, glum faces, a request about to be missed, an overdrawn account. A smooth-running Park earns reputation; a shambles loses it, and a quarter of next week's grant.");
+            "A visitor from Whitehall is coming. They judge what they see: overflowing in-trays, broken machines, glum faces, a request about to be missed, an overdrawn account, " +
+            "and how many of the watch stand about with nothing to do (the Treasury counts heads: Workload, U, shows which roles are idle, so hire no more of them). " +
+            "A smooth-running Park earns reputation; a shambles loses it, and a quarter of next week's grant.");
         yield return ("priorities", S.KeysQueueing,
             "Keys are queueing for the Bombes. On the Enigma keys card, put the network with the most pressing request First; a network you have no requests for can go on Hold, leaving the Bombes to the others.");
         yield return ("neglect", S.NeglectedMinistries().Any(),

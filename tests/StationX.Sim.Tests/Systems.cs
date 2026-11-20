@@ -1303,8 +1303,9 @@ public class LayoutTests
         Assert.NotNull(g.Place(StationType.Registration, xs[0], y, 0));
         Assert.NotNull(g.Place(StationType.HandCipher, xs[1], y, 0));
         Assert.NotNull(g.Place(StationType.Translation, xs[2], y, 0));
+        Assert.NotNull(g.Place(StationType.Canteen, 14, 8, 0));
         g.Advance(1);
-        c = g.Contracts.First(k => k.State == ContractState.Offered);
+        c = g.Contracts.Where(k => k.State == ContractState.Offered).OrderBy(k => k.Quantity).First();
         Assert.True(g.Accept(c.Id));
         for (int t = 0; t < 3 * Defs.MinutesPerDay; t += 30) g.Advance(30);
         return g;
@@ -1315,7 +1316,7 @@ public class LayoutTests
     {
         var tight = Run(new[] { 11, 13, 15 }, out var c, y: 6);   // side by side in the Ballroom
         Assert.True(tight.Stats.HandOvers > 0, "desks side by side should pass paper across");
-        Assert.Equal(ContractState.Completed, c.State);
+        Assert.True(c.State == ContractState.Completed, $"{c.Title} {c.Net} {c.Delivered}/{c.Quantity} due {c.Due} now {tight.Now}");
 
         // A new game comes with its own starting desks, so compare rather than expect none.
         var spread = Run(new[] { 4, 9, 14 }, out _);

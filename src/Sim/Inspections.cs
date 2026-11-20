@@ -63,8 +63,13 @@ public sealed partial class GameState
 
         var here = Staff.Where(s => !s.Away && s.SickUntil <= Now).ToList();
         double morale = here.Count > 0 ? here.Average(s => s.Morale) : Defs.MoraleBaseline;
-        if (morale >= 0.65) { score++; notes.Add("cheerful, busy people"); }
+        if (morale >= 0.65) { score++; notes.Add("cheerful faces"); }
         else if (morale < 0.4) { score--; notes.Add("glum faces everywhere"); }
+
+        // The Treasury's man counts heads: a Park where most of the watch stands about is paying for people it doesn't need.
+        double idle = IdleShare();
+        if (idle >= Defs.InspectionIdleShare) { score--; notes.Add($"{idle:P0} of the watch standing about with nothing to do"); }
+        else if (idle <= Defs.InspectionBusyShare) { score++; notes.Add("everyone hard at work"); }
 
         if (Contracts.Any(c => c.State == ContractState.Active && c.Due - Now < 6 * 60 && c.Quantity - c.Delivered >= 2))
         { score--; notes.Add("a request about to be missed"); }
@@ -94,6 +99,23 @@ public sealed partial class GameState
         }
         else
             Emit(EventKind.Info, $"{Cap(InspectionBy)} looked round and said little: {saw}.");
+    }
+
+    /// <summary>
+    /// The share of the people on watch now (not on a break, sick or still on the train) with nothing to do: no task,
+    /// or sitting about at a table waiting for work. What a visitor walking round sees.
+    /// </summary>
+    public double IdleShare()
+    {
+        int on = 0, idle = 0;
+        foreach (var s in Staff)
+        {
+            if (s.Away || s.Arriving(Now) || s.IsSick(Now) || s.HeadOf != null) continue;
+            if (s.Task is { Kind: TaskKind.Rest, Loafing: false }) continue;
+            on++;
+            if (s.Task == null || s.Task is { Kind: TaskKind.Rest, Loafing: true }) idle++;
+        }
+        return on == 0 ? 0 : (double)idle / on;
     }
 
     static string Cap(string s) => s.Length == 0 ? s : s[0] == '"' ? s : char.ToUpperInvariant(s[0]) + s[1..];

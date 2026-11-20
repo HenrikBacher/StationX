@@ -616,6 +616,16 @@ public sealed partial class GameState
                     $"{Defs.Roles[ro.Role].Plural} stood idle {P(idle)} of their time on watch: there's more of them than work for them.",
                     2 + idle * 4, Role: ro.Role));
         }
+        // Capacity to sell: short of Whitehall's quota while the desks stand mostly idle and nothing is stuck.
+        if (QuotaActive && IntelRate < IntelQuota && !list.Any(f => f.Kind == "bottleneck"))
+        {
+            double open = r.Steps.Sum(s => s.OpenMinutes);
+            double busy = open > 0 ? r.Steps.Sum(s => s.OfOpen(DeskUse.Working) * s.OpenMinutes) / open : 0;
+            if (open > 0 && busy < 0.5)
+                list.Add(new UseFinding("spare",
+                    $"We delivered {IntelRate:0} fresh decrypts a day against Whitehall's {IntelQuota}, and the desks were busy only {P(busy)} of the time: " +
+                    "the Park can take on more requests (Q).", 6.5));
+        }
         return list.OrderByDescending(f => f.Score).ToList();
     }
 

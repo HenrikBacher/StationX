@@ -217,11 +217,16 @@ public partial class Hud : CanvasLayer
         _funds.Text = $"£{S.Funds:N0}";
         _funds.AddThemeColorOverride("font_color", S.Funds < 0 ? Gfx.Bad : UiTheme.Text);
         int cut = S.TreasuryCut(S.WeeklyGrant);
-        _funds.TooltipText = $"Weekly Treasury grant £{S.WeeklyGrant:N0}, wages £{S.WeeklyWages:N0}. Paid every Sunday night." +
+        _funds.TooltipText = $"Weekly Treasury grant £{S.WeeklyGrant:N0}, wages £{S.WeeklyWages:N0}, upkeep £{S.WeeklyUpkeep:N0}. Paid every Sunday night. " +
+                             $"The grant alone never covers a growing Park: the ministries pay for each request delivered (£{S.EarnedThisWeek:N0} since Sunday)." +
                              (cut > 0 ? $"\nWith more than £{Defs.TreasuryComfortable:N0} in hand, the Treasury will hold back £{cut:N0} of it." : "");
-        double slip = S.DailyExpectation * Defs.Difficulties[S.Difficulty].RepLossMult;
+        double slip = S.DailyExpectation * S.ExpectationMult * Defs.Difficulties[S.Difficulty].RepLossMult;
         _rep.TooltipText = "Completed requests raise it, missed deadlines lower it. It sets the weekly Treasury grant. At zero, GC&CS is closed down." +
-                           (slip > 0 ? $"\n\nWhitehall soon gets used to miracles: it slips {slip:0.0} a day, and more as the war goes on." : "") +
+                           (S.QuotaActive
+                               ? $"\n\nWhitehall expects {S.IntelQuota} fresh decrypts a day, a share of what the ministries ask for that grows as the war goes on. Over the last two days " +
+                                 $"we delivered {S.IntelRate:0.0} a day (air and naval news counts for less after 16 hours, army after a day): " +
+                                 (S.IntelRate < S.IntelQuota ? $"reputation slips {slip:0.0} a day until we deliver more." : $"reputation slips only {slip:0.0} a day while we keep it up.")
+                               : slip > 0 ? $"\n\nWhitehall soon gets used to miracles: it slips {slip:0.0} a day, and more as the war goes on." : "") +
                            RepWeek();
         _funds.MouseFilter = Control.MouseFilterEnum.Pass;
         _rep.Value = S.Reputation;

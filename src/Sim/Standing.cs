@@ -59,7 +59,7 @@ public sealed partial class GameState
                 c.MilestonesMet++;
                 Stats.MilestonesMet++;
                 int pay = (int)(c.MilestonePay * Defs.Policies[Policy].Reward);
-                Funds += pay;
+                Earn(pay);
                 AdjustRep(Defs.MilestoneRep * Defs.Policies[Policy].Rep, "Standing orders");
                 LastServed[c.Issuer] = Now;
                 Emit(EventKind.Good, $"{Defs.IssuerNames[c.Issuer]}: day {c.MilestonesChecked} of the standing order met ({c.Delivered}/{needed}). +£{pay}");
@@ -80,7 +80,7 @@ public sealed partial class GameState
         {
             c.MilestonesChecked++;
             c.MilestonesMet++;
-            Funds += (int)(c.MilestonePay * Defs.Policies[Policy].Reward);
+            Earn((int)(c.MilestonePay * Defs.Policies[Policy].Reward));
         }
         return c.MilestonesMet == c.TotalDays ? reward : reward / 2;
     }

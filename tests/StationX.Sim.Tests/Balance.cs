@@ -27,7 +27,7 @@ public class Balance(ITestOutputHelper output)
     static Result Play(Difficulty d, int seed)
     {
         var g = GameState.NewGame(seed, d);
-        var ai = new AutoPlayer(g);
+        var ai = new AutoPlayer(g) { UseWorkload = Environment.GetEnvironmentVariable("BALANCE_NOWORKLOAD") != "1" };
         double minRep = g.Reputation, minFunds = g.Funds;
         while (g.Status == GameStatus.Playing && g.Day < 320)
         {

@@ -819,11 +819,12 @@ public sealed partial class GameState
     {
         History.Add(new DayRecord
         {
-            Day = Day - 1, Delivered = DeliveredToday, KeysBroken = KeysToday, Backlog = Messages.Count,
+            Day = Day - 1, Delivered = DeliveredToday, Fresh = FreshToday, KeysBroken = KeysToday, Backlog = Messages.Count,
             Funds = Funds, Reputation = Reputation, Staff = Staff.Count, Suspicion = MaxSuspicion, Morale = AverageMorale,
         });
         if (History.Count > 120) History.RemoveAt(0);
         DeliveredToday = 0;
+        FreshToday = 0;
         KeysToday = 0;
     }
 

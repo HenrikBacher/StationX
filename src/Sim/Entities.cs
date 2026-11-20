@@ -363,6 +363,8 @@ public sealed class DayRecord
 {
     public int Day { get; set; }
     public int Delivered { get; set; }
+    /// <summary>Delivered, counted against Whitehall's quota: fresh in full, stale and dead for less.</summary>
+    public double Fresh { get; set; }
     public int KeysBroken { get; set; }
     public int Backlog { get; set; }
     public int Funds { get; set; }

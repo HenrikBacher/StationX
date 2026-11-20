@@ -69,6 +69,8 @@ public sealed partial class GameState
     /// <summary>Recent message movements between stations, "from>to" → messages, for the flow overlay.</summary>
     public SortedDictionary<string, double> Flows { get; set; } = new();
     public int DeliveredToday { get; set; }
+    /// <summary>Today's decrypts as Whitehall counts them against its quota (see <see cref="QuotaValue"/>).</summary>
+    public double FreshToday { get; set; }
     public int KeysToday { get; set; }
     public double Accum { get; set; }
     /// <summary>After SHARK falls the player may carry on into the Tunny chapter.</summary>
@@ -213,7 +215,7 @@ public sealed partial class GameState
         if (Day % 7 == 0) { WeeklyAccounts(); CoverLeft = Defs.CoverPerWeek; WeeklyRota(); }
         if (Day % 7 == 3) RefreshCandidates();
         if (SharkBlackout) TonnageLost += Rng.Range(14000, 26000);
-        if (ActIndex >= 1) AdjustRep(-DailyExpectation, "Whitehall's expectations");
+        if (ActIndex >= 1) AdjustRep(-DailyExpectation * ExpectationMult, "Whitehall's expectations");
         if (Funds < 0)
         {
             AdjustRep(-1.5, "Overdrawn");
@@ -939,6 +941,7 @@ public sealed partial class GameState
         var net = Defs.NetOf(m.Net);
         Stats.DeliveredTotal++;
         DeliveredToday++;
+        FreshToday += QuotaValue(m);
         Stats.Inc(Stats.Delivered, m.Net);
         Points += PointsFor(m);
         if (IsStale(m)) Stats.LateDecrypts++;
@@ -965,6 +968,13 @@ public sealed partial class GameState
     }
 
     public bool IsStale(Message m) => Now - m.Created > Defs.StaleAfter(m.Net);
+
+    /// <summary>What a decrypt delivered now counts for against Whitehall's quota: news goes off.</summary>
+    public double QuotaValue(Message m)
+    {
+        double age = Now - m.Created;
+        return age > Defs.DeadAfter(m.Net) ? Defs.QuotaDead : age > Defs.StaleAfter(m.Net) ? Defs.QuotaStale : 1;
+    }
     public bool IsDead(Message m) => Now - m.Created > Defs.DeadAfter(m.Net);
 
     // ------------------------------------------------------------- keys

@@ -25,7 +25,8 @@ public class GreatOpsTests
     static void RunTo(GameState g, double at)
     {
         // The sim pauses on a finished act until the summary is read.
-        while (g.Now < at && g.Status == GameStatus.Playing && !g.ActCompletePending) { g.Dilemmas.RemoveAll(d => d.Tag != "op"); g.Advance(30); }
+        // Nothing is delivered here, so Whitehall's quota would close the Park first: hold reputation up.
+        while (g.Now < at && g.Status == GameStatus.Playing && !g.ActCompletePending) { g.Dilemmas.RemoveAll(d => d.Tag != "op"); g.Reputation = Math.Max(g.Reputation, 50); g.Advance(30); }
     }
 
     [Fact]
