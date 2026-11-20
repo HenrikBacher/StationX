@@ -665,7 +665,7 @@ public partial class Main : Node3D
         env.FogLightEnergy = 1;
         env.FogDensity = 0.36f + 0.36f * haze;
         env.FogDepthBegin = 115 - 22 * haze;
-        _weather.Sync(w, Rig.Target, State.RaidOn && night > 0.3f);
+        _weather.Sync(w, Rig.Target, State.RaidOn && night > 0.3f, light: Mathf.Lerp(1f, 0.3f, night) * (1 - 0.25f * gloom));
         if (State.RaidOn != _wasRaid)
         {
             _wasRaid = State.RaidOn;
