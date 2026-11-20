@@ -16,6 +16,7 @@ public partial class Hud : CanvasLayer
     Label _date = null!, _time = null!, _funds = null!, _points = null!, _tonnage = null!;
     ProgressBar _rep = null!;
     Label _quota = null!;
+    Control _topSpacer = null!;
     Button _pauseBtn = null!, _flowBtn = null!;
     readonly List<(Button b, int speed)> _speedBtns = new();
     readonly Dictionary<string, Button> _tools = new();
@@ -164,10 +165,16 @@ public partial class Hud : CanvasLayer
         view.AddChild(UiTheme.Button("Menu", ShowPauseMenu, tooltip: "Save, load, settings (Esc)"));
         row.AddChild(view);
 
-        row.AddChild(new Control { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill });
+        _topSpacer = new Control { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+        row.AddChild(_topSpacer);
 
+        // Takes the room left over and trims itself to it, so the bar never runs off the screen.
         _tonnage = UiTheme.Label("", 14, Gfx.Bad, Fonts.BodyBold);
         _tonnage.AutowrapMode = TextServer.AutowrapMode.Off;
+        _tonnage.ClipText = true;
+        _tonnage.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
+        _tonnage.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        _tonnage.HorizontalAlignment = HorizontalAlignment.Right;
         _tonnage.VerticalAlignment = VerticalAlignment.Center;
         _tonnage.TooltipText = "Allied shipping sunk while SHARK can't be read.";
         _tonnage.MouseFilter = Control.MouseFilterEnum.Pass;
@@ -247,9 +254,11 @@ public partial class Hud : CanvasLayer
         _rep.AddThemeStyleboxOverride("fill", fill);
         _points.Text = S.Points.ToString();
         _tonnage.Visible = S.TonnageLost > 0;
-        _tonnage.Text = S.SharkBlackout
-            ? $"Shipping lost: {S.TonnageLost:N0} tons"
-            : $"Shipping lost: {S.TonnageLost:N0} tons · SHARK read";
+        _topSpacer.Visible = !_tonnage.Visible;
+        _tonnage.Text = $"Shipping lost: {S.TonnageLost:N0} tons";
+        _tonnage.TooltipText = S.SharkBlackout
+            ? $"Allied shipping sunk while SHARK can't be read: {S.TonnageLost:N0} tons so far, and more every day until it is."
+            : $"Allied shipping sunk while SHARK couldn't be read: {S.TonnageLost:N0} tons. SHARK is read now, and the losses have stopped.";
     }
 
     // ---------------------------------------------------------------- toolbar
