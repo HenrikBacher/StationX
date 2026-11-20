@@ -6,6 +6,42 @@ namespace StationX.Sim;
 
 public enum GameStatus { Playing, Won, Lost }
 
+/// <summary>
+/// The first item in a list with an id, as a plain search would find it, but remembering each id's place. The memory
+/// is trusted only while the list is the same one, as long as it was, had no repeated ids, and still has that id
+/// there; otherwise the list is searched, and the memory rebuilt when that finds something.
+/// </summary>
+sealed class IdIndex<T>(Func<T, int> idOf) where T : class
+{
+    readonly Dictionary<int, int> _at = new();
+    List<T>? _list;
+    int _count;
+    bool _repeats;
+
+    public T? Find(List<T> list, int id)
+    {
+        if (ReferenceEquals(list, _list) && list.Count == _count && !_repeats && _at.TryGetValue(id, out int i) && idOf(list[i]) == id)
+            return list[i];
+        for (int k = 0; k < list.Count; k++)
+            if (idOf(list[k]) == id)
+            {
+                Remember(list);
+                return list[k];
+            }
+        return null;
+    }
+
+    void Remember(List<T> list)
+    {
+        _list = list;
+        _count = list.Count;
+        _repeats = false;
+        _at.Clear();
+        for (int k = 0; k < list.Count; k++)
+            if (!_at.TryAdd(idOf(list[k]), k)) _repeats = true;
+    }
+}
+
 public sealed partial class GameState
 {
     public int Seed { get; set; }
@@ -94,19 +130,12 @@ public sealed partial class GameState
     public Dictionary<int, DateOnly> ActStarts { get; set; } = new();
     public Act Act => Campaign.Acts[ActIndex];
 
-    // Plain loops rather than Find(lambda): these run for every person every tick, and each lambda capturing the id
-    // was an allocation.
-    public Station? StationById(int id)
-    {
-        foreach (var s in Stations) if (s.Id == id) return s;
-        return null;
-    }
+    // These run for every person and station every tick, so each remembers where it found things (see IdIndex).
+    readonly IdIndex<Station> _stationIndex = new(s => s.Id);
+    readonly IdIndex<Staff> _staffIndex = new(s => s.Id);
 
-    public Staff? StaffById(int id)
-    {
-        foreach (var s in Staff) if (s.Id == id) return s;
-        return null;
-    }
+    public Station? StationById(int id) => _stationIndex.Find(Stations, id);
+    public Staff? StaffById(int id) => _staffIndex.Find(Staff, id);
 
     public Contract? ContractById(int id)
     {
