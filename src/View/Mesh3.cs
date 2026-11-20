@@ -167,7 +167,7 @@ public static class Mesh3
     /// Window glass: dark, since the room behind is dim against daylight, and smooth, so it shows the sky. The slight
     /// metalness stands in for the bright sheen old panes have at a slant.
     /// </summary>
-    public static StandardMaterial3D Glass => _glass ??= new StandardMaterial3D
+    public static StandardMaterial3D CarGlass => _glass ??= new StandardMaterial3D
     {
         AlbedoColor = new Color("56666b"),
         Roughness = 0.1f,

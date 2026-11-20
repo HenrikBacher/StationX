@@ -856,13 +856,15 @@ public partial class Main : Node3D
             sunlight: Mathf.Max(1 - night, night * 0.65f) * (1 - gloom));
         _park.SetHeads(State);
         _park.SetSmoke(State, w switch { Weather.Storm => 1f, Weather.Rain => 0.55f, Weather.Overcast or Weather.Snow => 0.4f, Weather.Fog => 0.05f, _ => 0.25f });
-        // Blackout during a raid: shaded lamps, just enough to work by.
-        foreach (var l in _park.Lamps) l.LightEnergy = night * (State.RaidOn ? 0.55f : 1.6f);
+        // Blackout during a raid: shaded lamps, just enough to work by. Only occupied buildings are lit.
+        _park.SetNight(State, night, State.RaidOn);
+        // Desk lamps burn where someone is at the desk: after dark the night watch shows as pools of light.
         float desk = Mathf.Max(night, gloom * 0.35f);
-        foreach (var l in StationModel.DeskLamps)
+        foreach (var (l, owner) in StationModel.DeskLamps)
         {
-            l.Visible = desk > 0.05f;
-            l.LightEnergy = desk * 0.85f;
+            bool on = desk > 0.05f && State.StationById(owner.StationId) is { } st && (st.OperatorPresent || st.Current != null);
+            if (l.Visible != on) l.Visible = on;
+            if (on) l.LightEnergy = desk * 0.85f;
         }
     }
 

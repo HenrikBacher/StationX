@@ -265,6 +265,11 @@ Then (user requests, 2026-11-19):
 - End sheet: `Hud.WarRecord()` (two columns: dates and days, decrypts and late, keys, requests, decisions, most-read
   networks; great operations, staff now and at peak, breakdowns and fitters' repairs, JN-25 and Ōshima, tonnage) and a
   postscript at VE Day. `Defs.RoleWord`/`RolePlural` lower-case role names but keep "Wren" and "RAF".
+- The Park at night (`NightLights.cs`): building glass is one shader (`NightLights.Glass`; vehicles keep `Mesh3.CarGlass`)
+  that reads an R8 map with a texel per tile (zone rect + 1), redrawn only when a building's occupancy step (`Level`)
+  changes; warm emission at the pane edges × night. `MergeStatic` accepts that material, so no extra draws.
+  `Park3D.SetNight`: ceiling lamps only in occupied buildings, hooded door lamps (`DoorLamp`, out in a raid), and desk
+  lamps (`StationModel.DeskLamps` now (light, owner)) only where someone is at the desk.
 
 ### Graphics overhaul: period realism, CC0 assets allowed
 

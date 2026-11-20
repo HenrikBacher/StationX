@@ -349,7 +349,7 @@ public partial class StationModel : Node3D
     readonly List<MeshInstance3D> _valves = new();
 
     /// <summary>Every desk lamp's light in the world; Main turns them up after dark.</summary>
-    public static readonly List<OmniLight3D> DeskLamps = new();
+    public static readonly List<(OmniLight3D light, StationModel owner)> DeskLamps = new();
 
     /// <summary>
     /// The first Newmanry machine: an angle-iron "bedstead" carrying two loops of tape over pulleys, beside a cabinet of
@@ -590,8 +590,8 @@ public partial class StationModel : Node3D
             Visible = false,
         };
         AddChild(light);
-        DeskLamps.Add(light);
-        TreeExiting += () => DeskLamps.Remove(light);
+        DeskLamps.Add((light, this));
+        TreeExiting += () => DeskLamps.Remove((light, this));
     }
 
     /// <summary>Log sheets, a callsign chart pinned on a board, and coloured pencils for drawing the network diagrams.</summary>

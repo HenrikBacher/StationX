@@ -29,6 +29,10 @@ public partial class Park3D : Node3D
     Node3D? _boom, _sentryArm;
     float _boomOpen;
     public readonly List<OmniLight3D> Lamps = new();
+    /// <summary>The building each ceiling lamp hangs in (parallel to <see cref="Lamps"/>).</summary>
+    public readonly List<string> LampZones = new();
+    /// <summary>Hooded blackout lamps over the buildings' doors, and their buildings.</summary>
+    public readonly List<(OmniLight3D light, MeshInstance3D bulb, string zone)> DoorLamps = new();
     string _sig = "";
     int _quarter;
 
@@ -227,6 +231,8 @@ public partial class Park3D : Node3D
         foreach (var c in _buildings.GetChildren()) c.QueueFree();
         _headLabels.Clear();
         Lamps.Clear();
+        LampZones.Clear();
+        DoorLamps.Clear();
         _sided.Clear();
         _roofs.Clear();
         _smokes.Clear();
@@ -462,6 +468,58 @@ public partial class Park3D : Node3D
 
     // ------------------------------------------------------------- buildings
 
+    /// <summary>
+    /// A hooded lamp over the door, as the blackout allowed: a dark cowl over a dim bulb, throwing a small pool down
+    /// on the step and no light upward. Lit after dark (brighter while people are in the building).
+    /// </summary>
+    void DoorLamp(Zone z, int ox, int oy, bool vertical)
+    {
+        var step = new Vector3(ox + 0.5f, 0, oy + 0.5f);
+        var wall = new Vector3(z.DoorX + 0.5f, 0, z.DoorY + 0.5f);
+        var outward = (step - wall).Normalized();
+        // Over the lintel, just to one side, out on a bracket from the wall face.
+        var side = vertical ? new Vector3(0, 0, 1) : new Vector3(1, 0, 0);
+        var at = (wall + step) / 2 + side * 0.55f + new Vector3(0, 1.3f, 0);
+        Mesh3.Box(_buildings, new Vector3(0.04f, 0.04f, 0.04f) + Abs(outward) * 0.18f, at - outward * 0.09f, new Color("2a2a2a"));
+        var hood = Mesh3.Cyl(_buildings, 0.05f, 0.12f, 0.08f, at + new Vector3(0, 0.02f, 0), new Color("30332f"));
+        hood.CastShadow = GeometryInstance3D.ShadowCastingSetting.Off;
+        var bulb = Mesh3.Sphere(_buildings, 0.03f, at - new Vector3(0, 0.03f, 0), Gfx.LampGlow with { A = 1 });
+        bulb.Visible = false;
+        var light = new OmniLight3D
+        {
+            Position = at - new Vector3(0, 0.12f, 0) + outward * 0.15f,
+            LightColor = new Color(1f, 0.85f, 0.62f),
+            OmniRange = 1.8f,
+            OmniAttenuation = 1.4f,
+            LightEnergy = 0,
+            ShadowEnabled = false,
+            Visible = false,
+        };
+        _buildings.AddChild(light);
+        DoorLamps.Add((light, bulb, z.Id));
+    }
+
+    static Vector3 Abs(Vector3 v) => new(Mathf.Abs(v.X), Mathf.Abs(v.Y), Mathf.Abs(v.Z));
+
+    /// <summary>After dark: windows glow where people are at work, ceiling lamps burn in occupied buildings, door lamps come on.</summary>
+    public void SetNight(GameState g, float night, bool raid)
+    {
+        NightLights.Sync(g, night);
+        var present = NightLights.Present;
+        for (int i = 0; i < Lamps.Count; i++)
+        {
+            bool someone = present.TryGetValue(LampZones[i], out int n) && n > 0;
+            Lamps[i].LightEnergy = someone ? night * (raid ? 0.55f : 1.6f) : 0;
+        }
+        foreach (var (light, bulb, zone) in DoorLamps)
+        {
+            bool on = night > 0.2f && !raid;   // in a raid even the door lamps go out
+            float e = on ? (present.TryGetValue(zone, out int n) && n > 0 ? 0.9f : 0.45f) * night : 0;
+            if (light.Visible != on) { light.Visible = on; bulb.Visible = on; }
+            light.LightEnergy = e;
+        }
+    }
+
     void Building(Zone z)
     {
         bool mansion = z.Id == "mansion";
@@ -545,6 +603,7 @@ public partial class Park3D : Node3D
                 };
                 _buildings.AddChild(lamp);
                 Lamps.Add(lamp);
+                LampZones.Add(z.Id);
             }
     }
 
@@ -678,7 +737,7 @@ public partial class Park3D : Node3D
         {
             Mesh3.Prism(north, new Vector3(2.2f, 1.1f, WallThick), new Vector3(gx, BackWall + 0.6f, y0), brick);
             Mesh3.Prism(north, new Vector3(2.45f, 1.22f, WallThick * 0.6f), new Vector3(gx, BackWall + 0.62f, y0 - 0.1f), stone);
-            Mesh3.Box(north, new Vector3(0.36f, 0.5f, WallThick + 0.03f), new Vector3(gx, BackWall + 0.4f, y0), Mesh3.Glass);
+            Mesh3.Box(north, new Vector3(0.36f, 0.5f, WallThick + 0.03f), new Vector3(gx, BackWall + 0.4f, y0), NightLights.Glass);
             Mesh3.Box(north, new Vector3(0.12f, 0.12f, 0.12f), new Vector3(gx, BackWall + 1.2f, y0), stone);
         }
         foreach (float cx in new[] { x0 + 1.2f, (x0 + x1) / 2 - 1.4f, x1 - 1.3f })
@@ -689,7 +748,7 @@ public partial class Park3D : Node3D
         float by = (y0 + y1) / 2 + 0.5f;
         Mesh3.Box(west, new Vector3(0.6f, BackWall + 0.2f, 1.8f), new Vector3(x0 - 0.38f, (BackWall + 0.2f) / 2, by), brick);
         for (int k = -1; k <= 1; k++)
-            Mesh3.Box(west, new Vector3(0.05f, 0.6f, 0.42f), new Vector3(x0 - 0.7f, 0.95f, by + k * 0.55f), Mesh3.Glass);
+            Mesh3.Box(west, new Vector3(0.05f, 0.6f, 0.42f), new Vector3(x0 - 0.7f, 0.95f, by + k * 0.55f), NightLights.Glass);
         Mesh3.Prism(west, new Vector3(0.7f, 0.5f, 1.9f), new Vector3(x0 - 0.38f, BackWall + 0.45f, by), slate);
         Chimney(west, new Vector3(x0 - 0.05f, BackWall, y1 - 1.6f), brick);
 
@@ -699,7 +758,7 @@ public partial class Park3D : Node3D
         for (int k = 0; k < 8; k++)
         {
             float a = k * Mathf.Tau / 8;
-            Mesh3.Box(corner, new Vector3(0.12f, 0.3f, 0.03f), drum + new Vector3(Mathf.Cos(a) * 0.62f, 0.3f, Mathf.Sin(a) * 0.62f), Mesh3.Glass)
+            Mesh3.Box(corner, new Vector3(0.12f, 0.3f, 0.03f), drum + new Vector3(Mathf.Cos(a) * 0.62f, 0.3f, Mathf.Sin(a) * 0.62f), NightLights.Glass)
                 .Rotation = new Vector3(0, -a + Mathf.Pi / 2, 0);
         }
         Mesh3.Cyl(corner, 0.68f, 0.68f, 0.06f, drum + new Vector3(0, 0.57f, 0), Gfx.StoneDressing, 20);
@@ -745,10 +804,10 @@ public partial class Park3D : Node3D
             Mesh3.Box(front, new Vector3(bw + 0.12f, 0.08f, bd + 0.1f), new Vector3(bx, bh + 0.04f, bz + o * 0.03f), stone);
             Mesh3.Box(front, new Vector3(bw + 0.04f, 0.1f, bd + 0.04f), new Vector3(bx, 0.55f, bz), stone);
             // A tall sash in the front face and a narrow one in each side.
-            Mesh3.Box(front, new Vector3(0.62f, 0.62f, 0.03f), new Vector3(bx, 0.95f, bz + o * (bd / 2 + 0.005f)), Mesh3.Glass);
+            Mesh3.Box(front, new Vector3(0.62f, 0.62f, 0.03f), new Vector3(bx, 0.95f, bz + o * (bd / 2 + 0.005f)), NightLights.Glass);
             Mesh3.Box(front, new Vector3(0.66f, 0.04f, 0.04f), new Vector3(bx, 0.95f, bz + o * (bd / 2 + 0.01f)), Gfx.Cream.Darkened(0.1f));
             foreach (float sx in new[] { -1f, 1f })
-                Mesh3.Box(front, new Vector3(0.03f, 0.62f, 0.3f), new Vector3(bx + sx * (bw / 2 + 0.005f), 0.95f, bz), Mesh3.Glass);
+                Mesh3.Box(front, new Vector3(0.03f, 0.62f, 0.3f), new Vector3(bx + sx * (bw / 2 + 0.005f), 0.95f, bz), NightLights.Glass);
             Mesh3.Box(front, new Vector3(0.7f, 0.06f, 0.06f), new Vector3(bx, 1.3f - 0.05f, bz + o * (bd / 2 + 0.02f)), stone);
         }
     }
@@ -910,7 +969,7 @@ public partial class Park3D : Node3D
                         for (int s = 0; s < mats.Length && ok; s++)
                         {
                             var m = mi.MaterialOverride ?? mi.GetSurfaceOverrideMaterial(s) ?? mi.Mesh.SurfaceGetMaterial(s);
-                            ok = m is BaseMaterial3D { Transparency: BaseMaterial3D.TransparencyEnum.Disabled };
+                            ok = m is BaseMaterial3D { Transparency: BaseMaterial3D.TransparencyEnum.Disabled } || m == NightLights.Glass;
                             mats[s] = m!;
                         }
                         if (ok)
@@ -1112,7 +1171,7 @@ public partial class Park3D : Node3D
         Vector3 Along(float t) => alongX ? new Vector3(t, 0, 0) : new Vector3(0, 0, t);
         var paint = brick ? new Color("d2cab6") : new Color("b3ab93");
         float glassD = WallThick + 0.02f, barD = WallThick + 0.05f, frameD = WallThick + 0.06f;
-        Mesh3.Box(parent, Size(ww, wh, glassD), wc, Mesh3.Glass);
+        Mesh3.Box(parent, Size(ww, wh, glassD), wc, NightLights.Glass);
         const float fw = 0.06f, bw = 0.025f;
         Mesh3.Box(parent, Size(ww + 2 * fw, fw, frameD), wc + new Vector3(0, wh / 2 + fw / 2, 0), paint);
         Mesh3.Box(parent, Size(ww + 2 * fw, fw, frameD), wc - new Vector3(0, wh / 2 + fw / 2, 0), paint);
@@ -1161,10 +1220,10 @@ public partial class Park3D : Node3D
         // Cab
         Mesh3.Box(lorry, new Vector3(0.92f, 0.6f, 0.55f), new Vector3(0, 0.68f, 0.5f), body);
         Mesh3.Box(lorry, new Vector3(0.96f, 0.04f, 0.62f), new Vector3(0, 1.0f, 0.5f), body.Darkened(0.1f));
-        Mesh3.Box(lorry, new Vector3(0.78f, 0.22f, 0.02f), new Vector3(0, 0.84f, 0.78f), Mesh3.Glass);
+        Mesh3.Box(lorry, new Vector3(0.78f, 0.22f, 0.02f), new Vector3(0, 0.84f, 0.78f), Mesh3.CarGlass);
         foreach (float sx in new[] { -1f, 1f })
         {
-            Mesh3.Box(lorry, new Vector3(0.02f, 0.2f, 0.3f), new Vector3(sx * 0.465f, 0.84f, 0.56f), Mesh3.Glass);
+            Mesh3.Box(lorry, new Vector3(0.02f, 0.2f, 0.3f), new Vector3(sx * 0.465f, 0.84f, 0.56f), Mesh3.CarGlass);
             // Front wing over the wheel, with its headlamp
             Mesh3.Box(lorry, new Vector3(0.2f, 0.05f, 0.56f), new Vector3(sx * 0.4f, 0.47f, 0.98f), body.Darkened(0.1f));
             Mesh3.Cyl(lorry, 0.06f, 0.06f, 0.06f, new Vector3(sx * 0.37f, 0.56f, 1.2f), new Color("d8d0b0"), 10).RotationDegrees = new Vector3(90, 0, 0);
@@ -1224,6 +1283,7 @@ public partial class Park3D : Node3D
     {
         var (ox, oy) = z.OutsideDoor;
         bool vertical = ox == z.DoorX;
+        DoorLamp(z, ox, oy, vertical);
         Mesh3.Box(_buildings, new Vector3(vertical ? 0.9f : 0.35f, 0.08f, vertical ? 0.35f : 0.9f),
             new Vector3(ox + 0.5f + (vertical ? 0 : (ox < z.DoorX ? 0.3f : -0.3f)), 0.04f, oy + 0.5f + (vertical ? (oy < z.DoorY ? 0.3f : -0.3f) : 0)), Gfx.OakDark);
         foreach (int s in new[] { -1, 1 })
@@ -1413,11 +1473,11 @@ public partial class Park3D : Node3D
         var roof = Mesh3.Cyl(paint, 0.27f, 0.27f, 0.7f, new Vector3(0, 0.69f, -0.2f), black, 16);
         roof.RotationDegrees = new Vector3(90, 0, 0);
         roof.Scale = new Vector3(1, 1, 0.22f);
-        Mesh3.Box(car, new Vector3(0.46f, 0.15f, 0.02f), new Vector3(0, 0.6f, 0.16f), Mesh3.Glass);
+        Mesh3.Box(car, new Vector3(0.46f, 0.15f, 0.02f), new Vector3(0, 0.6f, 0.16f), Mesh3.CarGlass);
         foreach (float sx in new[] { -1f, 1f })
             foreach (float wz in new[] { 0.0f, -0.36f })
-                Mesh3.Box(car, new Vector3(0.02f, 0.14f, 0.28f), new Vector3(sx * 0.275f, 0.6f, wz), Mesh3.Glass);
-        Mesh3.Box(car, new Vector3(0.36f, 0.12f, 0.02f), new Vector3(0, 0.6f, -0.56f), Mesh3.Glass);
+                Mesh3.Box(car, new Vector3(0.02f, 0.14f, 0.28f), new Vector3(sx * 0.275f, 0.6f, wz), Mesh3.CarGlass);
+        Mesh3.Box(car, new Vector3(0.36f, 0.12f, 0.02f), new Vector3(0, 0.6f, -0.56f), Mesh3.CarGlass);
         // Boot and the spare wheel on it
         Mesh3.Box(paint, new Vector3(0.5f, 0.2f, 0.18f), new Vector3(0, 0.33f, -0.8f), black);
         Mesh3.Cyl(paint, 0.14f, 0.14f, 0.08f, new Vector3(0, 0.36f, -0.93f), tyre, 16).RotationDegrees = new Vector3(90, 0, 0);
