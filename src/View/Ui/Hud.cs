@@ -41,6 +41,7 @@ public partial class Hud : CanvasLayer
         BuildInspector();
         BuildFeed();
         BuildHints();
+        BuildTutorial();
         BuildModalLayer();
     }
 
@@ -65,6 +66,7 @@ public partial class Hud : CanvasLayer
     public void Reset()
     {
         _objSig = _keySig = _sideSig = _inspSig = _alertSig = "";
+        _tutShown = -1;
         foreach (var c in _feed?.GetChildren() ?? new Godot.Collections.Array<Node>()) c.QueueFree();
         ClosePanel();
         CloseModal();
@@ -117,6 +119,7 @@ public partial class Hud : CanvasLayer
             && S.Contracts.FirstOrDefault(c => c.Flash && c.State == ContractState.Offered && !_flashShown.Contains(c.Id)) is { } flash)
             ShowFlash(flash);
         if (!ModalOpen && _main.Interactive && S.Status == GameStatus.Playing && S.Dilemmas.Count > 0) ShowDilemma(S.Dilemmas[0]);
+        RefreshTutorial();   // every frame: the outline pulses and follows a scrolling panel
         _refresh -= delta;
         if (_refresh > 0) return;
         _refresh = 0.2;

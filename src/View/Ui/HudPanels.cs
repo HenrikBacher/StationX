@@ -419,13 +419,15 @@ public partial class Hud
                 if (c.Specialties.Count > 0) v.AddChild(UiTheme.Label("Specialist: " + string.Join(", ", c.Specialties.Select(t => Defs.Station(t).Name.ToLowerInvariant())), 12, UiTheme.Accent));
             }
             var id = c.Id;
-            v.AddChild(Row(role, UiTheme.Button("Hire", () =>
+            var hire = UiTheme.Button("Hire", () =>
                 {
                     S.Hire(id, _hireShift.TryGetValue(id, out var hs) ? hs : null, _hireZone.TryGetValue(id, out var hz) ? hz : null);
                     _hireShift.Remove(id);
                     _hireZone.Remove(id);
                 }, S.Funds >= c.Salary,
-                tooltip: c.Notable != null ? "Reports at once." : $"Vetting and travel: reports in about {Math.Round(Defs.VettingHours(c.Role, S.Difficulty))} hours. Hire ahead of need.")));
+                tooltip: c.Notable != null ? "Reports at once." : $"Vetting and travel: reports in about {Math.Round(Defs.VettingHours(c.Role, S.Difficulty))} hours. Hire ahead of need.");
+            if (!hire.HasMeta("tut")) hire.SetMeta("tut", "hire:" + c.Role);
+            v.AddChild(Row(role, hire));
             // Nothing to choose until there's a second building for the role or the watches begin.
             if (S.WatchesAvailable || (!GameState.Roams(c.Role) && S.PostsFor(c.Role).Skip(1).Any()))
                 v.AddChild(HirePosting(c));
@@ -649,7 +651,9 @@ public partial class Hud
             var id = c.Id;
             var exp = UiTheme.Label($"Offer lapses in {Hours(c.OfferExpires - S.Now)}", 12, UiTheme.TextDim);
             exp.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-            v.AddChild(Row(exp, UiTheme.Button("Decline", () => S.Decline(id)), UiTheme.Button("Accept", () => S.Accept(id))));
+            var accept = UiTheme.Button("Accept", () => S.Accept(id));
+            accept.SetMeta("tut", "accept");
+            v.AddChild(Row(exp, UiTheme.Button("Decline", () => S.Decline(id)), accept));
         }
 
         if (done.Count > 0)

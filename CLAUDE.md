@@ -358,6 +358,14 @@ Then (user requests, 2026-11-19):
   carry "Put first" on their due line; the keys card puts "N waiting" beside the network's name; while the inspector is open,
   Needs attention (and the keys card if it would be covered) steps aside (`ApplyRightColumn`, every frame); the Intercepts list
   names the next desk ("to typex machine") instead of "cipher".
+- Tutorial (`HudTutorial.cs`, user request): `GameState.Tutorial`/`TutorialStep` (saved); `TutorialOn` while campaign act ≤ 1.
+  `Steps` are (id, text, target, done): a step whose `Done` is already true moves on by itself, null `Done` gets a Next button.
+  Targets (`FindTarget`): `tool:ID`, `place:StationType` (Build card's Place, meta "station"), `hire:Role`/`accept` (meta "tut"),
+  `speed:N`, `flow`, `objectives`, `rep`; a gold ring (`_tutRing`) follows it every frame, scrolling the side panel to it once.
+  Tips (`NextHint`) wait while it runs. Skip only ends the guidance (user: no jumping ahead) and sets `Settings.TutorialDone`
+  (also set on finishing), which makes new games default to "Without" (New game → First chapter). Off for shots and the
+  self-test unless `--tutorial`; `--tutstep=N` shows a step. The self-test checks card, Next and Skip.
+- An open side panel slides the picture right by half its width (`CameraRig.ShiftPx` → `Cam.HOffset`; shots settle it).
 
 ### Graphics overhaul: period realism, CC0 assets allowed
 

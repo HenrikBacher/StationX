@@ -243,6 +243,23 @@ public partial class Main
             var option = Find<Button>(Hud, b => b.Text == State.Dilemmas[0].Options[0].Label);
             if (option != null) await Click(CentreOf(option));
             Check(State.Dilemmas.Count == 0 && !Hud.ModalOpen, "choosing an option resolves the dilemma");
+
+            // The tutorial: its card at the first step, Next, and Skip (which ends the guidance and stays in the chapter)
+            if (State.ActIndex <= 1)
+            {
+                Hud.ClosePanel();
+                State.Tutorial = true;
+                State.TutorialStep = 0;
+                await Until(() => Find<Button>(Hud, b => b.Text == "Next" && b.IsVisibleInTree()) != null, 2);
+                var next = Find<Button>(Hud, b => b.Text == "Next" && b.IsVisibleInTree());
+                Check(next != null, "the tutorial card shows its first step");
+                if (next != null) await Click(CentreOf(next));
+                Check(State.TutorialStep >= 1, "Next moves the tutorial on");
+                int act = State.ActIndex;
+                var skip = Find<Button>(Hud, b => b.Text == "Skip" && b.IsVisibleInTree());
+                if (skip != null) await Click(CentreOf(skip));
+                Check(!State.Tutorial && State.ActIndex == act && !Hud.ModalOpen, "Skip ends the guidance and stays in the chapter");
+            }
         }
         catch (Exception e)
         {

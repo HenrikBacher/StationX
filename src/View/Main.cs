@@ -20,6 +20,7 @@ public partial class Main : Node3D
     public static readonly int[] Speeds = { 1, 3, 6 };
 
     public CameraRig Rig = null!;
+    bool _tutorialArg;
     public Hud Hud = null!;
     Park3D _park = null!;
     public Park3D Park => _park;
@@ -269,6 +270,7 @@ public partial class Main : Node3D
         var diff = args.TryGetValue("difficulty", out var df) ? Enum.Parse<Difficulty>(df, true) : Difficulty.Normal;
         var mode = args.ContainsKey("freeplay") ? GameMode.FreePlay : GameMode.Campaign;
         int startAct = args.TryGetValue("act", out var sa) ? int.Parse(sa) : 0;
+        _tutorialArg = args.ContainsKey("tutorial");
         NewGame(seed, showTitle: _shotPath == null && !_selfTest && !args.ContainsKey("skip-title"), diff, mode, startAct);
         // A save file by path (a copy, so the player's own saves are never opened for writing).
         if (args.TryGetValue("loadfile", out var lf)) LoadState(SaveGame.Load(System.IO.File.ReadAllText(lf)));
@@ -364,6 +366,7 @@ public partial class Main : Node3D
                 var p = c.Split(',');
                 Rig.LookAtTile(float.Parse(p[0]), float.Parse(p[1]));
             }
+            if (args.TryGetValue("tutstep", out var ts)) { State.Tutorial = true; State.TutorialStep = int.Parse(ts); }
             if (args.TryGetValue("panel", out var panel)) Hud.OpenPanel(panel);
             // --scroll=end : the open panel scrolled to its foot (the Staff panel's candidates)
             if (args.ContainsKey("scroll")) Callable.From(() => Callable.From(Hud.ScrollPanelToEnd).CallDeferred()).CallDeferred();
@@ -404,9 +407,13 @@ public partial class Main : Node3D
     }
 
     public void NewGame(int seed, bool showTitle, Difficulty difficulty = Difficulty.Normal, GameMode mode = GameMode.Campaign, int startAct = 0,
-                        CustomRules? custom = null)
+                        CustomRules? custom = null, bool? tutorial = null)
     {
-        AdoptState(GameState.NewGame(seed, difficulty, mode, startAct, custom));
+        var g = GameState.NewGame(seed, difficulty, mode, startAct, custom);
+        // The first chapter is a tutorial until one has been finished; shots and the self-test only with --tutorial.
+        g.Tutorial = mode == GameMode.Campaign && startAct == 0 &&
+                     (tutorial ?? (_tutorialArg || (!Settings.TutorialDone && _shotPath == null && !_selfTest)));
+        AdoptState(g);
         State.Events.RemoveAll(e => e.Kind == EventKind.ActStarted);
         if (showTitle) Hud.ShowStart();
         else if (_shotPath == null && !_selfTest) Hud.ShowBriefing();

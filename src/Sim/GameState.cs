@@ -66,6 +66,9 @@ public sealed partial class GameState
     public Dictionary<Issuer, double> LastServed { get; set; } = new();
     /// <summary>Tips the player has dismissed in this campaign.</summary>
     public HashSet<string> TipsDismissed { get; set; } = new();
+    /// <summary>The first chapter is played as a guided tutorial (the view runs it); the step reached, saved with the game.</summary>
+    public bool Tutorial { get; set; }
+    public int TutorialStep { get; set; }
     public List<DayRecord> History { get; set; } = new();
     /// <summary>Recent message movements between stations, "from>to" → messages, for the flow overlay.</summary>
     public SortedDictionary<string, double> Flows { get; set; } = new();

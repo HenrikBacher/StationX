@@ -9,6 +9,8 @@ public static class Settings
 
     public static float MasterVolume = 0.8f, SfxVolume = 0.8f, AmbienceVolume = 0.6f, MusicVolume = 0.45f;
     public static float UiScale = 1f;
+    /// <summary>Set once a tutorial has been finished: new games then default to playing the first chapter without it.</summary>
+    public static bool TutorialDone;
     public static bool EdgeScroll = true, Hints = true, Fullscreen, FilmGrain = true, CheckUpdates = true;
 
     /// <summary>0 Low, 1 Balanced, 2 High: what the 3D view spends on looks (see <c>Main.ApplyGraphics</c>).</summary>
@@ -33,6 +35,7 @@ public static class Settings
         Graphics = System.Math.Clamp((int)cfg.GetValue("display", "graphics", Graphics), 0, 2);
         EdgeScroll = (bool)cfg.GetValue("controls", "edge_scroll", EdgeScroll);
         Hints = (bool)cfg.GetValue("controls", "hints", Hints);
+        TutorialDone = (bool)cfg.GetValue("controls", "tutorial_done", TutorialDone);
         CheckUpdates = (bool)cfg.GetValue("updates", "check", CheckUpdates);
     }
 
@@ -53,6 +56,7 @@ public static class Settings
         cfg.SetValue("display", "graphics", Graphics);
         cfg.SetValue("controls", "edge_scroll", EdgeScroll);
         cfg.SetValue("controls", "hints", Hints);
+        cfg.SetValue("controls", "tutorial_done", TutorialDone);
         cfg.SetValue("updates", "check", CheckUpdates);
         cfg.Save(Path);
     }

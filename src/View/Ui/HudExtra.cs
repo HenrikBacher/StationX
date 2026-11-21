@@ -286,7 +286,7 @@ public partial class Hud
         v.AddChild(_hintText);
     }
 
-    (string id, string text)? NextHint() => Walkthrough() ?? Situation();
+    (string id, string text)? NextHint() => TutorialOn ? null : Walkthrough() ?? Situation();
 
     /// <summary>Every situational tip: id (shown once per id), when it applies, and its text.</summary>
     IEnumerable<(string id, bool when, string text)> Tips()
@@ -734,6 +734,7 @@ public partial class Hud
     GameMode _ngMode = GameMode.Campaign;
     int _ngAct;
     bool _ngCustomOn;
+    bool? _ngTutorial;
     CustomRules _ngCustom = new();
 
     void ShowNewGame()
@@ -770,6 +771,17 @@ public partial class Hud
         v.AddChild(Ink(_ngMode == GameMode.Campaign
             ? "The war as Bletchley saw it, in seven chapters: the police ciphers of 1939, the Polish gift, the Battle of Britain, DOLPHIN, SHARK, Tunny and Colossus, and the Second Front to victory in Europe in May 1945."
             : "A sandbox. Pick where to start; everything earlier is already built and researched.", 13, Fonts.Body));
+
+        if (_ngMode == GameMode.Campaign)
+        {
+            bool tut = _ngTutorial ?? !Settings.TutorialDone;
+            v.AddChild(Ink("First chapter", 13, Fonts.BodyBold, UiTheme.Stamp));
+            v.AddChild(Choice(new[]
+            {
+                (true, "With the tutorial", "The first chapter a step at a time, with the control to use outlined. Skip it whenever you like."),
+                (false, "Without", "The first chapter with the usual tips only."),
+            }, tut, t => _ngTutorial = t));
+        }
 
         v.AddChild(Ink("Difficulty", 13, Fonts.BodyBold, UiTheme.Stamp));
         v.AddChild(Choice(Enum.GetValues<Difficulty>().Select(d => (d, Defs.Difficulties[d].Name, Defs.Difficulties[d].Blurb)), _ngDifficulty, d => _ngDifficulty = d));
@@ -846,7 +858,8 @@ public partial class Hud
             CloseModal();
             _main.NewGame(Random.Shared.Next(100000), showTitle: false, _ngDifficulty, _ngMode, _ngMode == GameMode.FreePlay || _ngCustomOn ? _ngAct : 0,
                           _ngCustomOn ? new CustomRules { Funds = _ngCustom.Funds, Grant = _ngCustom.Grant, Patience = _ngCustom.Patience,
-                                                          Deadlines = _ngCustom.Deadlines, Suspicion = _ngCustom.Suspicion, Wear = _ngCustom.Wear } : null);
+                                                          Deadlines = _ngCustom.Deadlines, Suspicion = _ngCustom.Suspicion, Wear = _ngCustom.Wear } : null,
+                          tutorial: _ngMode == GameMode.Campaign && (_ngTutorial ?? !Settings.TutorialDone));
         }));
         v.AddChild(row);
     }
