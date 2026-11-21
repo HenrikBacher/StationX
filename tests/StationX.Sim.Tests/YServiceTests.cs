@@ -42,7 +42,17 @@ public class YServiceTests
         g.MoveSet(Net.Police, 1); g.MoveSet(Net.Police, 1); g.MoveSet(Net.Police, 1);
         Assert.True(g.CoverGarble(Net.Police) < 1, "an extra set copies cleaner");
         g.Funds = 5000;
+        int before = g.WeeklyUpkeep;
         Assert.True(g.LayLine("denmarkhill"));
+        Assert.Equal(5000 - Defs.LineCost, g.Funds);
+        TestUtil.Teleprinter(g);
+        Assert.True(g.TransitMinutes(Net.Police, sent) >= Defs.RideMinutes, "the Post Office takes days to lay it");
+        Assert.False(g.LayLine("denmarkhill"));
+        g.Advance(Defs.LineLayDays * Defs.MinutesPerDay + 1);
+        Assert.Contains("denmarkhill", g.Lines);
+        Assert.Equal(before + Defs.LineRent + Defs.Station(StationType.Inbox).Upkeep, g.WeeklyUpkeep);
+        g.Stations.RemoveAll(s => s.Type == StationType.Inbox);
+        g.Grid.RebuildOccupancy(g.Stations);
         Assert.True(g.TransitMinutes(Net.Police, sent) >= Defs.RideMinutes, "a line needs a teleprinter at the Park end");
         TestUtil.Teleprinter(g);
         Assert.Equal(Defs.LineMinutes, g.TransitMinutes(Net.Police, sent));

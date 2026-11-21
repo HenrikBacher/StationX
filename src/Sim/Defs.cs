@@ -131,7 +131,7 @@ public static partial class Defs
 
     // ---- Economy ----
     public const double StartReputation = 50;
-    public const int GrantBase = 200;
+    public const int GrantBase = 240;
     public const double GrantPerRep = 7;
     /// <summary>Whitehall gets used to miracles: reputation slips this much a day, plus a bit more each act.</summary>
     public const double ExpectationBase = 0.5;
@@ -489,7 +489,10 @@ public static partial class Defs
     public const int IntensityCap = 12;
 
     // ---- The Y service: receiver sets, riders or teleprinter lines, direction-finding, frequency changes ----
-    public const int StartSets = 4, SetsWanted = 2, SetsPerAct = 1, SetCost = 120, LineCost = 250, DfCost = 400;
+    public const int StartSets = 4, SetsWanted = 2, SetsPerAct = 1, SetCost = 120, LineCost = 500, DfCost = 400;
+    /// <summary>The Post Office takes days to lay a line, and rents it to GC&amp;CS by the week once it works.</summary>
+    public const double LineLayDays = 3;
+    public const int LineRent = 15;
     /// <summary>Dispatch riders leave a Y-station every two hours; the ride takes most of an hour.</summary>
     public const double RiderEvery = 120, RideMinutes = 45, LineMinutes = 10;
     /// <summary>A thinly covered network is caught only on repeats; an uncovered one by chance, hours later.</summary>

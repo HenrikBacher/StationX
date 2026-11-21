@@ -9,7 +9,7 @@ namespace StationX.View.Ui;
 public partial class Hud
 {
     string YSig() =>
-        $"{S.ReceiverSets}|{S.SpareSets}|{S.Funds / 50}|{S.ActIndex}|{string.Join(",", S.Lines)}|{S.Stations.Count(x => x.Type == StationType.Inbox)}|{string.Join(",", S.DirectionFinding)}|" +
+        $"{S.ReceiverSets}|{S.SpareSets}|{S.Funds / 50}|{S.ActIndex}|{string.Join(",", S.Lines)}|{string.Join(",", S.LinesLaying.Keys.Select(k => k + (int)S.LineHoursLeft(k)))}|{S.Stations.Count(x => x.Type == StationType.Inbox)}|{string.Join(",", S.DirectionFinding)}|" +
         string.Join(",", S.CoveredNets().Select(n => $"{n}{S.CoverOf(n)}{S.Searching(n)}{(S.Searching(n) ? (int)((S.SearchUntil[n] - S.Now) / 60) : 0)}"));
 
     void YStationsPanel()
@@ -60,8 +60,11 @@ public partial class Hud
             string? why = S.CanLayLine(id);
             bool printer = S.Stations.Any(x => x.Type == StationType.Inbox && !x.PendingRemoval);
             _sideBox.AddChild(Row(name, S.Lines.Contains(id)
-                ? UiTheme.Label(printer ? "teleprinter line" : "line laid: build a teleprinter", 12, printer ? Gfx.Good : Gfx.Warn)
-                : UiTheme.Button($"Lay a line (£{Defs.LineCost})", () => { S.LayLine(id); _sideSig = ""; }, why == null, tooltip: why ?? "The Post Office lays a teleprinter line from this station. Its traffic prints on a teleprinter in the Park, so build one too.")));
+                ? UiTheme.Label(printer ? $"teleprinter line · £{Defs.LineRent} a week" : "line laid: build a teleprinter", 12, printer ? Gfx.Good : Gfx.Warn)
+                : S.LinesLaying.ContainsKey(id)
+                ? UiTheme.Label($"Post Office laying it: {Math.Ceiling(S.LineHoursLeft(id))} h", 12, UiTheme.Accent)
+                : UiTheme.Button($"Lay a line (£{Defs.LineCost})", () => { S.LayLine(id); _sideSig = ""; }, why == null,
+                    tooltip: why ?? $"The Post Office lays a teleprinter line from this station in about {Defs.LineLayDays:0} days, then rents it at £{Defs.LineRent} a week. Its traffic prints on a teleprinter in the Park, so build one too.")));
         }
 
         var dfs = Defs.YStations.Where(y => y.Df is Service sv && S.ServiceInPlay(sv) && S.CanBuyDf(sv) != "Not available yet").ToList();

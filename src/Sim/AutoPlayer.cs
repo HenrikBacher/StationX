@@ -161,12 +161,12 @@ public sealed class AutoPlayer
         if (g.Stats.FreqChanges > 0 && g.SpareSets == 0 && g.Funds > Defs.SetCost + 800) g.BuySet();
         if (!saving && g.ActIndex >= 2 && g.Funds > Defs.LineCost + 900)
         {
-            var station = Defs.YStations.Where(y => !g.Lines.Contains(y.Id))
+            var station = Defs.YStations.Where(y => !g.Lines.Contains(y.Id) && !g.LinesLaying.ContainsKey(y.Id))
                 .OrderByDescending(y => y.Nets.Sum(Busy)).FirstOrDefault(y => y.Nets.Sum(Busy) > 0);
             if (station != null) g.LayLine(station.Id);
         }
         // A line needs a teleprinter in the Park to print on.
-        if (g.Lines.Count > 0 && Have(StationType.Inbox) == 0 && g.Funds >= Defs.Station(StationType.Inbox).Cost) TryBuild(StationType.Inbox);
+        if (g.Lines.Count + g.LinesLaying.Count > 0 && Have(StationType.Inbox) == 0 && g.Funds >= Defs.Station(StationType.Inbox).Cost) TryBuild(StationType.Inbox);
         if (!saving && g.MaxSuspicion > 30 && g.Funds > Defs.DfCost + 900)
         {
             var sv = Enum.GetValues<Service>().Where(x => g.CanBuyDf(x) == null).OrderByDescending(g.SuspicionOf).FirstOrDefault();

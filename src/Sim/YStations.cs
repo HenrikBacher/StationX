@@ -28,6 +28,8 @@ public sealed partial class GameState
     public HashSet<Net> Covered { get; set; } = new();
     /// <summary>Y-stations with a teleprinter line to the Park.</summary>
     public HashSet<string> Lines { get; set; } = new();
+    /// <summary>Lines the Post Office is laying: Y-station → when it's through (game minutes). Riders carry on until then.</summary>
+    public Dictionary<string, double> LinesLaying { get; set; } = new();
     /// <summary>Services whose transmitters our direction-finding stations can fix.</summary>
     public HashSet<Service> DirectionFinding { get; set; } = new();
     /// <summary>Networks lost after a change of frequencies, and when the search will find them.</summary>
@@ -167,6 +169,7 @@ public sealed partial class GameState
     public string? CanLayLine(string station)
     {
         if (Lines.Contains(station)) return "Line laid";
+        if (LinesLaying.ContainsKey(station)) return "The Post Office is laying it";
         if (Funds < Defs.LineCost) return $"Needs £{Defs.LineCost}";
         return null;
     }
@@ -175,12 +178,30 @@ public sealed partial class GameState
     {
         if (CanLayLine(station) != null) return false;
         Funds -= Defs.LineCost;
-        Lines.Add(station);
+        LinesLaying[station] = Now + Defs.LineLayDays * Defs.MinutesPerDay;
         var y = Defs.YStations.First(s => s.Id == station);
-        Emit(EventKind.Good, Stations.Any(s => s.Type == StationType.Inbox)
-            ? $"The Post Office has laid a teleprinter line from {y.Name}. Its traffic now prints on the Park's teleprinters within minutes, not in the riders' bundles."
-            : $"The Post Office has laid a teleprinter line from {y.Name}. Build a teleprinter (B) to receive it: until then the riders still come.");
+        Emit(EventKind.Info, $"The Post Office's linesmen set out to lay a teleprinter line from {y.Name}: about {Defs.LineLayDays:0} days. The riders carry on until it's through.");
         return true;
+    }
+
+    /// <summary>Hours until the Post Office has a line through, or 0.</summary>
+    public double LineHoursLeft(string station) => LinesLaying.TryGetValue(station, out var at) ? Math.Max(0, (at - Now) / 60) : 0;
+
+    /// <summary>Each step: lines the Post Office has finished go live.</summary>
+    void TickLines()
+    {
+        if (LinesLaying.Count == 0) return;
+        foreach (var (station, at) in LinesLaying)
+        {
+            if (Now < at) continue;
+            LinesLaying.Remove(station);
+            Lines.Add(station);
+            var y = Defs.YStations.First(s => s.Id == station);
+            Emit(EventKind.Good, Stations.Any(s => s.Type == StationType.Inbox)
+                ? $"The teleprinter line from {y.Name} is through. Its traffic now prints on the Park's teleprinters within minutes, not in the riders' bundles. The Post Office rents it at £{Defs.LineRent} a week."
+                : $"The teleprinter line from {y.Name} is through. Build a teleprinter (B) to receive it: until then the riders still come. The Post Office rents it at £{Defs.LineRent} a week.");
+            return;   // one a step: the dictionary has changed
+        }
     }
 
     public string? CanBuyDf(Service sv)

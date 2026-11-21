@@ -451,7 +451,7 @@ public sealed partial class GameState
     /// <summary>How hard the daily slip falls: twice the shortfall from the quota, at most double; a little even once it's met.</summary>
     public double ExpectationMult => !QuotaActive || IntelQuota <= 0 ? 1
         : Math.Clamp(Defs.QuotaSlope * (1 - IntelRate / IntelQuota), Defs.QuotaFloor, Defs.QuotaMaxMult);
-    public int WeeklyUpkeep => Stations.Sum(s => s.Def.Upkeep) + OutstationBombes * Defs.OutstationUpkeep + SluUpkeep;
+    public int WeeklyUpkeep => Stations.Sum(s => s.Def.Upkeep) + OutstationBombes * Defs.OutstationUpkeep + SluUpkeep + Lines.Count * Defs.LineRent;
     public int WeeklyGrant => (int)((Defs.GrantBase + Defs.GrantPerRep * Reputation) * Rules.GrantMult * WarMood);
 
     // ------------------------------------------------------------- machine servicing
