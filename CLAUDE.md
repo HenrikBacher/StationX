@@ -419,6 +419,11 @@ Then (user requests, 2026-11-19):
   `SuspicionMeans(s)` words it for the panel rows, the dilemma dialog and the War map's decision cards (`OpContext`, `OpGain`).
   Tip `wary` (≥ 50); the autoplayer goes cautious above 50 (was 60). Without that, Normal fell to 32/80; with it 40/80,
   Easy 39, Hard 0. Shots: `--modal=wary` (War map with two decisions waiting), `--modal=waryintel`.
+- No numbers for reputation or suspicion anywhere in the interface (user request): `Words` (Sim/Words.cs) gives
+  `SuspicionLevel` (unsuspecting/untroubled/wary/suspicious/alarmed/locked out), `RepStanding` (on the brink … held in high
+  esteem), `RepChange`/`RepAmount`/`SuspicionChange` (sizes of change), `RepRate` (slowly … fast), `Relative` (multipliers).
+  `DilemmaOption.Effects` uses them; the rep bar tooltip and weekly breakdown, request cards, telegrams, War map, Intelligence
+  panel, end sheet, and the two statistics charts (`LineChart.Say`: words on hover, no scale) all do. Keep new texts to words.
 
 ### Graphics overhaul: period realism, CC0 assets allowed
 

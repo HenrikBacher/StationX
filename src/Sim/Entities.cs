@@ -451,10 +451,9 @@ public sealed class DilemmaOption
     {
         var parts = new List<string>();
         if (Funds != 0) parts.Add(Funds > 0 ? $"+£{Funds}" : $"−£{-Funds}");
-        if (Rep != 0) parts.Add($"{(Rep > 0 ? "+" : "−")}{Math.Abs(Rep):0} reputation");
+        if (Rep != 0) parts.Add(Words.RepChange(Rep));
         if (Points != 0) parts.Add($"+{Points} breakthroughs");
-        if (Suspicion > 0) parts.Add($"+{Suspicion:0} suspicion");
-        if (Suspicion < 0) parts.Add($"−{-Suspicion:0} suspicion");
+        if (Suspicion != 0) parts.Add(Words.SuspicionChange(Suspicion));
         if (Morale != 0) parts.Add(Morale > 0 ? "morale up" : "morale down");
         if (Tonnage > 0) parts.Add($"{Tonnage / 1000:0}k tons lost");
         if (DismissStaff) parts.Add("dismissal");

@@ -379,7 +379,7 @@ public partial class Hud
             // Where the reputation went: the lesson of a lost campaign, and a footnote to a won one.
             var causes = S.Stats.RepByCause.Where(x => Math.Abs(x.Value) >= 0.5).OrderBy(x => x.Value).ToList();
             if (causes.Count > 0)
-                v.AddChild(Ink("Reputation over the war: " + string.Join(" · ", causes.Select(x => $"{x.Key} {(x.Value > 0 ? "+" : "−")}{Math.Abs(x.Value):0}")), 12, Fonts.Body));
+                v.AddChild(Ink("Reputation over the war: " + string.Join(" · ", causes.Select(x => $"{x.Key}: {(x.Value > 0 ? "up" : "down")}{(Math.Abs(x.Value) >= 20 ? " heavily" : Math.Abs(x.Value) >= 5 ? "" : " a little")}")), 12, Fonts.Body));
             if (won && S.ActIndex == Campaign.Acts.Length - 1)
                 v.AddChild(Ink("The Park was broken up that summer and its machines taken apart. Those who worked here kept the secret: the story was " +
                                "first told in 1974, and many never told their families at all.", 13, Fonts.Body, UiTheme.Stamp));

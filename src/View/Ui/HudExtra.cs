@@ -22,7 +22,7 @@ public partial class Hud
     {
         _sideBox.AddChild(UiTheme.Heading("Intelligence"));
         Intro("Intelligence", "ULTRA is only useful while the Germans believe their ciphers are safe. Every decrypt that is acted on is a risk. " +
-                                        $"Suspicion fades by itself, a few points a day. At {(int)Defs.SuspicionLimit} a service tightens its procedures and its keys go dark for {Defs.LockdownDays + 1} days.");
+                                        $"Suspicion fades by itself over the days. Push a service too far and it tightens its procedures: its keys go dark for {Defs.LockdownDays + 1} days.");
 
         _sideBox.AddChild(UiTheme.Caps("German suspicion", 12, UiTheme.Accent));
         foreach (var sv in Enum.GetValues<Service>().Where(S.ServiceInPlay))
@@ -34,20 +34,23 @@ public partial class Hud
             var bar = new ProgressBar { MinValue = 0, MaxValue = Defs.SuspicionLimit, Value = v, ShowPercentage = false, CustomMinimumSize = new Vector2(150, 10), SizeFlagsVertical = Control.SizeFlags.ShrinkCenter };
             bar.AddThemeStyleboxOverride("fill", UiTheme.Box(v >= Defs.SuspicionWarn ? Gfx.Bad : v >= 40 ? Gfx.Warn : Gfx.Good, new Color(0, 0, 0, 0), 2, 0));
             bar.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-            var state = UiTheme.Label(locked ? $"locked out, {until - S.Day + 1} d" : $"{(int)v}/{(int)Defs.SuspicionLimit}", 12, locked ? Gfx.Bad : UiTheme.TextDim);
+            var state = UiTheme.Label(locked ? $"locked out, {until - S.Day + 1} d" : Words.SuspicionLevel(v), 12, locked ? Gfx.Bad : v >= Defs.WorryFrom ? Gfx.Bad : v >= Defs.WaryFrom ? Gfx.Warn : UiTheme.TextDim);
+            state.CustomMinimumSize = new Vector2(84, 0);
+            state.HorizontalAlignment = HorizontalAlignment.Right;
             var row = Row(name, bar, state);
             row.TooltipText = locked ? $"The {Defs.ServiceNames[sv]} have tightened their procedures: their keys can't be broken for {until - S.Day + 1} more day(s)."
-                                     : $"{Defs.ServiceNames[sv]} suspicion {(int)v} of {(int)Defs.SuspicionLimit}: {GameState.SuspicionMeans(v)}. Acting on their decrypts raises it; cover stories, direction-finding and a cautious policy keep it down.";
+                                     : $"The {Defs.ServiceNames[sv]}: {GameState.SuspicionMeans(v)}. Acting on their decrypts raises it; cover stories, direction-finding and a cautious policy keep it down.";
             _sideBox.AddChild(row);
             if (!locked && v >= Defs.WaryFrom)
             {
-                var means = UiTheme.Label(GameState.SuspicionMeans(v), 11, v >= Defs.WorryFrom ? Gfx.Bad : Gfx.Warn);
+                string m = GameState.SuspicionMeans(v);
+                var means = UiTheme.Label(char.ToUpper(m[(m.IndexOf(':') + 2)..][0]) + m[(m.IndexOf(':') + 3)..], 11, v >= Defs.WorryFrom ? Gfx.Bad : Gfx.Warn);
                 means.HorizontalAlignment = HorizontalAlignment.Right;
                 _sideBox.AddChild(means);
             }
         }
-        _sideBox.AddChild(UiTheme.Label($"From {Defs.WaryFrom:0} a service grows wary and varies its habits: its keys get slower to break, up to {Defs.WaryMax * 100:0}% at the limit. " +
-                                        $"From {Defs.WorryFrom:0} Whitehall worries about the source too ({Defs.WorryRep:0.##} reputation a day). At {Defs.SuspicionLimit:0} it locks us out for {Defs.LockdownDays + 1} days.", 11, UiTheme.TextDim));
+        _sideBox.AddChild(UiTheme.Label("A wary service varies its habits, and its keys get slower to break. Once it is alarmed, Whitehall worries about " +
+                                        $"the source too, and reputation slips every day. Pushed too far, it locks us out for {Defs.LockdownDays + 1} days.", 11, UiTheme.TextDim));
 
         if (S.ActIndex >= Defs.SecurityFromAct)
         {
@@ -76,7 +79,7 @@ public partial class Hud
             chk.AddChild(b);
         }
         _sideBox.AddChild(chk);
-        _sideBox.AddChild(UiTheme.Label(GameState.CheckingBlurb(S.Checking) + $" Each mistake costs {Defs.MistakeRep:0.#} reputation" +
+        _sideBox.AddChild(UiTheme.Label(GameState.CheckingBlurb(S.Checking) + " Each mistake costs a little reputation" +
                                         (S.Stats.Mistranslations > 0 ? $"; {S.Stats.Mistranslations} so far." : "."), 12, UiTheme.TextDim));
         _sideBox.AddChild(UiTheme.Caps("Policy on using ULTRA", 12, UiTheme.Accent));
         var pol = new HBoxContainer();
@@ -92,7 +95,7 @@ public partial class Hud
         }
         _sideBox.AddChild(pol);
         var cur = Defs.Policies[S.Policy];
-        _sideBox.AddChild(UiTheme.Label($"{cur.Blurb} Rewards ×{cur.Reward:0.##}, reputation ×{cur.Rep:0.##}, suspicion ×{cur.Suspicion:0.##}.", 12, UiTheme.TextDim));
+        _sideBox.AddChild(UiTheme.Label($"{cur.Blurb} Rewards ×{cur.Reward:0.##}; {Words.Relative(cur.Rep)} reputation from requests; {Words.Relative(cur.Suspicion)} suspicion.", 12, UiTheme.TextDim));
 
         if (S.Dilemmas.Count > 0)
         {
@@ -158,13 +161,13 @@ public partial class Hud
         v.AddChild(UiTheme.Label("Naval Cypher No. 3", 15, UiTheme.Text, Fonts.BodyBold));
         v.AddChild(UiTheme.Label("U-boats are waiting on convoy routes changed only hours before. If the Germans read the Admiralty's convoy cipher, " +
                                  $"every convoy we warn still loses ships ({(1 - Defs.BdienstConvoyShare) * 100:0}% fewer saved), and the Admiralty grows impatient " +
-                                 $"({Defs.BdienstRepPerDay:0.##} reputation a day). The Admiralty won't change its cipher on a hunch: it wants proof.", 12, UiTheme.TextDim));
+                                 "(reputation slips every day). The Admiralty won't change its cipher on a hunch: it wants proof.", 12, UiTheme.TextDim));
         var bar = new ProgressBar { MinValue = 0, MaxValue = 1, Value = S.CipherEvidence, ShowPercentage = false, CustomMinimumSize = new Vector2(0, 8) };
         v.AddChild(bar);
         v.AddChild(UiTheme.Label($"The case: {S.CipherEvidence * 100:0}%. Naval decrypts add to it; a cryptanalyst studying our own signals adds {Defs.BdienstStudyEvidence * 100:0}%.", 12, UiTheme.Text));
         if (S.CipherProved)
             v.AddChild(Row(UiTheme.Button("Take it to the Admiralty", () => { S.ChangeCipher(); _sideSig = ""; },
-                tooltip: $"The Admiralty changes the convoy cipher: the losses stop, and +{Defs.BdienstProvedRep:0} reputation."), Spacer()));
+                tooltip: $"The Admiralty changes the convoy cipher: the losses stop, and {Words.RepChange(Defs.BdienstProvedRep)}."), Spacer()));
         else
         {
             var why = S.CantStudyCipher();
@@ -179,7 +182,7 @@ public partial class Hud
         _sideBox.AddChild(UiTheme.Caps("Special Liaison Units", 12, UiTheme.Accent));
         _sideBox.AddChild(UiTheme.Label("Small units of officers with their own ciphers who hand Hut 3's reports to commanders in the field and burn them after. " +
                                         $"Where there's one, its theatre's decrypts stay fresh {(Defs.SluFresh - 1) * 100:0}% longer, but more people act on them: " +
-                                        $"{(Defs.SluSuspicion - 1) * 100:0}% more suspicion each.", 12, UiTheme.TextDim));
+                                        "a little more suspicion each.", 12, UiTheme.TextDim));
         foreach (var d in S.SluTheatres())
         {
             var name = UiTheme.Label(d.Name, 13, UiTheme.Text, Fonts.BodyBold);
@@ -257,10 +260,10 @@ public partial class Hud
                 "The share of their time on watch everyone spent with nothing to do. High means more people than work: move them to a short watch or let some go.");
         }
         Chart("Funds", hist, r => r.Funds, UiTheme.Text, "£#,0;−£#,0");
-        Chart("Reputation in Whitehall", hist, r => r.Reputation, UiTheme.Accent, "0", 0, 100);
+        Chart("Reputation in Whitehall", hist, r => r.Reputation, UiTheme.Accent, "0", 0, 100, Words.RepStanding);
         Chart("Staff", hist, r => r.Staff, UiTheme.Text, "0");
         Chart("Average morale", hist, r => r.Morale * 100, Gfx.Good, "0'%'", 0, 100);
-        Chart("Highest German suspicion", hist, r => r.Suspicion, Gfx.Bad, "0", 0, Defs.SuspicionLimit);
+        Chart("Highest German suspicion", hist, r => r.Suspicion, Gfx.Bad, "0", 0, Defs.SuspicionLimit, Words.SuspicionLevel);
         _sideBox.AddChild(UiTheme.Label($"Totals: {S.Stats.DeliveredTotal} decrypts · {S.Stats.ContractsCompleted} requests completed, {S.Stats.ContractsFailed} missed · {S.Stats.DilemmasResolved} decisions taken", 12, UiTheme.TextDim));
         var more = new List<string>();
         var st = S.Stats;
@@ -275,21 +278,23 @@ public partial class Hud
         if (more.Count > 0) _sideBox.AddChild(UiTheme.Label(char.ToUpperInvariant(more[0][0]) + string.Join(" · ", more)[1..], 12, UiTheme.TextDim));
     }
 
-    void Chart(string title, List<DayRecord> hist, Func<DayRecord, double> f, Color color, string fmt, double? min = null, double? max = null) =>
-        Chart(title, hist.Select(f).ToArray(), hist[0].Day, color, fmt, min, max);
+    void Chart(string title, List<DayRecord> hist, Func<DayRecord, double> f, Color color, string fmt, double? min = null, double? max = null, Func<double, string>? say = null) =>
+        Chart(title, hist.Select(f).ToArray(), hist[0].Day, color, fmt, min, max, say: say);
 
-    void Chart(string title, double[] values, int firstDay, Color color, string fmt, double? min = null, double? max = null, string tip = "")
+    /// <param name="say">Words for a value in place of a number (reputation and suspicion are never shown as numbers): no scale is drawn.</param>
+    void Chart(string title, double[] values, int firstDay, Color color, string fmt, double? min = null, double? max = null, string tip = "", Func<double, string>? say = null)
     {
         var v = Card();
         if (tip != "") { v.GetParent<Control>().TooltipText = tip; v.MouseFilter = Control.MouseFilterEnum.Ignore; }
         var name = UiTheme.Label(title, 13, UiTheme.Text, Fonts.BodyBold);
         name.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-        v.AddChild(Row(name, UiTheme.Label(values[^1].ToString(fmt), 13, color, Fonts.BodyBold)));
+        v.AddChild(Row(name, UiTheme.Label(say != null ? say(values[^1]) : values[^1].ToString(fmt), 13, color, Fonts.BodyBold)));
         v.AddChild(new LineChart
         {
             Values = values,
             FirstDay = firstDay,
             Fmt = fmt,
+            Say = say,
             DayLabel = d => S.DateOf(d).ToString("d MMM yyyy"),
             TooltipText = tip,
             Min = min ?? Math.Min(0, values.Min()),
@@ -397,8 +402,8 @@ public partial class Hud
             "The U-boats seem to know where our convoys are going: the Germans may be reading our own convoy cipher. Intelligence (I): " +
             "put a cryptanalyst on studying our signals to build the case, then take it to the Admiralty. Until then convoys lose ships however well we read the U-boats.");
         yield return ("extend", S.Contracts.Exists(c => S.Behind(c) && S.CantExtend(c.Id) == null),
-            "A request is heading for a miss. On its card, Ask for more time: the ministry gives half as long again for a quarter off the fee and a point of reputation, " +
-            "and its convoy or raid goes ahead without the decrypts. A miss costs more. Each ministry grants it once a week.");
+            "A request is heading for a miss. On its card, Ask for more time: the ministry gives half as long again for a quarter off the fee and some reputation, " +
+            "and its convoy or raid goes ahead without the decrypts. A miss costs more. Each ministry grants it once in ten days.");
         yield return ("crib", S.ActiveNets.Any(n => S.CribChoiceOpen(n) && S.CribFor(n, S.Day) == CribKind.Desk),
             "A key has gone stubborn (a change of German habits, or a false Bombe stop today), and its row on the keys card now offers a choice of crib for the day. " +
             "Once another Enigma key is broken, a re-encodement is the surest: slow to find, but the stop holds. Against a change of habits, the weather report " +
@@ -456,7 +461,7 @@ public partial class Hud
             "German suspicion is rising. Direction-finding stations (Y-stations, Y) take bearings on the enemy's transmitters, so a cover story can point to the fix: cover choices for that service then draw half the suspicion.");
         yield return ("chiefs", S.ResearchDone() && S.CantReport() == null,
             $"There's nothing new to research for now, and the breakthroughs are piling up. Research (T) → Report to the Chiefs of Staff turns {S.ReportCost} of them into " +
-            $"+{Defs.ReportRep:0} reputation, once a fortnight; each report costs more than the last. Keep enough back for the methods the war will bring.");
+            "Some reputation, once a fortnight; each report costs more than the last. Keep enough back for the methods the war will bring.");
         yield return ("social", S.CantHoldSocial() == null && S.AverageMorale < Defs.MoraleBaseline - 0.15,
             $"Spirits are low across the Park ({S.AverageMorale:P0}), and unhappy people work slower and in the end leave. Staff (H) → Arrange an evening " +
             $"(£{Defs.SocialCost}): the Recreational Club puts on a concert, a revue or a dance, and everyone's spirits rise. Once every {Defs.SocialEveryDays:0} days.");
@@ -477,7 +482,7 @@ public partial class Hud
             {
                 yield return ("slu", true,
                     $"There's no Special Liaison Unit in {d.Where} yet ({d.Name}). Send one (Intelligence, I, £{d.Cost}): commanders there get our " +
-                    $"{string.Join(" and ", d.Serves.Select(x => Defs.ServiceNames[x]))} decrypts while they still matter, so they stay fresh a fifth longer (and a fifth more suspicion each).");
+                    $"{string.Join(" and ", d.Serves.Select(x => Defs.ServiceNames[x]))} decrypts while they still matter, so they stay fresh a fifth longer (and a little more suspicion each).");
                 break;
             }
         foreach (var cm in GameState.CounterDefs)
@@ -1011,8 +1016,8 @@ public partial class Hud
         v.AddChild(Ink("MOST IMMEDIATE", 30, Fonts.Heading, UiTheme.Stamp));
         v.AddChild(Ink($"From the {Defs.IssuerNames[c.Issuer]}: {c.Title}", 17, Fonts.BodyBold));
         v.AddChild(Ink(c.Flavour, 15));
-        v.AddChild(Ink($"{c.Quantity} messages within {Hours(c.Days * Defs.MinutesPerDay)} · £{c.Reward:N0} · reputation +{c.Rep}. " +
-                       $"Answer within {Hours(Math.Max(0, c.OfferExpires - S.Now))}: ignoring it costs {Defs.FlashIgnoredRep:0} reputation, declining {Defs.FlashIgnoredRep / 2:0}.", 13));
+        v.AddChild(Ink($"{c.Quantity} messages within {Hours(c.Days * Defs.MinutesPerDay)} · £{c.Reward:N0} · {Words.RepChange(c.Rep)}. " +
+                       $"Answer within {Hours(Math.Max(0, c.OfferExpires - S.Now))}: ignoring it costs {Words.RepAmount(Defs.FlashIgnoredRep)}; declining costs less.", 13));
         var nd = Defs.NetOf(c.Net);
         if (nd.Family == Family.Enigma && !S.KeyBroken(c.Net, S.Day))
             v.AddChild(Ink($"Today's {nd.Name} key isn't broken yet: the decrypts will wait for it.", 12, Fonts.Body, UiTheme.Stamp));
@@ -1020,7 +1025,7 @@ public partial class Hud
         foreach (var (label, act) in new (string, Action)[]
                  {
                      ("Accept, and put it first in every tray", () => { S.Accept(id); S.SetPriority(id, true); }),
-                     ($"Decline (reputation −{Defs.FlashIgnoredRep / 2:0})", () => S.Decline(id)),
+                     ($"Decline ({Words.RepChange(-Defs.FlashIgnoredRep / 2)})", () => S.Decline(id)),
                      ("Decide later (it waits in Requests)", () => { }),
                  })
         {
@@ -1061,10 +1066,10 @@ public partial class Hud
         // What's at stake on the German side: how close this service is to tightening up, and what we'd lose if it did.
         double now = S.SuspicionOf(d.Service);
         var keys = S.ActiveNets.Where(n => Defs.NetOf(n).Service == d.Service).Select(n => Defs.NetOf(n).Name).ToList();
-        string lose = keys.Count == 0 ? "" : $" At {(int)Defs.SuspicionLimit} it tightens its procedures and {(keys.Count == 1 ? keys[0] : string.Join(", ", keys.Take(keys.Count - 1)) + " and " + keys[^1])} can't be broken for {Defs.LockdownDays + 1} days.";
+        string lose = keys.Count == 0 ? "" : $" Pushed too far, it tightens its procedures and {(keys.Count == 1 ? keys[0] : string.Join(", ", keys.Take(keys.Count - 1)) + " and " + keys[^1])} can't be broken for {Defs.LockdownDays + 1} days.";
         if (d.Options.Any(o => o.Suspicion != 0))
-            v.AddChild(Ink($"{Defs.ServiceNames[d.Service]} suspicion is {(int)now} of {(int)Defs.SuspicionLimit} ({GameState.SuspicionMeans(now)}). From {Defs.WaryFrom:0} its keys get slower to break; " +
-                           $"from {Defs.WorryFrom:0} Whitehall worries about the source.{lose}", 12, Fonts.Body,
+            v.AddChild(Ink($"The {Defs.ServiceNames[d.Service]} is {GameState.SuspicionMeans(now)}. A wary service's keys get slower to break; " +
+                           $"once it is alarmed, Whitehall worries about the source.{lose}", 12, Fonts.Body,
                 now >= Defs.SuspicionWarn ? UiTheme.Stamp : null));
         for (int i = 0; i < d.Options.Count; i++)
         {
@@ -1083,7 +1088,7 @@ public partial class Hud
             if (o.Suspicion != 0)
             {
                 double after = System.Math.Clamp(now + (o.Suspicion > 0 ? o.Suspicion * S.Rules.SuspicionMult : o.Suspicion), 0, Defs.SuspicionLimit);
-                fx += $" (to {(int)after}: {GameState.SuspicionMeans(after)})";
+                if (Words.SuspicionLevel(after) != Words.SuspicionLevel(now)) fx += $" (it would be {GameState.SuspicionMeans(after)})";
             }
             if (fx.Length > 0) box.AddChild(Ink(fx, 12, Fonts.Body, UiTheme.PaperInk with { A = 0.75f }));
             v.AddChild(box);
@@ -1102,6 +1107,8 @@ public partial class LineChart : Control
     public double Min, Max = 1;
     public Color Color = Colors.White;
     public string Fmt = "0";
+    /// <summary>Words for a value instead of a number; with it, no scale is drawn.</summary>
+    public Func<double, string>? Say;
     /// <summary>How a game day is written (a date); "day N" if not set.</summary>
     public Func<int, string>? DayLabel;
     int _hover = -1;
@@ -1132,8 +1139,11 @@ public partial class LineChart : Control
         var font = Fonts.Body;
         var dim = new Color(1, 1, 1, 0.4f);
         // The scale: top and bottom of the plot.
-        DrawString(font, new Vector2(3, 10), Max.ToString(Fmt), HorizontalAlignment.Left, -1, 9, dim);
-        DrawString(font, new Vector2(3, size.Y - 2), Min.ToString(Fmt), HorizontalAlignment.Left, -1, 9, dim);
+        if (Say == null)
+        {
+            DrawString(font, new Vector2(3, 10), Max.ToString(Fmt), HorizontalAlignment.Left, -1, 9, dim);
+            DrawString(font, new Vector2(3, size.Y - 2), Min.ToString(Fmt), HorizontalAlignment.Left, -1, 9, dim);
+        }
         if (Values.Length < 2) return;
         double span = Math.Max(1e-6, Max - Min);
         var pts = new Vector2[Values.Length];
@@ -1152,7 +1162,7 @@ public partial class LineChart : Control
             var p = pts[_hover];
             DrawLine(new Vector2(p.X, 0), new Vector2(p.X, size.Y), new Color(1, 1, 1, 0.25f));
             DrawCircle(p, 3.5f, Color);
-            string text = $"{Day(FirstDay + _hover)}: {Values[_hover].ToString(Fmt)}";
+            string text = $"{Day(FirstDay + _hover)}: {(Say != null ? Say(Values[_hover]) : Values[_hover].ToString(Fmt))}";
             float w = font.GetStringSize(text, HorizontalAlignment.Left, -1, 10).X;
             float x = Mathf.Clamp(p.X - w / 2, 0, full.X - w);
             DrawRect(new Rect2(x - 3, size.Y, w + 6, 12), new Color(0.1f, 0.1f, 0.09f, 0.95f));

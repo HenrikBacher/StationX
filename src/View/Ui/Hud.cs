@@ -258,19 +258,19 @@ public partial class Hud : CanvasLayer
                              $"The grant alone never covers a growing Park: the ministries pay for each request delivered (£{S.EarnedThisWeek:N0} since Sunday)." +
                              (cut > 0 ? $"\nWith more than £{Defs.TreasuryComfortable:N0} in hand, the Treasury will hold back £{cut:N0} of it." : "");
         double slip = S.DailyExpectation * S.ExpectationMult * S.Rules.RepLossMult;
-        _rep.TooltipText = "Completed requests raise it, missed deadlines lower it. It sets the weekly Treasury grant. At zero, GC&CS is closed down." +
+        _rep.TooltipText = $"Whitehall holds the Park {Words.RepStanding(S.Reputation)}. Completed requests raise it, missed deadlines lower it. It sets the weekly Treasury grant. If it runs out, GC&CS is closed down." +
                            (S.QuotaActive
                                ? $"\n\nWhitehall expects {S.IntelQuota} fresh decrypts a day, a share of what the ministries ask for that grows as the war goes on. Over the last two days " +
                                  $"we delivered {S.IntelRate:0.0} a day (air and naval news counts for less after 16 hours, army after a day): " +
-                                 (S.IntelRate < S.IntelQuota ? $"reputation slips {slip:0.0} a day until we deliver more." : $"reputation slips only {slip:0.0} a day while we keep it up.")
-                               : slip > 0 ? $"\n\nWhitehall soon gets used to miracles: it slips {slip:0.0} a day, and more as the war goes on." : "") +
+                                 (S.IntelRate < S.IntelQuota ? $"reputation slips {Words.RepRate(slip)} every day until we deliver more." : "reputation slips only slowly while we keep it up.")
+                               : slip > 0 ? $"\n\nWhitehall soon gets used to miracles: it slips {Words.RepRate(slip)} every day, and faster as the war goes on." : "") +
                            RepWeek();
         _funds.MouseFilter = Control.MouseFilterEnum.Pass;
         _rep.Value = S.Reputation;
         // At the recent rate, when reputation would run out: in the line under the bar, red.
         int? runsOut = S.RepRunsOutIn();
         if (runsOut is int n)
-            _rep.TooltipText += $"\n\nOver the last {Defs.RepTrendDays:0} days reputation has fallen {-(S.RepTrend() ?? 0):0.0} a day. At that rate it runs out " +
+            _rep.TooltipText += $"\n\nOver the last {Defs.RepTrendDays:0} days reputation has been falling {Words.RepRate(S.RepTrend() ?? 0)}. At that rate it runs out " +
                                 $"in about {n} day{(n == 1 ? "" : "s")}: deliver more, and miss no deadlines.";
         _quota.Visible = S.QuotaActive || runsOut != null;
         if (S.QuotaActive)
@@ -615,8 +615,9 @@ public partial class Hud : CanvasLayer
                            .GroupBy(e => e.Reason).Select(g => (reason: g.Key, delta: g.Sum(e => e.Delta)))
                            .Where(x => Math.Abs(x.delta) >= 0.05).OrderBy(x => x.delta).ToList();
         if (week.Count == 0) return "";
-        return "\n\nThe past week:\n" + string.Join("\n", week.Select(x => $"  {(x.delta > 0 ? "+" : "−")}{Math.Abs(x.delta):0.0}  {x.reason}")) +
-               $"\n  = {(week.Sum(x => x.delta) >= 0 ? "+" : "−")}{Math.Abs(week.Sum(x => x.delta)):0.0}";
+        double total = week.Sum(x => x.delta);
+        return "\n\nThe past week:\n" + string.Join("\n", week.Select(x => $"  {x.reason}: {(x.delta > 0 ? "up" : "down")}{(Math.Abs(x.delta) < 0.75 ? " a little" : Math.Abs(x.delta) >= 5 ? " sharply" : "")}")) +
+               $"\n  Overall: {(Math.Abs(total) < 0.75 ? "about level" : Words.RepChange(total))}";
     }
 
     public void OnEvent(GameEvent e)

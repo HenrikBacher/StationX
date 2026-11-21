@@ -31,9 +31,11 @@ public sealed partial class GameState
     /// <summary>A short description of what a suspicion level means, for the panel and the decisions.</summary>
     public static string SuspicionMeans(double s)
     {
+        string level = Words.SuspicionLevel(s);
         if (s >= Defs.SuspicionLimit) return "they lock us out";
-        if (s >= Defs.WorryFrom) return $"keys {(WaryMultAt(s) - 1) * 100:0}% slower, and Whitehall worries (−{Defs.WorryRep:0.##} reputation a day)";
-        if (s >= Defs.WaryFrom) return $"wary: keys {(WaryMultAt(s) - 1) * 100:0}% slower";
-        return "unsuspecting";
+        string slower = WaryMultAt(s) < 1.12 ? "a little slower to break" : WaryMultAt(s) < 1.3 ? "slower to break" : "much slower to break";
+        if (s >= Defs.WorryFrom) return $"{level}: its keys {slower}, and Whitehall worries about the source every day";
+        if (s >= Defs.WaryFrom) return $"{level}: its keys {slower}";
+        return level;
     }
 }

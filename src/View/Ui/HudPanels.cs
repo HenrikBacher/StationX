@@ -673,9 +673,9 @@ public partial class Hud
                 double by = GameState.ExtendBy(c);
                 var op = S.OperationFor(cid);
                 var ext = UiTheme.Button("Ask for more time", () => { S.Extend(cid); _sideSig = ""; },
-                    tooltip: $"Another {Hours(by)}, for £{c.Reward - (int)Math.Round(c.Reward * (1 - Defs.ExtendRewardCut)):N0} off the fee and {Defs.ExtendRep:0} reputation" +
+                    tooltip: $"Another {Hours(by)}, for £{c.Reward - (int)Math.Round(c.Reward * (1 - Defs.ExtendRewardCut)):N0} off the fee and {Words.RepAmount(Defs.ExtendRep)}" +
                              (op is { State: OpState.Pending } ? $"; {op.Name} goes ahead without the decrypts." : ".") +
-                             $" Missing it outright costs {GameState.MissedRep(c):0.#} reputation. Each ministry gives more time once a week.");
+                             $" Missing it outright costs {Words.RepAmount(GameState.MissedRep(c))}. Each ministry gives more time once in {Defs.ExtendEveryDays:0} days.");
                 ext.Disabled = why != null;
                 v.AddChild(Row(ext, Why(why ?? (S.Behind(c) ? "Heading for a miss" : null))));
             }
@@ -692,10 +692,10 @@ public partial class Hud
             ContractHeader(v, c);
             v.AddChild(UiTheme.Label(c.Flavour, 12, UiTheme.TextDim));
             v.AddChild(UiTheme.Label(c.Standing
-                ? $"{c.PerDay} messages every day for {c.TotalDays} days · £{c.MilestonePay:N0} each day met, £{c.Reward:N0} bonus · reputation +{c.Rep}. A day missed costs {Defs.MilestoneMissedRep} reputation."
-                : $"{c.Quantity} messages within {Hours(c.Days * Defs.MinutesPerDay)} · £{c.Reward:N0} · reputation +{c.Rep}", 13, UiTheme.Text));
+                ? $"{c.PerDay} messages every day for {c.TotalDays} days · £{c.MilestonePay:N0} each day met, £{c.Reward:N0} bonus · {Words.RepChange(c.Rep)}. A day missed costs {Words.RepAmount(Defs.MilestoneMissedRep)}."
+                : $"{c.Quantity} messages within {Hours(c.Days * Defs.MinutesPerDay)} · £{c.Reward:N0} · {Words.RepChange(c.Rep)}", 13, UiTheme.Text));
             if (c.Flash)
-                v.AddChild(UiTheme.Label($"Urgent. Ignoring it costs {Defs.FlashIgnoredRep:0} reputation; declining costs {Defs.FlashIgnoredRep / 2:0}. Best taken when today's key is already broken.", 11, Gfx.Warn));
+                v.AddChild(UiTheme.Label($"Urgent. Ignoring it costs {Words.RepAmount(Defs.FlashIgnoredRep)}; declining costs less. Best taken when today's key is already broken.", 11, Gfx.Warn));
             var nd = Defs.NetOf(c.Net);
             if (nd.Family == Family.Enigma && S.KeyRouteProblem(c.Net) is string prob && !S.KeyBroken(c.Net, S.Day))
                 v.AddChild(UiTheme.Label($"Warning: no way to break {nd.Name} yet ({prob.ToLowerInvariant()}).", 12, Gfx.Warn));
@@ -761,7 +761,7 @@ public partial class Hud
             var name = UiTheme.Label("Report to the Chiefs of Staff", 15, UiTheme.Text, Fonts.BodyBold);
             name.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
             v.AddChild(Row(name, UiTheme.Label($"{S.ReportCost} breakthroughs", 13, S.Points >= S.ReportCost ? UiTheme.Accent : Gfx.Bad)));
-            v.AddChild(UiTheme.Label($"Write up what the Park has learned for the Chiefs: +{Defs.ReportRep:0} reputation. Each report costs {Defs.ReportCostStep} more than the last, " +
+            v.AddChild(UiTheme.Label($"Write up what the Park has learned for the Chiefs: {Words.RepChange(Defs.ReportRep)}. Each report costs {Defs.ReportCostStep} more than the last, " +
                                      $"and there's one a fortnight at most{(S.ChiefsReports > 0 ? $" ({S.ChiefsReports} sent so far)" : "")}. " +
                                      "Keep enough back for the methods the war will bring.", 12, UiTheme.TextDim));
             string? why = S.CantReport();

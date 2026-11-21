@@ -32,7 +32,7 @@ public sealed partial class GameState
         ChiefsReports++;
         LastReportAt = Now;
         AdjustRep(Defs.ReportRep, "Reports to the Chiefs");
-        Emit(EventKind.Good, $"A report on the Park's methods and results goes to the Chiefs of Staff. Whitehall is impressed (+{Defs.ReportRep:0} reputation); the next will have to show more.");
+        Emit(EventKind.Good, $"A report on the Park's methods and results goes to the Chiefs of Staff. Whitehall is impressed; the next will have to show more.");
         return true;
     }
 
