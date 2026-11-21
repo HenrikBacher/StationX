@@ -147,6 +147,9 @@ public static partial class Defs
     public const int QuotaFromAct = 5;
     /// <summary>Reputation a missed request always costs; the rest of its full cost (4 + its reputation) scales with what's still owed.</summary>
     public const double MissedRepBase = 2.5;
+    /// <summary>Poaching (Poaching.cs): a department asks for one of the best, from the SHARK chapter.</summary>
+    public const double PoachChance = 0.06, PoachEveryDays = 12, PoachGiveRep = 3, PoachLendRep = 1, PoachLendDays = 4,
+        PoachLendExperience = 1500, PoachRefuseRep = 2, PoachKeptMorale = 0.1;
     /// <summary>More time on a request (Extensions.cs): half its time again (12 h to 2 days), in its last day, once a week per ministry.</summary>
     public const double ExtendShare = 0.5, ExtendMinDays = 0.5, ExtendMaxDays = 1, ExtendWithinHours = 24, ExtendEveryDays = 10,
         ExtendRewardCut = 0.25, ExtendRep = 2, ExtendedRepShare = 0.5;

@@ -391,6 +391,11 @@ Then (user requests, 2026-11-19):
   `ExtendedRepShare` 0.5, and its war-map operation is lost at once (`ResolveOperation(c, false)`). `Behind(c)` drives the
   card's "Heading for a miss", tip `extend` and the autoplayer. `Stats.Extensions`. `--modal=extend`. First cut (1 rep,
   0.5–2 days, full completion rep) put Normal at 33/40. Balance (80 Normal seeds): with it 42, Easy 39, Hard 1 of 40.
+- Poaching (`Poaching.cs`, from the ideas list; careers already existed as `Experience`/`ExperienceFor`): `DailyPoaching` from
+  `Campaign.SharkFrom` (where call-up papers stop), own dice 0x90AC, `PoachChance` 0.06 a day, ≥ `PoachEveryDays` 12 apart, no
+  other dilemma. `PoachTarget`: three-star cryptanalyst or linguist, not notable/head/American/leaving/away. Dilemma `Tag`
+  "poach": let go (`DismissStaff`, +3 rep), lend (default, `poach-lend`: +1 rep, `SendOff` 4 days "secondment" shown "on loan",
+  +1500 experience), refuse (`poach-keep`: −2 rep, their morale +0.1). `--modal=poach`. Balance: Normal 40/80, Easy 39, Hard 0.
 
 ### Graphics overhaul: period realism, CC0 assets allowed
 

@@ -132,6 +132,9 @@ public sealed partial class GameState
             case "flu":
                 FluPrecautions = true;
                 break;
+            case "poach-lend" or "poach-keep":
+                PoachAction(action, who);
+                break;
             case "artist-drop":
                 ArtistAction(true);
                 break;

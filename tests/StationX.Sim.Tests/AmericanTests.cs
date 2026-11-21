@@ -512,3 +512,61 @@ public class ExtensionTests
         Assert.Null(g.CantExtend(d.Id));
     }
 }
+
+public class PoachingTests
+{
+    static (GameState g, Staff best) Setup()
+    {
+        var g = GameState.NewGame(7);
+        g.DebugSkipToAct(Campaign.SharkFrom);
+        g.Dilemmas.Clear();
+        var best = g.Staff.First(s => s.Role == Role.Cryptanalyst && s.Notable == null && s.HeadOf == null);
+        best.Skill = 3;
+        best.Experience = 20000;
+        foreach (var s in g.Staff) if (s != best && s.Skill >= 3) s.Skill = 2;
+        return (g, best);
+    }
+
+    [Fact]
+    public void ADepartmentAsksForOneOfTheBest()
+    {
+        var (g, best) = Setup();
+        Assert.True(g.DebugPoach());
+        var d = g.Dilemmas.Single(x => x.Tag == "poach");
+        Assert.Equal(best.Id, d.StaffId);
+
+        // The default lends them: away for a few days, back knowing more.
+        double xp = best.Experience, rep = g.Reputation;
+        Assert.True(g.ResolveDilemma(d.Id, 1));
+        Assert.True(best.IsSick(g.Now) && best.OffReason == "secondment");
+        Assert.Equal(xp + Defs.PoachLendExperience, best.Experience);
+        Assert.Equal(rep + Defs.PoachLendRep, g.Reputation, 6);
+    }
+
+    [Fact]
+    public void LettingThemGoAndRefusing()
+    {
+        var (g, best) = Setup();
+        g.DebugPoach();
+        double rep = g.Reputation;
+        Assert.True(g.ResolveDilemma(g.Dilemmas.Single().Id, 0));
+        Assert.True(best.Leaving || !g.Staff.Contains(best));
+        Assert.Equal(rep + Defs.PoachGiveRep, g.Reputation, 6);
+
+        var (h, b2) = Setup();
+        h.DebugPoach();
+        rep = h.Reputation;
+        double morale = b2.Morale;
+        Assert.True(h.ResolveDilemma(h.Dilemmas.Single().Id, 2));
+        Assert.Equal(rep - Defs.PoachRefuseRep, h.Reputation, 6);
+        Assert.True(b2.Morale > morale);
+    }
+
+    [Fact]
+    public void NobodyGoodEnoughNoRequest()
+    {
+        var (g, _) = Setup();
+        foreach (var s in g.Staff) s.Skill = Math.Min(s.Skill, 2);
+        Assert.False(g.DebugPoach());
+    }
+}
