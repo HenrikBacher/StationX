@@ -477,6 +477,20 @@ Then (user requests, 2026-11-19):
   `LIVE_RANGE=1` test checks GitHub keeps ranges across its redirect; `PCK_OLD/PCK_NEW/PCK_MANIFEST` test real packs.
   The first release with these files can only be delta-updated *from* by the next one (older copies use the patch).
 
+### Since v0.46.1
+
+- People walk and sit again indoors: the umbrella line in `PersonModel.Sync` had broken the pose chain since v0.36.0
+  (walkers glided in the idle pose, nobody sat at desks or tables).
+- Keys: Q/E turn the view (`,` `.` `[` `]` still do), R opens Requests (R still turns a piece while placing).
+- Riders' in-tray (`RiderTray.cs`, `StationType.RiderTray` appended last): one per Park, free, not in the Build panel, can be
+  moved but not removed (`RequestRemove` ignores it), placed by `PlaceRiderTray` near the Mansion door (seed 7: 7,10 in the
+  Morning Room) in `NewGame` and on load. `RiderDesk()` returns it when a registration desk exists (else the bundle waits at
+  the Y-station; no tray falls back to registration); bundles go in its Output and `CarryWaiting` takes them on. Pipeline
+  tests with tight deadlines need a canteen table (GarbledInterceptsAreRequested got one).
+- Teleprinter lines: `LineCost` £500, `LineLayDays` 3 (`LinesLaying`, saved; `TickLines` opens them), `LineRent` £15 a week
+  each in `WeeklyUpkeep`. `GrantBase` 200 → 240 to compensate. Balance: Normal 41/80, Easy 40, Hard 1 (Normal was 35
+  with the tray alone, 32 with dear lines and the old grant).
+
 ### Graphics overhaul: period realism, CC0 assets allowed
 
 The user chose realism (not a tabletop diorama or poster art) and allowed CC0 assets. Use Poly Haven 1K JPG maps
