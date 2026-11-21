@@ -470,6 +470,7 @@ public partial class Main : Node3D
     public override void _Process(double delta)
     {
         float dt = (float)delta;
+        if (_shotFrames is > 0 and <= 3) Rig.SettleSlide();   // a shot shows the slide finished, not halfway
         if (_shotFrames >= 0 && _shotFrames-- == 0)
         {
             if (_bench > 0) _benching = true;

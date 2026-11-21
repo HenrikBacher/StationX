@@ -110,6 +110,8 @@ public partial class Hud : CanvasLayer
     {
         ApplyScale();
         ApplyRightColumn();
+        // An open side panel covers the left of the screen: slide the Park right by half the panel's width.
+        _main.Rig.ShiftPx = _side.Visible ? (_side.OffsetRight - _side.OffsetLeft) / 2 * Scale.X : 0;
         ShowNextToast();
         if (!ModalOpen && _main.Interactive && S.Status == GameStatus.Playing
             && S.Contracts.FirstOrDefault(c => c.Flash && c.State == ContractState.Offered && !_flashShown.Contains(c.Id)) is { } flash)

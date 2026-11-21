@@ -57,8 +57,26 @@ public partial class CameraRig : Node3D
 
     public bool Turning => Mathf.Abs(_yaw - _targetYaw) > 0.01f;
 
+    /// <summary>
+    /// How far (viewport pixels) the picture should slide right, so a side panel over the left of the screen doesn't hide the
+    /// middle of the view. Done with the camera's sideways offset: where it looks stays put, and picking and labels follow.
+    /// </summary>
+    public float ShiftPx { get; set; }
+    float _shift;
+
+    void Slide(float dt)
+    {
+        _shift = Mathf.Abs(_shift - ShiftPx) < 0.5f ? ShiftPx : Mathf.Lerp(_shift, ShiftPx, 1 - Mathf.Exp(-dt * 12));
+        float unitsPerPixel = Cam.Size / GetViewport().GetVisibleRect().Size.Y;
+        Cam.HOffset = -_shift * unitsPerPixel;
+    }
+
+    /// <summary>Jump straight to the slide wanted (screenshots, tests).</summary>
+    public void SettleSlide() { _shift = ShiftPx; Slide(0); }
+
     public override void _Process(double delta)
     {
+        Slide((float)delta);
         if (!Turning) return;
         _yaw = Mathf.Lerp(_yaw, _targetYaw, 1 - Mathf.Exp(-(float)delta * 10));
         if (Mathf.Abs(_yaw - _targetYaw) < 0.25f) _yaw = _targetYaw;
