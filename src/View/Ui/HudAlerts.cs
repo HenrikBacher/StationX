@@ -46,6 +46,8 @@ public partial class Hud
                                            : $"Power cut: the machines have stopped ({Math.Max(1, (int)((S.PowerCutUntil - S.Now) / 60 + 0.5))} h)", Gfx.Bad, () => { }));
         if (S.Overtime)
             list.Add(new Alert($"Leave cancelled: overtime, work +25%, people tire faster ({Math.Max(1, (int)((S.OvertimeUntil - S.Now) / 60 + 0.5))} h)", Gfx.Warn, () => { }));
+        foreach (var z in S.BurningZones())
+            list.Add(new Alert($"FIRE in {z.Name}: out of action while it is made good", Gfx.Bad, () => { }));
         if (S.RaidOn)
             list.Add(new Alert($"Air raid: desk work at half pace until the all-clear ({Math.Max(1, (int)((S.RaidUntil - S.Now) / 60 + 0.5))} h)", Gfx.Bad, () => { }));
         foreach (var (issuer, days) in S.NeglectedMinistries())

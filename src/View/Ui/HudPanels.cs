@@ -336,6 +336,31 @@ public partial class Hud
                 tooltip: why ?? $"The Recreational Club puts on {S.NextSocial.name} at half past seven: everyone's spirits rise ({Defs.SocialMorale * 100:0} points), " +
                                $"and quarrels are often made up. Once every {Defs.SocialEveryDays:0} days.")));
         }
+        if (S.FireWatchOpen)
+        {
+            var fl = UiTheme.Label("Fire-watching", 13, GameState.InRaidSeason(S.Date) && S.FireRota == FireRota.None ? Gfx.Warn : UiTheme.TextDim);
+            fl.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+            fl.TooltipText = "On raid nights, people off watch stand by each building with sand and a stirrup pump. They lose a night's sleep, which wears on them; " +
+                             "a building without them can burn if an incendiary falls on it. Timber huts burn far more readily than brick." +
+                             (S.Stats.FiresCaught + S.Stats.FiresLost > 0 ? $"\nSo far: {S.Stats.FiresCaught} fire(s) put out, {S.Stats.FiresLost} lost." : "");
+            var row = new HBoxContainer();
+            row.AddThemeConstantOverride("separation", 4);
+            row.AddChild(fl);
+            foreach (var r in Enum.GetValues<FireRota>())
+            {
+                var b = UiTheme.Button(r switch { FireRota.Light => "One each", FireRota.Full => "Two each", _ => "None" }, () => { S.SetFireRota(r); _sideSig = ""; },
+                    tooltip: r switch
+                    {
+                        FireRota.Light => "One fire-watcher by each building on raid nights: most fires are caught early.",
+                        FireRota.Full => "Two by each building: nearly every fire is caught, and twice as many lose their sleep.",
+                        _ => "Nobody: no lost sleep, but an incendiary can burn a building out.",
+                    });
+                b.ToggleMode = true;
+                b.SetPressedNoSignal(S.FireRota == r);
+                row.AddChild(b);
+            }
+            _sideBox.AddChild(row);
+        }
         if (S.WatchesAvailable)
         {
             var v = Card(UiTheme.Accent);

@@ -263,6 +263,9 @@ public sealed class AutoPlayer
             foreach (var n in new[] { Net.Dolphin, Net.Shark })
                 if (g.Funds > 3000 && g.CanGarden(n) == null && g.Day % 3 == 0) g.Garden(n);
 
+        // The fire-watch tip: a rota in the raid seasons.
+        if (g.FireWatchOpen) g.SetFireRota(GameState.InRaidSeason(g.Date) ? FireRota.Light : FireRota.None);
+
         // The own-cipher tip: study our signals, then take the case to the Admiralty.
         if (g.CipherProved) g.ChangeCipher();
         else if (g.CantStudyCipher() == null) g.StudyCipher();

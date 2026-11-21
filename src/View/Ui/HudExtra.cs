@@ -380,6 +380,9 @@ public partial class Hud
             "the Park can take on more requests: a request on a network whose key is already broken each day costs only Typex and translation time.");
         yield return ("vetting", S.Staff.Any(s => s.Arriving(S.Now)),
             "New recruits are vetted and put on a train: they take most of a day to report. Hire ahead of need, not when the pile is already on the desk.");
+        yield return ("firewatch", S.FireWatchOpen && GameState.InRaidSeason(S.Date) && S.FireRota == FireRota.None,
+            "The raids have come. An incendiary on a timber hut with nobody to deal with it can burn the hut out for most of a day. Staff (S): set a fire-watching rota. " +
+            "The watchers lose a night's sleep when the sirens go, but most fires are out before they take hold.");
         yield return ("raid", S.RaidOn,
             "An air raid. Desk work runs at half pace in the blackout until the all-clear; the Bombes run on. In the Blitz, don't count on the night watch.");
         yield return ("sick", S.SickCount > 0,
@@ -636,6 +639,16 @@ public partial class Hud
                 S.Dilemmas.Clear();
                 S.DebugMeanwhile(new DateOnly(1942, 2, 20), new DateOnly(1942, 10, 30));
                 if (S.Dilemmas.Count > 0) ShowDilemma(S.Dilemmas[0]);
+                break;
+            case "fire":
+                // A raid on, one hut burning, one scorched, and the rota out.
+                S.SetFireRota(FireRota.Light);
+                S.RaidUntil = S.Now + 120;
+                if (S.Grid.Zones.Where(z => z.Unlocked && !z.Brick && z.Id != "mansion").Take(2).ToList() is { Count: > 0 } fz)
+                {
+                    S.DebugFire(fz[0].Id, caught: false);
+                    if (fz.Count > 1) S.DebugFire(fz[1].Id, caught: true);
+                }
                 break;
             case "wary" or "waryintel":
                 // One service wary, one worried; the War map with a convoy and a raid waiting on a decision, or the Intelligence panel.

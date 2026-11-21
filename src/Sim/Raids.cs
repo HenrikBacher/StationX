@@ -24,7 +24,7 @@ public partial class GameState
     {
         NextRaidAt = -1;
         RaidBomb = false;
-        if (!InBlitz(Date)) return;
+        if (!InRaidSeason(Date)) return;
         // The night of 20 November 1940: a stick of bombs meant for Bletchley's railway junction lands on the Park.
         bool historic = Date >= HistoricBombs && !Stats.ScriptedDone.Contains("bombs1940");
         if (!historic && !Rng.Chance(Defs.RaidChance * Rules.WearMult)) return;
@@ -41,7 +41,9 @@ public partial class GameState
             RaidUntil = Now + length;
             if (RaidBomb) BombAt = Now + Rng.Range(10.0, length - 10);
             RaidBomb = false;
-            Emit(EventKind.Bad, "Air-raid warning! The sirens are going over Bletchley. Desk work slows to half pace in the blackout until the all-clear; the Bombes run on.");
+            Emit(EventKind.Bad, "Air-raid warning! The sirens are going over Bletchley. Desk work slows to half pace in the blackout until the all-clear; the Bombes run on." +
+                                (FireWatchersPer > 0 ? " The fire-watchers go up." : ""));
+            IncendiaryRaid();
         }
         if (BombAt >= 0 && Now >= BombAt)
         {

@@ -442,6 +442,11 @@ public static partial class Defs
     public const double RaidChance = 0.22;
     public const double RaidBombChance = 0.06;
     public const double RaidWorkRate = 0.5;
+    /// <summary>Fire-watching (FireWatch.cs): incendiary chance per building per raid, how often the rota catches it, and what a fire costs.</summary>
+    public const double FireChanceTimber = 0.07, FireChanceBrick = 0.015, FireCaughtLight = 0.8, FireCaughtFull = 0.97, FireCaughtMinutes = 60,
+        FireBurnHours = 16, FireBurnHoursBrick = 8, FireBlazeMinutes = 90, FireScorchHours = 24, FireMorale = 0.1, FireWatchMorale = 0.03,
+        FireWatchStrain = 0.04;
+    public const int FireRepairCost = 150;
     // ---- Billets ----
     public const int StartBillets = 20;
     public const int BilletBlock = 10;

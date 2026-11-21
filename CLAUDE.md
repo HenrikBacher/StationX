@@ -36,7 +36,7 @@ state, so the work can be resumed on any machine.
 
 ## Current work (2026-11-19)
 
-Last release **v0.44.0** (more time on requests, poaching, pay and conditions, the weather crib softened); v0.43.0 had choosing the crib; v0.42.0 had Unpin on a person's own panel; v0.41.0 had the tutorial first chapter, the camera slide beside panels, folded tips and panel introductions; v0.40.0 had German countermeasures, back traffic, Special Liaison Units, Meanwhile, the interface pass; v0.39.0 had the Americans, the Wicked Uncles' early letter, Double Cross, a mole, flu waves, against history, custom games, the notables' stories; v0.38.0 had postings for everyone, RAF fitters, the JN-25 code book, Matapan, Ōshima, Hut 7, the Park at night, reputation forecast, war record, colour-blind networks, first-hour pass; v0.37.0 had JN-25 and the Japanese desk, the Recreational Club, the billets bus, umbrellas and torches, smoother frames; v0.36.0 had Chiefs reports, geese, smoke, the Graphics setting, commuters through the gate; v0.35.0 had the Telegraph crossword, the Prime Minister's visit, Let N go, bicycles; v0.34.0 had courses, Bombe-bay heat; v0.33.0 had Whitehall's quota, Workload panel, kisses; v0.32.0 put a request first, MOST IMMEDIATE telegrams; v0.31.0 had dispatch riders and the gate, music and ambience, failable operations; v0.30.0 had the
+Last release **v0.45.0** (our own cipher read, Hut 3's checking, suspicion effects, no numbers for reputation or suspicion, fire-watching); v0.44.0 had more time on requests, poaching, pay and conditions; v0.43.0 had choosing the crib; v0.42.0 had Unpin on a person's own panel; v0.41.0 had the tutorial first chapter, the camera slide beside panels, folded tips and panel introductions; v0.40.0 had German countermeasures, back traffic, Special Liaison Units, Meanwhile, the interface pass; v0.39.0 had the Americans, the Wicked Uncles' early letter, Double Cross, a mole, flu waves, against history, custom games, the notables' stories; v0.38.0 had postings for everyone, RAF fitters, the JN-25 code book, Matapan, Ōshima, Hut 7, the Park at night, reputation forecast, war record, colour-blind networks, first-hour pass; v0.37.0 had JN-25 and the Japanese desk, the Recreational Club, the billets bus, umbrellas and torches, smoother frames; v0.36.0 had Chiefs reports, geese, smoke, the Graphics setting, commuters through the gate; v0.35.0 had the Telegraph crossword, the Prime Minister's visit, Let N go, bicycles; v0.34.0 had courses, Bombe-bay heat; v0.33.0 had Whitehall's quota, Workload panel, kisses; v0.32.0 put a request first, MOST IMMEDIATE telegrams; v0.31.0 had dispatch riders and the gate, music and ambience, failable operations; v0.30.0 had the
 campaign to VE Day with great operations, Y-stations, the variety engine and update sheets;
 v0.29.0 had idle tea breaks and patch updates; v0.28.0 had breaks, watches, collisions, the updater. Before that **v0.27.0**: cold handovers, the stranded-staff fix, intelligence freshness by service, security sweeps,
 merged static building meshes (`Park3D.MergeStatic`; screenshots print draw calls). v0.26.0 had overhaul parts 1–5
@@ -402,7 +402,7 @@ Then (user requests, 2026-11-19):
   the group to the action. Options: raise (`grievance-raise`: salary +10%, min £2; morale +0.15), allowance (default,
   £12 each, +0.07), refuse (−0.12), all for the group only. `--modal=grievance`. Balance: Normal 40/80, Easy 39, Hard 1.
 
-### Since v0.44.0 (2026-11-21; user: "implement all of those": own cipher, Hut 3 accuracy, fire-watching, friendships, construction, scenarios)
+### In v0.45.0 (2026-11-21; user: "implement all of those": own cipher, Hut 3 accuracy, fire-watching; friendships, construction, scenarios still to do)
 
 - Our own cipher (`OwnCipher.cs`): `CipherRead` from `Defs.BdienstFrom` 1 Feb 1942 to `BdienstUntil` 10 Jun 1943 unless
   `CipherChanged`. Daily tons (own dice 0xBD1E), won convoys save ×`BdienstConvoyShare` 0.7 (`Tally`), and once
@@ -424,6 +424,14 @@ Then (user requests, 2026-11-19):
   esteem), `RepChange`/`RepAmount`/`SuspicionChange` (sizes of change), `RepRate` (slowly … fast), `Relative` (multipliers).
   `DilemmaOption.Effects` uses them; the rep bar tooltip and weekly breakdown, request cards, telegrams, War map, Intelligence
   panel, end sheet, and the two statistics charts (`LineChart.Say`: words on hover, no scale) all do. Keep new texts to words.
+- Fire-watching (`FireWatch.cs`, view `Fires.cs`): raids now in `InRaidSeason` (Blitz + Steinbock 21 Jan–29 May 1944). At a
+  raid's start `IncendiaryRaid` (own dice 0xF14E per building: timber 0.07, brick/Mansion 0.015) and `TurnOutFireWatchers`
+  (`FireRota` None/Light/Full = 0/1/2 per building, from those off watch, least recently watched first: morale −0.03,
+  strain +0.04, `Staff.FireWatchedAt`). Caught (0.8/0.97): the building's stations down `FireCaughtMinutes` 60. Not caught:
+  down 16 h (brick 8), £150, a machine +0.4 wear and £, morale −0.1 inside, `BurningUntil`/`ScorchedUntil` for the view.
+  Staff panel row, top bar "FIRE", alert, tip `firewatch`, autoplayer Light in raid seasons. An energy penalty on the next
+  watch made the autoplayer *win more* (51/80, a hiring artefact), so lost sleep is strain and morale. Balance: Normal 45/80,
+  Easy 39, Hard 2. Shots: `--modal=fire` (night, e.g. `--days=40 --hour=21 --zoom=1.3 --center=17,17`).
 
 ### Graphics overhaul: period realism, CC0 assets allowed
 

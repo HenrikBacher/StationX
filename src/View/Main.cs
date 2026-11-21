@@ -23,6 +23,7 @@ public partial class Main : Node3D
     bool _tutorialArg;
     public Hud Hud = null!;
     Park3D _park = null!;
+    Fires _fires = null!;
     public Park3D Park => _park;
     Riders _riders = null!;
     Bikes _bikes = null!;
@@ -224,6 +225,8 @@ public partial class Main : Node3D
         AddChild(_bus);
         _geese = new Geese { Name = "Geese" };
         AddChild(_geese);
+        _fires = new Fires { Name = "Fires" };
+        AddChild(_fires);
         _music = new Music { Name = "Music" };
         AddChild(_music);
         _stationRoot = new Node3D { Name = "Stations" };
@@ -872,7 +875,9 @@ public partial class Main : Node3D
             // At night the glints come from the moon: fainter, and silver-blue (the light colour is the moon's by then).
             sunlight: Mathf.Max(1 - night, night * 0.65f) * (1 - gloom));
         _park.SetHeads(State);
-        _park.SetSmoke(State, w switch { Weather.Storm => 1f, Weather.Rain => 0.55f, Weather.Overcast or Weather.Snow => 0.4f, Weather.Fog => 0.05f, _ => 0.25f });
+        float wind = w switch { Weather.Storm => 1f, Weather.Rain => 0.55f, Weather.Overcast or Weather.Snow => 0.4f, Weather.Fog => 0.05f, _ => 0.25f };
+        _park.SetSmoke(State, wind);
+        _fires.Sync(State, GetProcessDeltaTime(), wind);
         // Blackout during a raid: shaded lamps, just enough to work by. Only occupied buildings are lit.
         _park.SetNight(State, night, State.RaidOn);
         // Desk lamps burn where someone is at the desk: after dark the night watch shows as pools of light.

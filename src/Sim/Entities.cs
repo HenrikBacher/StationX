@@ -206,6 +206,8 @@ public sealed class Staff
     public string? OffReason { get; set; }
     /// <summary>Strain built up over days of exhaustion (0 to 1). Near the top they risk breaking down.</summary>
     public double Strain { get; set; }
+    /// <summary>When they last turned out on the fire-watching rota.</summary>
+    public double FireWatchedAt { get; set; } = -1e9;
     /// <summary>The lowest energy reached today; feeds strain at midnight.</summary>
     public double LowToday { get; set; } = 1;
     public bool StrainWarned { get; set; }
@@ -346,6 +348,9 @@ public sealed class Stats
     public int ContractsFailed { get; set; }
     public int Extensions { get; set; }
     public int Mistranslations { get; set; }
+    public int FiresCaught { get; set; }
+    public int FiresLost { get; set; }
+    public int FireWatchNights { get; set; }
     public int Breakdowns { get; set; }
     /// <summary>Breakdowns our own fitters mended, and machines they serviced.</summary>
     public int FitterRepairs { get; set; }

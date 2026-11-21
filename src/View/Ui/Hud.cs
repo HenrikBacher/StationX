@@ -242,6 +242,7 @@ public partial class Hud : CanvasLayer
         string mode = S.Mode == GameMode.FreePlay ? " · free play" : "";
         string sky = S.Weather switch { Weather.Fine => "fine", Weather.Overcast => "overcast", Weather.Rain => "rain", Weather.Fog => "fog", Weather.Snow => "snow", _ => "gale" };
         if (S.RaidOn) sky += " · AIR RAID";
+        if (S.BurningZones().Any()) sky += " · FIRE";
         if (S.PowerCut) sky += " · POWER CUT";
         if (S.FluWave) sky += " · FLU";
         else if (S.FluComing) sky += " · flu coming";

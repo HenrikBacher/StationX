@@ -715,3 +715,56 @@ public class SuspicionEffectTests
         Assert.Contains("Whitehall", GameState.SuspicionMeans(80));
     }
 }
+
+public class FireWatchTests
+{
+    static (GameState g, Zone hut) Setup()
+    {
+        var g = GameState.NewGame(7);
+        g.Funds = 5000;
+        g.Place(StationType.Registration, 5, 3, 0);
+        var hut = g.Grid.Zones.First(z => z.Id != "mansion" && !z.Brick);
+        hut.Unlocked = true;
+        return (g, hut);
+    }
+
+    [Fact]
+    public void AFireNobodyCatchesPutsTheBuildingOutOfAction()
+    {
+        var (g, hut) = Setup();
+        var st = g.Stations.First();
+        var z = g.Grid.ZoneAt(st.X, st.Y)!;
+        int funds = g.Funds;
+        g.DebugFire(z.Id, caught: false);
+        Assert.True(g.Burning(z.Id));
+        Assert.True(st.IsDown(g.Now));
+        Assert.True(st.DownUntil - g.Now >= Defs.FireBurnHoursBrick * 60 - 1);
+        Assert.True(g.Funds < funds);
+        Assert.Equal(1, g.Stats.FiresLost);
+    }
+
+    [Fact]
+    public void ACaughtFireCostsAnHour()
+    {
+        var (g, _) = Setup();
+        var st = g.Stations.First();
+        var z = g.Grid.ZoneAt(st.X, st.Y)!;
+        g.DebugFire(z.Id, caught: true);
+        Assert.False(g.Burning(z.Id));
+        Assert.Equal(g.Now + Defs.FireCaughtMinutes, st.DownUntil, 6);
+        Assert.Equal(1, g.Stats.FiresCaught);
+    }
+
+    [Fact]
+    public void RaidSeasonsAndTheRota()
+    {
+        Assert.True(GameState.InRaidSeason(new DateOnly(1940, 11, 20)));
+        Assert.True(GameState.InRaidSeason(new DateOnly(1944, 3, 1)));
+        Assert.False(GameState.InRaidSeason(new DateOnly(1942, 6, 1)));
+        var (g, _) = Setup();
+        g.SetFireRota(FireRota.Full);
+        Assert.Equal(2, g.FireWatchersPer);
+        g.SetFireRota(FireRota.None);
+        Assert.Equal(0, g.FireWatchersPer);
+    }
+}
