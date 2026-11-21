@@ -244,6 +244,9 @@ public sealed partial class GameState
             foreach (var k in d.Keys.ToList())
                 if (int.Parse(k[(k.IndexOf(':') + 1)..]) < cutoff) d.Remove(k);
         KissedKeys.RemoveWhere(k => int.Parse(k[(k.IndexOf(':') + 1)..]) < cutoff);
+        FalseStops.RemoveWhere(k => int.Parse(k[(k.IndexOf(':') + 1)..]) < cutoff);
+        foreach (var k in CribPlan.Keys.ToList())
+            if (int.Parse(k[(k.IndexOf(':') + 1)..]) < cutoff) CribPlan.Remove(k);
     }
 
     // ------------------------------------------------------------- movement
@@ -718,8 +721,9 @@ public sealed partial class GameState
             case StationType.Crib:
                 if (Kissed(m.Net, m.Day)) t *= Defs.KissCribMult;
                 else if (Gardened(m.Net, m.Day)) t *= 0.5;
-                else if (Stale(m.Net, m.Day)) t *= Defs.StaleCribMult;
+                else if (Stale(m.Net, m.Day) && !CribIgnoresStale(m)) t *= Defs.StaleCribMult;
                 if (Analysed(m.Net, m.Day)) t *= Defs.SixtaCribMult;
+                t *= CribTimeMult(m);
                 t *= CounterMult(m.Net, StationType.Crib);
                 break;
             case StationType.Testery:
@@ -752,7 +756,8 @@ public sealed partial class GameState
         if (Kissed(m.Net, m.Day)) t *= Defs.KissBombeMult;
         t *= CounterMult(m.Net, StationType.Bombe);
         if (!HasStation(StationType.Checking)) t *= 1.25;
-        if (Stale(m.Net, m.Day) && !Gardened(m.Net, m.Day) && !Kissed(m.Net, m.Day)) t *= Defs.StaleBombeMult;
+        if (Stale(m.Net, m.Day) && !Gardened(m.Net, m.Day) && !Kissed(m.Net, m.Day) && !CribIgnoresStale(m)) t *= Defs.StaleBombeMult;
+        if (CribOf(m) == CribKind.Reencoded) t *= Defs.CribReencodedBombe;
         return t;
     }
 
@@ -817,7 +822,7 @@ public sealed partial class GameState
             }
             case StationType.Crib:
                 m.CribQuality = Kissed(m.Net, m.Day) ? Defs.KissCribQuality : Gardened(m.Net, m.Day) ? 0.99
-                    : Math.Min(0.97, 0.62 + 0.11 * (op?.Skill ?? 2) + ((op?.Specialties.Contains(st.Type) ?? false) ? 0.1 : 0) + ((op?.Has(Trait.CrosswordFiend) ?? false) ? 0.08 : 0));
+                    : CribQualityFor(m, Math.Min(0.97, 0.62 + 0.11 * (op?.Skill ?? 2) + ((op?.Specialties.Contains(st.Type) ?? false) ? 0.1 : 0) + ((op?.Has(Trait.CrosswordFiend) ?? false) ? 0.08 : 0)));
                 m.Next = AfterCrib(m.Net);
                 break;
             case StationType.Banburismus:
@@ -839,6 +844,7 @@ public sealed partial class GameState
                 if (Rng.Chance(p)) KeyBreak(m, true);
                 else if (!m.Rerun)
                 {
+                    NoteFalseStop(m);
                     m.Rerun = true;
                     m.Next = net.FourRotor ? StationType.Bombe4 : StationType.Bombe;
                     Emit(EventKind.Info, $"The checking machine rejected a {net.Name} stop. The Bombe carries on from where it stopped.");
@@ -923,6 +929,7 @@ public sealed partial class GameState
     {
         if (HasStation(StationType.Checking)) { m.Next = StationType.Checking; return; }
         if (Rng.Chance(m.CribQuality)) { KeyBreak(m, true); return; }
+        NoteFalseStop(m);
         m.Banbury = false;
         m.Rerun = false;
         m.Next = StationType.Crib;

@@ -263,6 +263,14 @@ public sealed class AutoPlayer
             foreach (var n in new[] { Net.Dolphin, Net.Shark })
                 if (g.Funds > 3000 && g.CanGarden(n) == null && g.Day % 3 == 0) g.Garden(n);
 
+        // The crib tip: a re-encodement once another key is broken; against a change of habits, the weather report.
+        foreach (var n in g.ActiveNets.ToList())
+        {
+            if (!g.CribChoiceOpen(n) || g.CribFor(n, g.Day) != CribKind.Desk) continue;
+            if (g.CantUseCrib(n, CribKind.Reencoded) == null) g.SetCrib(n, CribKind.Reencoded);
+            else if (g.Stale(n, g.Day) && g.CantUseCrib(n, CribKind.Weather) == null) g.SetCrib(n, CribKind.Weather);
+        }
+
         // Research: whatever the act asks for first, then anything affordable.
         foreach (var goal in g.Act.Goals.Where(x => x.Kind == GoalKind.Research))
             g.DoResearch(goal.Research!.Value);

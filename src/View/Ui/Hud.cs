@@ -412,7 +412,7 @@ public partial class Hud : CanvasLayer
         {
             int waiting = S.Messages.Values.Count(m => m.Net == n && m.Next == null);
             var state = S.KeyBroken(n, S.Day) ? "broken" : S.KeyState(n, S.Day).ToString();
-            return $"{n}:{state}:{waiting}:{S.KeyRouteProblem(n)}:{S.KeyOrderOf(n)}:{S.Kissed(n, S.Day)}";
+            return $"{n}:{state}:{waiting}:{S.KeyRouteProblem(n)}:{S.KeyOrderOf(n)}:{S.Kissed(n, S.Day)}:{S.CribChoiceOpen(n)}{S.CribFor(n, S.Day)}";
         }).ToList();
         var sig = S.Day + "|" + string.Join(";", lines) + $"|{S.KissesOpen}{S.ReadWerft}{S.WerftProblem()}|{S.Counters.Count}{S.Researched.Count}|{S.BackTraffic / 2}{S.BackWorking}";
         if (sig == _keySig) return;
@@ -479,6 +479,19 @@ public partial class Hud : CanvasLayer
                     cl.MouseFilter = Control.MouseFilterEnum.Pass;
                     texts.AddChild(cl);
                 }
+            if (!free && S.CribChoiceOpen(n))
+            {
+                var kind = S.CribFor(n, S.Day);
+                var net = n;
+                var cb = UiTheme.Button("Crib: " + GameState.CribName(kind), () => { S.SetCrib(net, S.NextCrib(net, S.CribFor(net, S.Day))); _keySig = ""; },
+                    tooltip: GameState.CribBlurb(kind) + "\nThis key has gone stubborn: choose the crib its menus are built on today. Click for the next.");
+                cb.Flat = true;
+                cb.Alignment = HorizontalAlignment.Left;
+                cb.AddThemeFontSizeOverride("font_size", 11);
+                cb.AddThemeColorOverride("font_color", kind == CribKind.Desk ? UiTheme.Accent : Gfx.Good);
+                cb.SetMeta("tut", "crib");
+                texts.AddChild(cb);
+            }
             if (!free && S.Kissed(n, S.Day))
             {
                 var k = UiTheme.Label("Kissed by WERFT", 11, Gfx.Good);

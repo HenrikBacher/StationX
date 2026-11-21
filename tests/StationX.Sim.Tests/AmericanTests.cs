@@ -436,3 +436,46 @@ public class MeanwhileTests
         Assert.Equal(before - Defs.MeanwhileQuiet * Defs.MeanwhileMaxMonths, g.SuspicionOf(Service.Heer), 6);
     }
 }
+
+public class CribChoiceTests
+{
+    [Fact]
+    public void AStubbornKeyOffersCribs()
+    {
+        var g = TestUtil.BombeLine(12, checking: true);
+        g.ActiveNets.Add(Net.Red);
+        g.ActiveNets.Add(Net.LightBlue);
+        Assert.False(g.CribChoiceOpen(Net.Red));
+        g.StaleUntil[Net.Red] = g.Day;
+        Assert.True(g.CribChoiceOpen(Net.Red));
+        Assert.NotNull(g.CantUseCrib(Net.Red, CribKind.Reencoded));   // no other key broken yet
+        Assert.Null(g.CantUseCrib(Net.Red, CribKind.Weather));         // the Luftwaffe sends weather
+        Assert.NotNull(g.CantUseCrib(Net.Police, CribKind.Weather));
+
+        var crib = g.Stations.First(s => s.Type == StationType.Crib);
+        var bombe = g.Stations.First(s => s.Type == StationType.Bombe);
+        var op = g.Staff.First(s => s.Role == Role.Cryptanalyst);
+        var wren = g.Staff.First(s => s.Role == Role.Wren);
+        var m = new Message { Net = Net.Red, Day = g.Day };
+        double cStale = g.Duration(crib, op, m), bStale = g.Duration(bombe, wren, m);
+
+        // The weather report shrugs off the change of habits, waiting a little for the morning.
+        Assert.True(g.SetCrib(Net.Red, CribKind.Weather));
+        Assert.Equal(cStale / Defs.StaleCribMult * Defs.CribWeatherTime, g.Duration(crib, op, m), 6);
+        Assert.Equal(bStale / Defs.StaleBombeMult, g.Duration(bombe, wren, m), 6);
+
+        // "Nothing to report" is quick but keeps the stale penalty.
+        Assert.True(g.SetCrib(Net.Red, CribKind.Routine));
+        Assert.Equal(cStale * Defs.CribRoutineTime, g.Duration(crib, op, m), 6);
+
+        // A re-encodement once another key is broken today.
+        g.Keys[GameState.KeyId(Net.LightBlue, g.Day)] = KeyStatus.Broken;
+        Assert.True(g.SetCrib(Net.Red, CribKind.Reencoded));
+        Assert.Equal(bStale / Defs.StaleBombeMult * Defs.CribReencodedBombe, g.Duration(bombe, wren, m), 6);
+        Assert.Equal(CribKind.Desk, g.NextCrib(Net.Red, CribKind.Reencoded));
+
+        // Broken: no more choosing.
+        g.Keys[GameState.KeyId(Net.Red, g.Day)] = KeyStatus.Broken;
+        Assert.False(g.CribChoiceOpen(Net.Red));
+    }
+}

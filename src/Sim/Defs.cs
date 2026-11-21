@@ -366,6 +366,9 @@ public static partial class Defs
     public const int StaleFromAct = 5;
     public const double StaleChance = 0.08;
     public const double StaleCribMult = 1.6;
+    /// <summary>Choosing the crib (Cribs.cs): menu time ×, quality ±, and the re-encodement's quality and Bombe ×.</summary>
+    public const double CribWeatherTime = 1.2, CribWeatherQuality = 0.04, CribRoutineTime = 0.6, CribRoutineLoss = 0.15,
+        CribReencodedTime = 1.4, CribReencodedQuality = 0.96, CribReencodedBombe = 0.85;
     public const double StaleBombeMult = 1.3;
     // ---- All hands ----
     public const double AllHandsCooldownDays = 7;

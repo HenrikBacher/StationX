@@ -342,6 +342,10 @@ public partial class Hud
             $"Summer in the Bombe bay: with {Defs.HotBombes} or more Bombes running, the hut is a furnace, and the Wrens there tire faster and grow short-tempered. An extractor fan (£{Defs.Station(StationType.Fan).Cost}, under Build) draws the air through.");
         yield return ("worn", S.Stations.Any(s => s.Wears && s.Wear > 0.7 && !s.IsDown(S.Now)),
             "A machine is badly worn (the orange lamp). Service it from its panel while it's idle: an hour now saves five hours of breakdown later.");
+        yield return ("crib", S.ActiveNets.Any(n => S.CribChoiceOpen(n) && S.CribFor(n, S.Day) == CribKind.Desk),
+            "A key has gone stubborn (a change of German habits, or a false Bombe stop today), and its row on the keys card now offers a choice of crib for the day. " +
+            "Once another Enigma key is broken, a re-encodement is the surest: slow to find, but the stop holds. Against a change of habits, the weather report " +
+            "(naval and Luftwaffe keys) gets round it. \"Nothing to report\" is quick, but gives more false stops.");
         yield return ("stale", S.ActiveNets.Any(n => S.Stale(n, S.Day)),
             "The Germans have changed a habit and our cribs for one network are poor for a few days (see the key panel). Its Bombe runs take longer: give it more Bombe time or take fewer of its requests.");
         yield return ("sixta", S.ActIndex >= Defs.SixtaFromAct && S.Stations.Any(s => s.Type == StationType.Crib) && !S.Stations.Any(s => s.Type == StationType.TrafficAnalysis),
@@ -594,6 +598,13 @@ public partial class Hud
                 S.Funds = Math.Max(S.Funds, 2000);
                 S.Slus.Clear();
                 if (S.SluTheatres().FirstOrDefault() is { } first) S.SendSlu(first.Id);
+                break;
+            case "cribs":
+                // Two stubborn keys: one left to the desk, one on the weather report.
+                foreach (var n in S.KeyBoardNets().Where(n => Defs.NetOf(n).Family == Family.Enigma && !S.KeyBroken(n, S.Day)).Take(2))
+                    S.StaleUntil[n] = S.Day + 2;
+                if (S.KeyBoardNets().FirstOrDefault(n => S.CribChoiceOpen(n) && S.CantUseCrib(n, CribKind.Weather) == null) is { } wn && wn != default)
+                    S.SetCrib(wn, CribKind.Weather);
                 break;
             case "backtraffic":
                 S.BackTraffic = 24;

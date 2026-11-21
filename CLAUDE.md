@@ -370,6 +370,17 @@ Then (user requests, 2026-11-19):
   `intros_read`), then folded with More, unfolded until the panel next opens (`_introOpen`). `--folded` marks all read (`IntroIds`).
 - An open side panel slides the picture right by half its width (`CameraRig.ShiftPx` → `Cam.HOffset`; shots settle it).
 
+### Since v0.42.0 (2026-11-21)
+
+- Choosing the crib (`Cribs.cs`, user picked it from the ideas list): `CribKind` Desk/Weather/Routine/Reencoded, `CribPlan`
+  ("Net:day", saved), `FalseStops` (noted in `BombeStop` and the checking machine's first rejection). `CribChoiceOpen`: Enigma,
+  Bombe researched, not broken/kissed/gardened, and `Stale` or a false stop today. Weather (naval/Luftwaffe) and Reencoded
+  (needs another Enigma key broken today, `OtherKeyBroken`; falls back to Desk if that lapses) skip the stale crib and Bombe
+  penalties; times `CribWeatherTime` 1.2 / `CribRoutineTime` 0.6 / `CribReencodedTime` 1.4, quality +0.04 / −0.15 / 0.96,
+  re-encoded Bombe ×0.85. Keys card button cycles (`NextCrib`), tip `crib`; the autoplayer follows the tip (re-encodement,
+  else weather when stale). Distinct from crib dragging (`CribPuzzle.cs`, where the crib fits). `--modal=cribs`.
+  Balance: Easy 37, Normal 24, Hard 1.
+
 ### Graphics overhaul: period realism, CC0 assets allowed
 
 The user chose realism (not a tabletop diorama or poster art) and allowed CC0 assets. Use Poly Haven 1K JPG maps
