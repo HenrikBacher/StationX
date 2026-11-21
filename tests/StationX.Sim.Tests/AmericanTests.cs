@@ -570,3 +570,57 @@ public class PoachingTests
         Assert.False(g.DebugPoach());
     }
 }
+
+public class GrievanceTests
+{
+    static GameState Setup()
+    {
+        var g = GameState.NewGame(7);
+        g.DebugSkipToAct(Campaign.IndexOf("Their Finest Hour"));
+        g.Dilemmas.Clear();
+        foreach (var s in g.Staff.Where(s => s.Notable == null && s.HeadOf == null && s.Role != Role.Clerk).Take(Math.Max(0, 5 - g.Staff.Count(s => s.Role == Role.Clerk))).ToList())
+            s.Role = Role.Clerk;
+        foreach (var s in g.Staff) s.Morale = 0.5;
+        return g;
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void AGroupPutsItsCase(int option)
+    {
+        var g = Setup();
+        Assert.True(g.DebugGrievance("clerks"));
+        var d = g.Dilemmas.Single(x => x.Tag == "grievance");
+        var clerks = g.Staff.Where(s => s.Role == Role.Clerk && !s.Leaving).ToList();
+        var others = g.Staff.Where(s => s.Role != Role.Clerk).ToList();
+        int wages = g.WeeklyWages, funds = g.Funds;
+        var morale = g.Staff.ToDictionary(s => s.Id, s => s.Morale);
+        Assert.True(g.ResolveDilemma(d.Id, option));
+        switch (option)
+        {
+            case 0:
+                Assert.True(g.WeeklyWages > wages);
+                Assert.All(clerks, s => Assert.True(s.Morale >= morale[s.Id]));
+                break;
+            case 1:
+                Assert.Equal(funds - clerks.Count * Defs.GrievanceAllowance, g.Funds);
+                Assert.Equal(wages, g.WeeklyWages);
+                break;
+            case 2:
+                Assert.Equal(wages, g.WeeklyWages);
+                Assert.All(clerks, s => Assert.True(s.Morale < morale[s.Id] || morale[s.Id] == 0));
+                break;
+        }
+        Assert.All(others, s => Assert.Equal(morale[s.Id], s.Morale));
+    }
+
+    [Fact]
+    public void TooFewToComplainNoCase()
+    {
+        var g = Setup();
+        g.Staff.RemoveAll(s => s.Role == Role.Linguist);
+        Assert.False(g.DebugGrievance("linguists"));
+    }
+}

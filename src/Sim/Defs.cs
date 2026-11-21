@@ -147,6 +147,10 @@ public static partial class Defs
     public const int QuotaFromAct = 5;
     /// <summary>Reputation a missed request always costs; the rest of its full cost (4 + its reputation) scales with what's still owed.</summary>
     public const double MissedRepBase = 2.5;
+    /// <summary>Pay and conditions (Grievances.cs): a group's case every few weeks from Their Finest Hour.</summary>
+    public const double GrievanceChance = 0.05, GrievanceEveryDays = 16, GrievanceRiseShare = 0.1,
+        GrievanceRaiseMorale = 0.15, GrievanceAllowMorale = 0.07, GrievanceRefuseMorale = 0.12;
+    public const int GrievanceAllowance = 12, GrievanceMinRise = 2;
     /// <summary>Poaching (Poaching.cs): a department asks for one of the best, from the SHARK chapter.</summary>
     public const double PoachChance = 0.06, PoachEveryDays = 12, PoachGiveRep = 3, PoachLendRep = 1, PoachLendDays = 4,
         PoachLendExperience = 1500, PoachRefuseRep = 2, PoachKeptMorale = 0.1;

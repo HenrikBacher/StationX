@@ -483,6 +483,7 @@ public sealed partial class GameState
         DailyAmericans();
         DailyFlu();
         DailyPoaching();
+        DailyGrievances();
         SpreadIllness();
         _heads = HeadsToday(inNow: false);
         DailyStrain();

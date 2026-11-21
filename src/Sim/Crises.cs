@@ -132,6 +132,9 @@ public sealed partial class GameState
             case "flu":
                 FluPrecautions = true;
                 break;
+            case "grievance-raise" or "grievance-allow" or "grievance-refuse":
+                GrievanceAction(action);
+                break;
             case "poach-lend" or "poach-keep":
                 PoachAction(action, who);
                 break;

@@ -396,6 +396,11 @@ Then (user requests, 2026-11-19):
   other dilemma. `PoachTarget`: three-star cryptanalyst or linguist, not notable/head/American/leaving/away. Dilemma `Tag`
   "poach": let go (`DismissStaff`, +3 rep), lend (default, `poach-lend`: +1 rep, `SendOff` 4 days "secondment" shown "on loan",
   +1500 experience), refuse (`poach-keep`: −2 rep, their morale +0.1). `--modal=poach`. Balance: Normal 40/80, Easy 39, Hard 0.
+- Pay and conditions (`Grievances.cs`, from the ideas list): `DailyGrievances` from "Their Finest Hour", own dice 0x6A1E,
+  `GrievanceChance` 0.05 a day, ≥ 16 days apart, no other dilemma. Kinds (group, minimum): wrens, nights (night watch),
+  billets (`FarBillet`), clerks, linguists; Americans and unpaid staff left out. `GrievanceGroup` ("kind:ids", saved) carries
+  the group to the action. Options: raise (`grievance-raise`: salary +10%, min £2; morale +0.15), allowance (default,
+  £12 each, +0.07), refuse (−0.12), all for the group only. `--modal=grievance`. Balance: Normal 40/80, Easy 39, Hard 1.
 
 ### Graphics overhaul: period realism, CC0 assets allowed
 

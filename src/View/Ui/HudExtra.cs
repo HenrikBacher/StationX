@@ -578,6 +578,11 @@ public partial class Hud
                 S.DebugMeanwhile(new DateOnly(1942, 2, 20), new DateOnly(1942, 10, 30));
                 if (S.Dilemmas.Count > 0) ShowDilemma(S.Dilemmas[0]);
                 break;
+            case "grievance":
+                S.Dilemmas.Clear();
+                S.DebugGrievance();
+                if (S.Dilemmas.Count > 0) ShowDilemma(S.Dilemmas[0]);
+                break;
             case "poach":
                 if (S.Staff.Where(s => s.Role == Role.Cryptanalyst && s.Notable == null && s.HeadOf == null && !s.American).OrderByDescending(s => s.Experience).FirstOrDefault() is { } best)
                     best.Skill = 3;
@@ -967,6 +972,7 @@ public partial class Hud
             "mole" => "MOST SECRET · MI5",
             "flu" => "THE MEDICAL OFFICER",
             "poach" => "WHITEHALL · A REQUEST",
+            "grievance" => "THE STAFF · A CASE PUT",
             "meanwhile" => "MEANWHILE · THE NEWS",
             "welchman" or "knox" or "turing-us" => "PERSONAL · THE DIRECTOR",
             _ => d.Service == Service.Security ? "SECURITY" : $"ULTRA · {Defs.ServiceNames[d.Service].ToUpperInvariant()}",
