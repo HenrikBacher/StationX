@@ -537,7 +537,7 @@ public partial class Hud
         bool Has(StationType t) => S.Stations.Any(s => s.Type == t);
         int Count(Role r) => S.Staff.Count(s => s.Role == r);
         if (!S.Contracts.Any(c => c.State is ContractState.Active or ContractState.Completed))
-            return ("accept", "Open Requests (Q) and accept one as soon as it comes in: the Y-station sends nothing until a ministry has asked for it. " +
+            return ("accept", "Open Requests (R) and accept one as soon as it comes in: the Y-station sends nothing until a ministry has asked for it. " +
                               "The first rider takes a while, so build the desks in your objectives (top right, and first under Build) meanwhile.");
         if (!Has(StationType.Registration))
             return ("reg", "Dispatch riders bring the intercepts up the drive, and need a desk to hand them to. Open Build (B) and place a registration desk in the Mansion: every message is logged there first.");
@@ -562,7 +562,7 @@ public partial class Hud
             return ("wait", "Good. Each message goes registration → hand-cipher desk → translation → despatch box, and is delivered when it leaves. " +
                             "Let it run: press 3 for top speed, and F to see where paper flows and where it is held up.");
         if (S.Day >= 2 && Rig_Quarter() == 0)
-            return ("rotate", "You can turn the view with the comma and full-stop keys (or the ⟲ ⟳ buttons) to see behind tall walls.");
+            return ("rotate", "You can turn the view with Q and E (or the ⟲ ⟳ buttons) to see behind tall walls.");
         return null;
     }
 

@@ -180,8 +180,8 @@ public partial class Hud : CanvasLayer
         var view = new HBoxContainer();
         view.AddThemeConstantOverride("separation", 4);
         view.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
-        view.AddChild(UiTheme.Button("⟲", () => _main.RotateView(-1), tooltip: "Turn the view (, or [)"));
-        view.AddChild(UiTheme.Button("⟳", () => _main.RotateView(1), tooltip: "Turn the view (. or ])"));
+        view.AddChild(UiTheme.Button("⟲", () => _main.RotateView(-1), tooltip: "Turn the view (Q)"));
+        view.AddChild(UiTheme.Button("⟳", () => _main.RotateView(1), tooltip: "Turn the view (E)"));
         _flowBtn = UiTheme.Button("Flow", () => _main.ShowFlows = !_main.ShowFlows, tooltip: "Show where paper goes and where it waits (F)");
         _flowBtn.ToggleMode = true;
         view.AddChild(_flowBtn);
@@ -306,7 +306,7 @@ public partial class Hud : CanvasLayer
         _root.AddChild(bar);
         foreach (var (id, label, key) in new[]
                  {
-                     ("build", "Build", "B"), ("staff", "Staff", "H"), ("requests", "Requests", "Q"),
+                     ("build", "Build", "B"), ("staff", "Staff", "H"), ("requests", "Requests", "R"),
                      ("research", "Research", "T"), ("huts", "Huts", "G"),
                      ("intel", "Intelligence", "I"), ("ystations", "Y-stations", "Y"), ("intercepts", "Intercepts", "N"), ("war", "War map", "O"), ("stats", "Statistics", "K"), ("workload", "Workload", "U"), ("handbook", "Handbook", "F1"),
                  })

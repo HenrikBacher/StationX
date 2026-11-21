@@ -114,7 +114,7 @@ public partial class Main
             Check(!Hud.ModalOpen, "clicking Understood closes the briefing");
 
             // Panels by keyboard
-            foreach (var (key, id) in new[] { (Godot.Key.B, "build"), (Godot.Key.H, "staff"), (Godot.Key.Q, "requests"), (Godot.Key.T, "research"),
+            foreach (var (key, id) in new[] { (Godot.Key.B, "build"), (Godot.Key.H, "staff"), (Godot.Key.R, "requests"), (Godot.Key.T, "research"),
                                               (Godot.Key.G, "huts"), (Godot.Key.I, "intel"), (Godot.Key.Y, "ystations"), (Godot.Key.N, "intercepts"), (Godot.Key.O, "war"), (Godot.Key.K, "stats"), (Godot.Key.U, "workload") })
             {
                 await Tap(key);
@@ -126,7 +126,7 @@ public partial class Main
             // Accept a request by clicking it. Paused: the panel rebuilds every game hour, and a rebuild between
             // finding the button and clicking it made this check flaky.
             Paused = true;
-            await Tap(Godot.Key.Q);
+            await Tap(Godot.Key.R);
             await Frames(2);
             int active = State.Contracts.Count(c => c.State == ContractState.Active);
             if (ButtonNamed("Accept") is { } acc) await Click(CentreOf(acc));

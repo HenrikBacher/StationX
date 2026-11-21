@@ -188,15 +188,15 @@ The game autosaves every morning. It also has three save slots and a quicksave.
 | Right-drag / middle-drag | pan |
 | Wheel | zoom |
 | WASD / arrows / screen edges | pan |
-| , and . (or [ and ]) | turn the view 90° |
+| Q and E (or , and ., [ and ]) | turn the view 90° |
 | Space | pause |
 | 1 2 3 | speed 1×, 3×, 6× |
-| R / Shift+R | rotate while building or moving |
+| R / Shift+R | turn the piece while building or moving |
 | Shift-click | place several |
 | M | move the selected station (£25) |
 | F | flow view: where paper goes, and how long it waits at each desk (a key along the bottom) |
 | U | Workload: how busy each desk, machine and role has been over the last day, and the bottleneck |
-| B H Q T G I Y K | Build, Staff, Requests, Research, Huts, Intelligence, Y-stations, Statistics |
+| B H R T G I Y K | Build, Staff, Requests, Research, Huts, Intelligence, Y-stations, Statistics |
 | F5 / F8 | quicksave / quickload |
 | Esc | cancel, deselect, close panel, then the pause menu |
 | F9 (debug builds) | +£5000, +50 breakthroughs |

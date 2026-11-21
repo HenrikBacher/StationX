@@ -85,7 +85,7 @@ public partial class Hud
         }
 
         _sideBox.AddChild(UiTheme.Caps("Operations", 12, UiTheme.Accent));
-        if (S.Operations.Count == 0) _sideBox.AddChild(UiTheme.Label("None yet. Accept a request (Q).", 13, UiTheme.TextDim));
+        if (S.Operations.Count == 0) _sideBox.AddChild(UiTheme.Label("None yet. Accept a request (R).", 13, UiTheme.TextDim));
         foreach (var o in Enumerable.Reverse(S.Operations).Take(14))
         {
             if (o.AwaitingUse) continue;

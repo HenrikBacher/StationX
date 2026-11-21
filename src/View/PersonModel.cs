@@ -578,8 +578,11 @@ public partial class PersonModel : Node3D
         Pose p = default;
         if (sitting) p = deskWork ? Writing(dt) : TeaBreak(dt);
         else if (atRest && !walking && rest!.Value.Play) p = Rounders(dt);
-        else if (walking) p = Walk(dt, tired, s.Role == Role.Messenger, carrying);
-        if (walking && !carrying && _umbrella is { Visible: true }) { p.ArmL = -0.55f; p.ElbowL = -1.3f; p.ArmOutL = 0.05f; }
+        else if (walking)
+        {
+            p = Walk(dt, tired, s.Role == Role.Messenger, carrying);
+            if (!carrying && _umbrella is { Visible: true }) { p.ArmL = -0.55f; p.ElbowL = -1.3f; p.ArmOutL = 0.05f; }
+        }
         else if (operating) p = MachineWork(dt);
         else p = Idle(dt, carrying);
         if (tired && !sitting) p.Lean += 0.14f;

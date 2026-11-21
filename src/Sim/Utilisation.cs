@@ -684,7 +684,7 @@ public sealed partial class GameState
             if (open > 0 && busy < 0.5)
                 list.Add(new UseFinding("spare",
                     $"We delivered {IntelRate:0} fresh decrypts a day against Whitehall's {IntelQuota}, and the desks were busy only {P(busy)} of the time: " +
-                    "the Park can take on more requests (Q).", 6.5));
+                    "the Park can take on more requests (R).", 6.5));
         }
         return list.OrderByDescending(f => f.Score).ToList();
     }

@@ -42,7 +42,7 @@ public partial class Hud
             "Each chapter's orders are top right: tick them all off and the next chapter opens. Needs attention, below the keys, lists anything going " +
             "wrong; click a line and it opens what fixes it.", () => "objectives", null),
         new("requests",
-            "Nothing comes in until a ministry asks for it. Open Requests (Q).",
+            "Nothing comes in until a ministry asks for it. Open Requests (R).",
             () => "tool:requests", () => _panel == "requests" || AnyAccepted()),
         new("accept",
             "Accept the War Office's request (if none is offered yet, one comes within hours). Denmark Hill starts sending police traffic, and the " +

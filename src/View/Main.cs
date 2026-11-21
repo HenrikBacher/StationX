@@ -1085,7 +1085,9 @@ public partial class Main : Node3D
                 else if (Hud.PanelId != null) Hud.ClosePanel();
                 else Hud.ShowPauseMenu();
                 break;
+            case Key.Q:
             case Key.Comma: RotateView(-1); break;
+            case Key.E:
             case Key.Period: RotateView(1); break;
             case Key.F: ShowFlows = !ShowFlows; Hud.Toast(ShowFlows ? "Flow view: lines show where paper goes; rings show how long it waits." : "Flow view off."); break;
             case Key.I: Hud.TogglePanel("intel"); break;
@@ -1100,7 +1102,7 @@ public partial class Main : Node3D
             case Key.F8: LoadFrom("quick"); break;
             case Key.B: Hud.TogglePanel("build"); break;
             case Key.H: Hud.TogglePanel("staff"); break;
-            case Key.Q: Hud.TogglePanel("requests"); break;
+            case Key.R: Hud.TogglePanel("requests"); break;
             case Key.T: Hud.TogglePanel("research"); break;
             case Key.G: Hud.TogglePanel("huts"); break;
             case Key.F9 when OS.IsDebugBuild():
