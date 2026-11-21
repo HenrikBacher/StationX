@@ -379,7 +379,11 @@ public partial class Main : Node3D
                 Hud.ShowInspector(ist.Id, null);
             else if (args.TryGetValue("inspect", out var inr) && System.Enum.TryParse<Role>(inr, out var ir)
                      && State.Staff.FirstOrDefault(p => p.Role == ir && !p.Away) is { } ip)
+            {
+                // --pinned: pin them to the first desk of their role first, to see the pinned state.
+                if (args.ContainsKey("pinned") && State.Stations.FirstOrDefault(s => s.Def.Operator == ir) is { } pd) State.Pin(ip.Id, pd.Id);
                 Hud.ShowInspector(null, ip.Id);   // --inspect=Role : someone of that role on duty
+            }
             if (args.ContainsKey("breakdown") && State.Stations.FirstOrDefault(s => s.Wears) is { } worn)
             {
                 worn.DownUntil = State.Now + Defs.RepairMinutes;

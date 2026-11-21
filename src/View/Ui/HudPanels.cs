@@ -1109,11 +1109,22 @@ public partial class Hud
                 _inspBox.AddChild(Row(UiTheme.Label("Learns", 12, UiTheme.TextDim), learn));
             }
         }
+        // Pinned: say where, with Unpin right here (not only on the desk's own panel).
+        if (s.Pinned is int pinId)
+        {
+            string where = S.StationById(pinId) is { } pst
+                ? $"Pinned to the {pst.Def.Name.ToLowerInvariant()}{(S.Grid.ZoneAt(pst.X, pst.Y) is { } pz ? $", {pz.Name}" : "")}: works nowhere else."
+                : "Pinned to a desk.";
+            var pl = UiTheme.Label(where, 12, UiTheme.Accent);
+            pl.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+            _inspBox.AddChild(Row(pl, UiTheme.Button("Unpin", () => { S.Pin(id, null); _inspSig = ""; },
+                tooltip: "Let them work at any desk of theirs that needs them")));
+        }
         var stations = S.Stations.Where(st => st.Def.Operator == s.Role && !st.IsRest).ToList();
         if (stations.Count > 0)
         {
             var pin = new OptionButton { FocusMode = Control.FocusModeEnum.None, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
-            pin.AddItem("Anywhere needed", -1);
+            pin.AddItem("Not pinned: anywhere needed", -1);
             foreach (var st in stations)
             {
                 var zone = S.Grid.ZoneAt(st.X, st.Y)?.Name ?? "";
