@@ -214,6 +214,14 @@ public sealed class Staff
     /// <summary>Someone they've fallen out with; both work worse in the same room. Ends on RivalUntilDay.</summary>
     public int? Rival { get; set; }
     public int RivalUntilDay { get; set; }
+    /// <summary>A friend made at the Park (Friendships.cs): one each.</summary>
+    public int? Friend { get; set; }
+    public int FriendSince { get; set; }
+    /// <summary>Walking out with their friend.</summary>
+    public bool Courting { get; set; }
+    public int CourtingSince { get; set; }
+    /// <summary>Married to (a member of the staff).</summary>
+    public int? Spouse { get; set; }
     /// <summary>A new recruit still being vetted and on the train to Bletchley; 0 once they've arrived.</summary>
     public double ArrivesAt { get; set; }
     public bool Arriving(double now) => ArrivesAt > now;
@@ -349,6 +357,8 @@ public sealed class Stats
     public int Extensions { get; set; }
     public int Mistranslations { get; set; }
     public int FiresCaught { get; set; }
+    public int Friendships { get; set; }
+    public int Weddings { get; set; }
     public int FiresLost { get; set; }
     public int FireWatchNights { get; set; }
     public int Breakdowns { get; set; }
@@ -450,6 +460,8 @@ public sealed class DilemmaOption
     public bool Cover { get; set; }
     /// <summary>A special effect handled by the sim (a crisis response), or null.</summary>
     public string? Action { get; set; }
+    /// <summary>An effect the fields above can't say (worded by the sim), shown after them.</summary>
+    public string? Note { get; set; }
 
     /// <summary>One-line summary of the effects, for buttons.</summary>
     public string Effects()
@@ -462,6 +474,7 @@ public sealed class DilemmaOption
         if (Morale != 0) parts.Add(Morale > 0 ? "morale up" : "morale down");
         if (Tonnage > 0) parts.Add($"{Tonnage / 1000:0}k tons lost");
         if (DismissStaff) parts.Add("dismissal");
+        if (Note != null) parts.Add(Note);
         return string.Join(" · ", parts);
     }
 }

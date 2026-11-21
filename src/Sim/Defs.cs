@@ -158,6 +158,10 @@ public static partial class Defs
     public const double GrievanceChance = 0.05, GrievanceEveryDays = 16, GrievanceRiseShare = 0.1,
         GrievanceRaiseMorale = 0.15, GrievanceAllowMorale = 0.07, GrievanceRefuseMorale = 0.12;
     public const int GrievanceAllowance = 12, GrievanceMinRise = 2;
+    /// <summary>Friendships and marriages (Friendships.cs).</summary>
+    public const double FriendChance = 0.12, FriendMorale = 0.01, CourtAfterDays = 21, CourtChance = 0.03, WedAfterDays = 30, WedChance = 0.04,
+        WeddingMorale = 0.03, WeddingCoupleMorale = 0.2, WeddingNoLeaveMorale = 0.1, MarriedApartMorale = 0.03;
+    public const int WeddingToastCost = 30, WeddingShortDays = 2, WeddingLongDays = 7;
     /// <summary>Poaching (Poaching.cs): a department asks for one of the best, from the SHARK chapter.</summary>
     public const double PoachChance = 0.06, PoachEveryDays = 12, PoachGiveRep = 3, PoachLendRep = 1, PoachLendDays = 4,
         PoachLendExperience = 1500, PoachRefuseRep = 2, PoachKeptMorale = 0.1;

@@ -768,3 +768,48 @@ public class FireWatchTests
         Assert.Equal(0, g.FireWatchersPer);
     }
 }
+
+public class FriendshipTests
+{
+    [Fact]
+    public void FriendsTogetherAreHappier()
+    {
+        double MoraleAfterADay(bool friends)
+        {
+            var g = GameState.NewGame(7);
+            var a = g.Staff[0];
+            var b = g.Staff[1];
+            a.Shift = b.Shift = Shift.Office;
+            a.Posted = b.Posted = "mansion";
+            if (friends) { a.Friend = b.Id; b.Friend = a.Id; }
+            Assert.True(g.Together(a, b));
+            g.Advance(Defs.MinutesPerDay);
+            return a.Morale;
+        }
+        Assert.True(MoraleAfterADay(true) > MoraleAfterADay(false));
+    }
+
+    [Fact]
+    public void AWeddingMarriesThemAndGivesLeave()
+    {
+        var g = GameState.NewGame(7);
+        Assert.True(g.DebugWedding());
+        var d = g.Dilemmas.Single(x => x.Tag == "wedding");
+        Assert.True(g.ResolveDilemma(d.Id, 0));
+        var wed = g.Staff.Where(s => s.Spouse != null).ToList();
+        Assert.Equal(2, wed.Count);
+        Assert.Equal(wed[0].Id, wed[1].Spouse);
+        Assert.All(wed, s => Assert.True(s.IsSick(g.Now)));
+        Assert.Equal(1, g.Stats.Weddings);
+    }
+
+    [Fact]
+    public void FriendshipsFormOverTime()
+    {
+        var g = GameState.NewGame(11);
+        for (int i = 0; i < 40 && g.Staff.All(s => s.Friend == null); i++) g.Advance(Defs.MinutesPerDay);
+        var f = g.Staff.FirstOrDefault(s => s.Friend != null);
+        Assert.NotNull(f);
+        Assert.Equal(f!.Id, g.StaffById(f.Friend!.Value)!.Friend);
+    }
+}

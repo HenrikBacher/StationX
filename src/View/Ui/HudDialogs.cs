@@ -307,6 +307,7 @@ public partial class Hud
         if (st.Breakdowns > 0) right.Add($"Machine breakdowns: {st.Breakdowns}" + (st.FitterRepairs > 0 ? $", {st.FitterRepairs} mended by our own fitters" : ""));
         if (st.Delivered.TryGetValue(Net.Jn25, out int jn) && jn > 0)
             right.Add($"JN-25 read: {jn:N0}" + (S.OshimaRead > 0 ? $", with {S.OshimaRead} of Ōshima's reports" : ""));
+        if (st.Weddings > 0) right.Add($"Weddings: {st.Weddings} couple{(st.Weddings == 1 ? "" : "s")} met at the Park");
         if (S.TonnageLost > 0) right.Add($"Shipping lost in the SHARK blackout: {S.TonnageLost:N0} tons");
         var grid = new GridContainer { Columns = 2 };
         grid.AddThemeConstantOverride("h_separation", 24);

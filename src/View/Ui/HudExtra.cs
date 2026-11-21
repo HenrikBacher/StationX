@@ -380,6 +380,10 @@ public partial class Hud
             "the Park can take on more requests: a request on a network whose key is already broken each day costs only Typex and translation time.");
         yield return ("vetting", S.Staff.Any(s => s.Arriving(S.Now)),
             "New recruits are vetted and put on a train: they take most of a day to report. Hire ahead of need, not when the pile is already on the desk.");
+        yield return ("couple", S.CouplesApart().FirstOrDefault() is { a: not null } cp,
+            S.CouplesApart().FirstOrDefault() is { a: { } ca, b: { } cb }
+                ? $"{ca.Name} and {cb.Name} are married but on different watches, and hardly see each other: both grow unhappier every day. Staff (S): put them on the same watch."
+                : "");
         yield return ("firewatch", S.FireWatchOpen && GameState.InRaidSeason(S.Date) && S.FireRota == FireRota.None,
             "The raids have come. An incendiary on a timber hut with nobody to deal with it can burn the hut out for most of a day. Staff (S): set a fire-watching rota. " +
             "The watchers lose a night's sleep when the sirens go, but most fires are out before they take hold.");
@@ -668,6 +672,11 @@ public partial class Hud
             case "owncipher":
                 S.DebugCipher(0.55);
                 OpenPanel("intel");
+                break;
+            case "wedding":
+                S.Dilemmas.Clear();
+                S.DebugWedding();
+                if (S.Dilemmas.Count > 0) ShowDilemma(S.Dilemmas[0]);
                 break;
             case "grievance":
                 S.Dilemmas.Clear();
@@ -1064,6 +1073,7 @@ public partial class Hud
             "flu" => "THE MEDICAL OFFICER",
             "poach" => "WHITEHALL · A REQUEST",
             "grievance" => "THE STAFF · A CASE PUT",
+            "wedding" => "THE PARK · A WEDDING",
             "meanwhile" => "MEANWHILE · THE NEWS",
             "welchman" or "knox" or "turing-us" => "PERSONAL · THE DIRECTOR",
             _ => d.Service == Service.Security ? "SECURITY" : $"ULTRA · {Defs.ServiceNames[d.Service].ToUpperInvariant()}",

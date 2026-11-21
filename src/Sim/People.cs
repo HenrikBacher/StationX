@@ -488,6 +488,7 @@ public sealed partial class GameState
         _heads = HeadsToday(inNow: false);
         DailyStrain();
         DailyRivalries();
+        DailyFriendships();
         AssignBillets();
         // Heads of section: each person feels the head of the hut they last worked in.
         _heads = HeadsToday(inNow: false);

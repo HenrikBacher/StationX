@@ -44,6 +44,8 @@ public partial class Main : Node3D
     Commuters _commuters = null!;
     Bus _bus = null!;
     MeshInstance3D _selRing = null!;
+    /// <summary>Under the selected person's friend or spouse (green) and rival (red).</summary>
+    MeshInstance3D _friendRing = null!, _rivalRing = null!;
 
     public readonly Dictionary<int, StationModel> StationModels = new();
     public readonly Dictionary<int, PersonModel> PersonModels = new();
@@ -244,6 +246,17 @@ public partial class Main : Node3D
             CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
         };
         AddChild(_selRing);
+        foreach (var (c, set) in new (Color, Action<MeshInstance3D>)[] { (Gfx.Good, m => _friendRing = m), (Gfx.Bad, m => _rivalRing = m) })
+        {
+            var ring = new MeshInstance3D
+            {
+                Mesh = new TorusMesh { InnerRadius = 0.44f, OuterRadius = 0.5f, Rings = 24, RingSegments = 6 },
+                MaterialOverride = Mesh3.Mat(c, 1.0f), Visible = false, Scale = new Vector3(0.5f, 1, 0.5f),
+                CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+            };
+            AddChild(ring);
+            set(ring);
+        }
         _ghostFloor = new MeshInstance3D { Mesh = new BoxMesh { Size = new Vector3(1, 0.02f, 1) }, Visible = false };
         _ghostUse = new MeshInstance3D { Mesh = new CylinderMesh { TopRadius = 0.3f, BottomRadius = 0.3f, Height = 0.02f }, Visible = false };
         AddChild(_ghostFloor);
@@ -373,7 +386,9 @@ public partial class Main : Node3D
             if (args.TryGetValue("tutstep", out var ts)) { State.Tutorial = true; State.TutorialStep = int.Parse(ts); }
             if (args.TryGetValue("panel", out var panel)) Hud.OpenPanel(panel);
             // --scroll=end : the open panel scrolled to its foot (the Staff panel's candidates)
-            if (args.ContainsKey("scroll")) Callable.From(() => Callable.From(Hud.ScrollPanelToEnd).CallDeferred()).CallDeferred();
+            // --scroll=end scrolls the open panel to its foot; --scroll=N to N pixels down.
+            if (args.TryGetValue("scroll", out var scr))
+                Callable.From(() => Callable.From(() => { if (int.TryParse(scr, out int px)) Hud.ScrollPanelTo(px); else Hud.ScrollPanelToEnd(); }).CallDeferred()).CallDeferred();
             // --age=H : make every message on the floor H hours older; --inspect=Type : open the busiest station of that type
             if (args.TryGetValue("age", out var age))
                 foreach (var m in State.Messages.Values) m.Created -= double.Parse(age) * 60;
@@ -385,6 +400,19 @@ public partial class Main : Node3D
             {
                 // --pinned: pin them to the first desk of their role first, to see the pinned state.
                 if (args.ContainsKey("pinned") && State.Stations.FirstOrDefault(s => s.Def.Operator == ir) is { } pd) State.Pin(ip.Id, pd.Id);
+                // --ties: a friend on duty with them, and someone they have fallen out with, to see the ties shown.
+                if (args.ContainsKey("ties"))
+                {
+                    var others = State.Staff.Where(p => p != ip && !p.Away && p.HeadOf == null).OrderBy(p => Math.Abs(p.X - ip.X) + Math.Abs(p.Y - ip.Y)).ToList();
+                    if (others.Count >= 2)
+                    {
+                        var (f, r) = (others[0], others[1]);
+                        f.Shift = ip.Shift; f.Posted = ip.Posted ?? ip.LastZone ?? State.Grid.ZoneAt(ip.TilePos.x, ip.TilePos.y)?.Id; ip.Posted ??= f.Posted;
+                        ip.Friend = f.Id; f.Friend = ip.Id;
+                        ip.Rival = r.Id; r.Rival = ip.Id; ip.RivalUntilDay = r.RivalUntilDay = State.Day + 10;
+                    }
+                }
+                Select(null, ip.Id);
                 Hud.ShowInspector(null, ip.Id);   // --inspect=Role : someone of that role on duty
             }
             if (args.ContainsKey("breakdown") && State.Stations.FirstOrDefault(s => s.Wears) is { } worn)
@@ -681,6 +709,10 @@ public partial class Main : Node3D
 
     void UpdateSelectionRing()
     {
+        // The selected person's ties, on site: their friend or spouse and their rival.
+        var sel = SelectedStaff is int ssid ? State.StaffById(ssid) : null;
+        TieRing(_friendRing, sel?.Friend);
+        TieRing(_rivalRing, sel?.Rival);
         if (SelectedStaff is int sid && PersonModels.TryGetValue(sid, out var pm))
         {
             _selRing.Visible = true;
@@ -695,6 +727,16 @@ public partial class Main : Node3D
             _selRing.Scale = new Vector3(w * 1.15f, 1, h * 1.15f);
         }
         else _selRing.Visible = false;
+    }
+
+    void TieRing(MeshInstance3D ring, int? staffId)
+    {
+        if (staffId is int id && PersonModels.TryGetValue(id, out var pm) && pm.Visible && State.StaffById(id) is { Away: false })
+        {
+            ring.Visible = true;
+            ring.Position = pm.GlobalPosition + new Vector3(0, 0.03f, 0);
+        }
+        else ring.Visible = false;
     }
 
     // ---------------------------------------------------------------- sound

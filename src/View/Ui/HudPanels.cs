@@ -17,6 +17,7 @@ public partial class Hud
     ScrollContainer _sideScroll = null!;
     /// <summary>For screenshots: scroll the side panel to its foot.</summary>
     public void ScrollPanelToEnd() => _sideScroll.ScrollVertical = 100000;
+    public void ScrollPanelTo(int px) => _sideScroll.ScrollVertical = px;
     VBoxContainer _sideBox = null!;
     string? _panel;
     string _sideSig = "";
@@ -72,7 +73,7 @@ public partial class Hud
         string sig = _panel switch
         {
             "build" => $"{S.Funds / 50}|{S.ActIndex}|{string.Join(",", S.Researched)}|{S.IndicatorChanged}",
-            "staff" => string.Join(",", S.Staff.Select(s => $"{s.Id}{s.Task?.Kind}{s.Leaving}{s.Away}{s.Shift}{(int)(s.Energy * 5)}{(int)(s.Morale * 5)}{s.FarBillet}{s.IsSick(S.Now)}{s.Arriving(S.Now)}{s.HeadOf}")) + $"|{S.Billets}{S.Funds >= Defs.BilletCost}{S.AllHands}{S.CanCallAllHands() == null}{S.CantHoldCrossword() == null}{S.CrosswordPending}{S.CantHoldSocial() == null}{S.SocialPending}{(int)(S.AverageMorale * 100)}|{(int)S.Stores}{S.StoresOnOrder}{S.StandingOrder}{S.CanOrderStores() == null}|" +
+            "staff" => string.Join(",", S.Staff.Select(s => $"{s.Id}{s.Task?.Kind}{s.Leaving}{s.Away}{s.Shift}{(int)(s.Energy * 5)}{(int)(s.Morale * 5)}{s.FarBillet}{s.IsSick(S.Now)}{s.Arriving(S.Now)}{s.HeadOf}{s.Friend}{s.Rival}{s.Spouse}{((s.Friend ?? s.Rival) is null ? "" : S.Ties(s).Sum(t => t.sign + 2).ToString())}")) + $"|{S.Billets}{S.Funds >= Defs.BilletCost}{S.AllHands}{S.CanCallAllHands() == null}{S.CantHoldCrossword() == null}{S.CrosswordPending}{S.CantHoldSocial() == null}{S.SocialPending}{(int)(S.AverageMorale * 100)}|{(int)S.Stores}{S.StoresOnOrder}{S.StandingOrder}{S.CanOrderStores() == null}|" +
                        string.Join(",", S.Candidates.Select(c => c.Id)) + $"|{S.Funds / 25}|{(int)(S.Now / 30)}|{_idleFirst}",
             "requests" => string.Join(",", S.Contracts.Select(c => $"{c.Id}{c.State}{c.Priority}{c.Delivered}{c.Spawned}{c.MilestonesChecked}{(int)((c.State == ContractState.Offered ? c.OfferExpires : c.Due) - S.Now) / 60}")) +
                           $"|{string.Join(",", S.KeyBoardNets().Select(n => S.KeyRoute(n)))}",
@@ -336,6 +337,19 @@ public partial class Hud
                 tooltip: why ?? $"The Recreational Club puts on {S.NextSocial.name} at half past seven: everyone's spirits rise ({Defs.SocialMorale * 100:0} points), " +
                                $"and quarrels are often made up. Once every {Defs.SocialEveryDays:0} days.")));
         }
+        var (tf, tfT, tc, tcA, tq, tqT) = S.TieCounts();
+        if (tf + tc + tq > 0)
+        {
+            var parts = new List<string>();
+            if (tf > 0) parts.Add($"{tf} friendship{(tf == 1 ? "" : "s")}" + (tfT > 0 ? $" ({tfT} working together, happier for it)" : " (all working apart)"));
+            if (tc > 0) parts.Add($"{tc} married couple{(tc == 1 ? "" : "s")}" + (tcA > 0 ? $" ({tcA} on different watches, unhappy)" : ""));
+            if (tq > 0) parts.Add($"{tq} quarrel{(tq == 1 ? "" : "s")}" + (tqT > 0 ? $" ({tqT} in the same room: slower and souring it)" : " (kept apart)"));
+            var tl = UiTheme.Label("Friends and feuds: " + string.Join("; ", parts) + ".", 12, tqT + tcA > 0 ? Gfx.Warn : UiTheme.TextDim);
+            tl.TooltipText = "Friends on the same watch in the same building are a little happier every day, and some friendships end in a wedding. " +
+                             "A married couple on different watches hardly see each other. People who have fallen out work slower in the same room. " +
+                             "A green dot in the list marks a tie that helps someone now, a red one a tie that hurts; their panel says which.";
+            _sideBox.AddChild(tl);
+        }
         if (S.FireWatchOpen)
         {
             var fl = UiTheme.Label("Fire-watching", 13, GameState.InRaidSeason(S.Date) && S.FireRota == FireRota.None ? Gfx.Warn : UiTheme.TextDim);
@@ -576,12 +590,21 @@ public partial class Hud
             l.MouseFilter = Control.MouseFilterEnum.Pass;
             l.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
         }
-        return Row(b, stars, state, DayBar(p), Meter(p.Energy, "Energy"), Meter(p.Morale, "Morale"));
+        // A dot for a friendship or marriage lifting them (green), or a quarrel or a marriage apart hurting them (red).
+        var ties = S.Ties(p);
+        int worst = ties.Count == 0 ? 0 : ties.Min(t => t.sign), best = ties.Count == 0 ? 0 : ties.Max(t => t.sign);
+        var dot = UiTheme.Label(worst < 0 || best > 0 ? "●" : "", 10, worst < 0 ? Gfx.Bad : Gfx.Good, wrap: false);
+        dot.CustomMinimumSize = new Vector2(10, 0);
+        dot.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
+        dot.TooltipText = string.Join("\n", ties.Select(t => t.text));
+        dot.MouseFilter = Control.MouseFilterEnum.Pass;
+        if (ties.Count > 0) b.TooltipText = tip + "\n" + string.Join("\n", ties.Select(t => t.text));
+        return Row(b, dot, stars, state, DayBar(p), Meter(p.Energy, "Energy"), Meter(p.Morale, "Morale"));
     }
 
     /// <summary>What someone is doing in a word, for a Staff row (the tooltip has <see cref="Doing"/>).</summary>
     string DoingShort(Staff p) =>
-        p.Arriving(S.Now) ? "arriving" : p.IsSick(S.Now) ? (p.OffReason switch { "leave" => "on leave", "breakdown" => "broken down", "course" => "on a course", "secondment" => "on loan", "study" => "studying", _ => "sick" }) : p.Away ? "off"
+        p.Arriving(S.Now) ? "arriving" : p.IsSick(S.Now) ? (p.OffReason switch { "leave" => "on leave", "breakdown" => "broken down", "course" => "on a course", "secondment" => "on loan", "study" => "studying", "wedding" => "married", _ => "sick" }) : p.Away ? "off"
         : p.HeadOf != null && p.Task == null ? "head" : p.Task switch
         {
             null => S.BackWorking && p.Role is Role.Cryptanalyst or Role.Wren ? "on back traffic" : "idle",
@@ -637,7 +660,7 @@ public partial class Hud
 
     /// <summary>What someone is doing, in a word or two, for the Staff list.</summary>
     string Doing(Staff p) =>
-        p.Arriving(S.Now) ? "arriving" : p.IsSick(S.Now) ? (p.OffReason switch { "leave" => "on leave", "breakdown" => "broken down", "course" => "on a course", "secondment" => "on loan", "study" => "studying", _ => "off sick" }) : p.Away ? "off watch"
+        p.Arriving(S.Now) ? "arriving" : p.IsSick(S.Now) ? (p.OffReason switch { "leave" => "on leave", "breakdown" => "broken down", "course" => "on a course", "secondment" => "on loan", "study" => "studying", "wedding" => "away, just married", _ => "off sick" }) : p.Away ? "off watch"
         : p.HeadOf != null && p.Task == null ? $"head of {S.Grid.Zone(p.HeadOf)?.Name}" : p.Task switch
         {
             null => S.BackWorking && p.Role is Role.Cryptanalyst or Role.Wren ? "on back traffic" : "idle",
@@ -866,7 +889,7 @@ public partial class Hud
 
         string sig = st != null
             ? $"st{st.Id}{st.Input.Count}{st.Output.Count}{st.OperatorId}{st.OperatorPresent}{st.Current}{(int)(st.Progress * 20)}{st.PendingRemoval}{st.X},{st.Y}|{string.Join(",", S.PinnedTo(st.Id).Select(p => p.Id))}|{S.Funds >= Defs.MoveCost}|{(int)(st.Wear * 20)}{st.IsDown(S.Now)}{S.Funds >= Defs.ServiceCost}|{(st.Receives == null ? "all" : string.Join(",", st.Receives))}{S.ActiveNets.Count}|{OldestHours(st)}|{(int)(S.BookRecovered * 100)}"
-            : sf != null ? $"sf{sf.Id}{sf.Task?.Kind}{sf.Task?.Dest}{sf.Leaving}{sf.Decrypts}{sf.Away}{sf.IsSick(S.Now)}{sf.Shift}{sf.Pinned}{sf.Posted}{sf.HeadOf}{sf.HeadStyle}{S.Grid.Zones.Count(z => z.Unlocked)}{(int)(sf.Energy * 10)}{(int)(sf.Morale * 10)}{(int)(sf.Strain * 10)}{sf.Rival}{(sf.Rival != null && S.WithRival(sf))}{sf.OffReason}{sf.Second}{(int)S.Funds / 50}{sf.CarelessKnown}{(int)(sf.Experience / 60)}{sf.Skill}"
+            : sf != null ? $"sf{sf.Id}{sf.Task?.Kind}{sf.Task?.Dest}{sf.Leaving}{sf.Decrypts}{sf.Away}{sf.IsSick(S.Now)}{sf.Shift}{sf.Pinned}{sf.Posted}{sf.HeadOf}{sf.HeadStyle}{S.Grid.Zones.Count(z => z.Unlocked)}{(int)(sf.Energy * 10)}{(int)(sf.Morale * 10)}{(int)(sf.Strain * 10)}{sf.Rival}{(sf.Rival != null && S.WithRival(sf))}{sf.Friend}{sf.Courting}{sf.Spouse}{S.Ties(sf).Sum(t => t.sign + 2)}{sf.OffReason}{sf.Second}{(int)S.Funds / 50}{sf.CarelessKnown}{(int)(sf.Experience / 60)}{sf.Skill}"
             : $"z{z!.Id}{z.Unlocked}{S.Funds >= z.Cost}{S.ColdZones()?.Contains(z.Id)}{S.HotZones()?.Contains(z.Id)}";
         if (sig == _inspSig) return;
         _inspSig = sig;
@@ -1049,7 +1072,7 @@ public partial class Hud
             var l = UiTheme.Label($"{td.Name}: {td.Blurb}", 12, td.Good ? UiTheme.Accent : Gfx.Bad);
             _inspBox.AddChild(l);
         }
-        string doing = s.Arriving(S.Now) ? $"On the way: vetting and the train to Bletchley. Reports in about {Math.Max(1, Math.Round((s.ArrivesAt - S.Now) / 60))} h" : s.IsSick(S.Now) ? (s.OffReason == "course" ? $"On a course to learn the {Defs.RoleWord(s.Second ?? s.Role)}'s work: back in about {Math.Max(1, Math.Round((s.SickUntil - S.Now) / 60))} h" : $"{(s.OffReason switch { "leave" => "On leave", "breakdown" => "Sent home after a breakdown", "secondment" => "On loan to another department", "study" => "Studying our own convoy cipher", _ => "Off sick" })}: back in about {Math.Max(1, Math.Round((s.SickUntil - S.Now) / Defs.MinutesPerDay))} days") : s.Away ? $"Off watch, back at the billets until {Defs.Shifts[s.Shift].StartHour:00}:00" : s.Task switch
+        string doing = s.Arriving(S.Now) ? $"On the way: vetting and the train to Bletchley. Reports in about {Math.Max(1, Math.Round((s.ArrivesAt - S.Now) / 60))} h" : s.IsSick(S.Now) ? (s.OffReason == "course" ? $"On a course to learn the {Defs.RoleWord(s.Second ?? s.Role)}'s work: back in about {Math.Max(1, Math.Round((s.SickUntil - S.Now) / 60))} h" : $"{(s.OffReason switch { "leave" => "On leave", "breakdown" => "Sent home after a breakdown", "secondment" => "On loan to another department", "study" => "Studying our own convoy cipher", "wedding" => "Away after their wedding", _ => "Off sick" })}: back in about {Math.Max(1, Math.Round((s.SickUntil - S.Now) / Defs.MinutesPerDay))} days") : s.Away ? $"Off watch, back at the billets until {Defs.Shifts[s.Shift].StartHour:00}:00" : s.Task switch
         {
             { Kind: TaskKind.Operate } t => $"Working at the {S.StationById(t.Dest)?.Def.Name.ToLowerInvariant()}",
             { Kind: TaskKind.Carry, Phase: 0 } => "Fetching messages",
@@ -1075,9 +1098,8 @@ public partial class Hud
         if (s.Strain >= 0.15)
             _inspBox.AddChild(UiTheme.Label(s.Strain >= Defs.StrainWarnAt ? "Close to breaking down: give them easier days or send them on leave."
                                             : "Strain builds on days they end exhausted and eases on easier ones.", 11, s.Strain >= Defs.StrainWarnAt ? Gfx.Bad : UiTheme.TextDim));
-        if (s.Rival is int rid && S.StaffById(rid) is { } rival)
-            _inspBox.AddChild(UiTheme.Label($"Has fallen out with {rival.Name}{(S.WithRival(s) ? ": in the same room now, both are slower and grumpier." : ". Keep them in different rooms.")}", 12,
-                                            S.WithRival(s) ? Gfx.Bad : Gfx.Warn));
+        foreach (var (text, sign, _) in S.Ties(s))
+            _inspBox.AddChild(UiTheme.Label((sign > 0 ? "+ " : sign < 0 ? "− " : "") + text, 12, sign > 0 ? Gfx.Good : sign < 0 ? Gfx.Bad : UiTheme.TextDim));
         var id = s.Id;
         if (S.WatchesAvailable)
         {

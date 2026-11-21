@@ -433,6 +433,19 @@ Then (user requests, 2026-11-19):
   watch made the autoplayer *win more* (51/80, a hiring artefact), so lost sleep is strain and morale. Balance: Normal 45/80,
   Easy 39, Hard 2. Shots: `--modal=fire` (night, e.g. `--days=40 --hour=21 --zoom=1.3 --center=17,17`).
 
+### Since v0.45.0 (2026-11-21; user: "add these": friendships, construction, scenarios; then tag)
+
+- Friendships and marriages (`Friendships.cs`, `DailyFriendships` in `DailyPeople`, own dice 0xF71E): `Staff.Friend` (one each)
+  forms between two people `Together` (same `Shift`, same `Posted ?? LastZone`), `FriendChance` 0.12 × pool/20 a day;
+  together +`FriendMorale` 0.01 a day. Man and woman, not notables, friends ≥ 21 days: `CourtChance` 0.03 → `Courting`;
+  courting ≥ 30 days: `WedChance` 0.04 → dilemma `Tag` "wedding" (`StaffId` set, so the autoplayer takes option 0, the
+  middle: 2 days off + £30 toast; 1: a week; 2: no leave, couple morale −0.1); `wedding:a,b:days` → `Spouse`, `SendOff(…,
+  "wedding")`. Married on different watches −`MarriedApartMorale` 0.03 a day (`CouplesApart`, tip `couple`, autoplayer
+  moves one). `DilemmaOption.Note` words effects the fields can't. Visible (user request): `Ties(s)` (text, sign, other)
+  drives the person panel lines (+/−), a dot in the Staff list (green helping, red hurting), the Staff panel's "Friends
+  and feuds" line (`TieCounts`), and green/red rings under the selected person's friend and rival (`Main.TieRing`). Shots:
+  `--modal=wedding`, `--inspect=Role --ties`, `--scroll=N` (pixels). Balance: Normal 43/80.
+
 ### Graphics overhaul: period realism, CC0 assets allowed
 
 The user chose realism (not a tabletop diorama or poster art) and allowed CC0 assets. Use Poly Haven 1K JPG maps

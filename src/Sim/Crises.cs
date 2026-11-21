@@ -135,6 +135,9 @@ public sealed partial class GameState
             case "grievance-raise" or "grievance-allow" or "grievance-refuse":
                 GrievanceAction(action);
                 break;
+            case { } wed when wed.StartsWith("wedding:"):
+                WeddingAction(wed);
+                break;
             case "poach-lend" or "poach-keep":
                 PoachAction(action, who);
                 break;
