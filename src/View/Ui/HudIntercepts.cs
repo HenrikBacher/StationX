@@ -17,8 +17,8 @@ public partial class Hud
     void InterceptsPanel()
     {
         _sideBox.AddChild(UiTheme.Heading("Intercepts"));
-        _sideBox.AddChild(UiTheme.Label("Every message on the floor, and the last few delivered. Open one to read the intercept, " +
-                                        "and the German and the English once the huts have got that far.", 13, UiTheme.TextDim));
+        Intro("Intercepts", "Every message on the floor, and the last few delivered. Open one to read the intercept, " +
+                                        "and the German and the English once the huts have got that far.");
 
         _sideBox.AddChild(UiTheme.Caps("On the floor", 12, UiTheme.Accent));
         var live = S.Messages.Values.OrderByDescending(m => m.Created).Take(LiveShown).ToList();

@@ -21,8 +21,8 @@ public partial class Hud
     void IntelPanel()
     {
         _sideBox.AddChild(UiTheme.Heading("Intelligence"));
-        _sideBox.AddChild(UiTheme.Label("ULTRA is only useful while the Germans believe their ciphers are safe. Every decrypt that is acted on is a risk. " +
-                                        $"Suspicion fades by itself, a few points a day. At {(int)Defs.SuspicionLimit} a service tightens its procedures and its keys go dark for {Defs.LockdownDays + 1} days.", 13, UiTheme.TextDim));
+        Intro("Intelligence", "ULTRA is only useful while the Germans believe their ciphers are safe. Every decrypt that is acted on is a risk. " +
+                                        $"Suspicion fades by itself, a few points a day. At {(int)Defs.SuspicionLimit} a service tightens its procedures and its keys go dark for {Defs.LockdownDays + 1} days.");
 
         _sideBox.AddChild(UiTheme.Caps("German suspicion", 12, UiTheme.Accent));
         foreach (var sv in Enum.GetValues<Service>().Where(S.ServiceInPlay))
@@ -259,6 +259,19 @@ public partial class Hud
 
     PanelContainer _hint = null!;
     Label _hintText = null!, _hintHead = null!;
+    Button _hintMore = null!;
+    string _hintFull = "";
+    bool _hintOpen;
+
+    /// <summary>The tip shows its first sentence; More unfolds the rest.</summary>
+    void ShowHintText()
+    {
+        string first = FirstSentence(_hintFull);
+        _hintMore.Visible = first != _hintFull;
+        _hintMore.Text = _hintOpen ? "Less" : "More";
+        _hintText.Text = _hintOpen ? _hintFull : first;
+        _hint.OffsetBottom = _hint.OffsetTop;   // shrink to fit
+    }
     string? _hintId;
     readonly HashSet<string> _hintsDone = new();
 
@@ -281,7 +294,11 @@ public partial class Hud
         close.Flat = true;
         close.AddThemeColorOverride("font_color", UiTheme.Stamp);
         close.AddThemeFontSizeOverride("font_size", 12);
-        v.AddChild(Row(head, close));
+        _hintMore = UiTheme.Button("More", () => { _hintOpen = !_hintOpen; ShowHintText(); });
+        _hintMore.Flat = true;
+        _hintMore.AddThemeColorOverride("font_color", UiTheme.Stamp);
+        _hintMore.AddThemeFontSizeOverride("font_size", 12);
+        v.AddChild(Row(head, _hintMore, close));
         _hintText = Ink("", 14, Fonts.Body);
         v.AddChild(_hintText);
     }
@@ -488,7 +505,9 @@ public partial class Hud
         if (h is { } x && x.id != _hintId)
         {
             _hintId = x.id;
-            _hintText.Text = x.text;
+            _hintFull = x.text;
+            _hintOpen = false;
+            ShowHintText();
             // Travis took over from Denniston in February 1942: the tips come from whoever signs the briefings.
             _hintHead.Text = S.Act.From.Contains("Travis") ? "A WORD FROM COMMANDER TRAVIS" : "A WORD FROM COMMANDER DENNISTON";
             _hint.OffsetBottom = _hint.OffsetTop;

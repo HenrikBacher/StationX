@@ -239,8 +239,8 @@ public partial class Hud
         var r = S.Utilisation();
         _sideBox.AddChild(UiTheme.Heading("Workload"));
         string span = r.Hours >= 23.5 ? "the last 24 hours" : r.Hours >= 1 ? $"the last {r.Hours:0} hours (the record builds up to a day)" : "the last few minutes (the record builds up to a day)";
-        _sideBox.AddChild(UiTheme.Label($"How busy each kind of desk, machine and person has been over {span}, and the trend day by day. While this panel is open, " +
-                                        "a ring round every desk shows its day and the dot in the middle what it is doing now; turn on the flow view (F) as well to see where the paper goes. Click a row to go there.", 12, UiTheme.TextDim));
+        Intro("Workload", $"How busy each kind of desk, machine and person has been over {span}, and the trend day by day. While this panel is open, " +
+                                        "a ring round every desk shows its day and the dot in the middle what it is doing now; turn on the flow view (F) as well to see where the paper goes. Click a row to go there.");
 
         var top = r.Top;
         var v = Card(top == null ? Gfx.Good : top.Kind is "bottleneck" or "unstaffed" ? Gfx.Bad : Gfx.Warn);

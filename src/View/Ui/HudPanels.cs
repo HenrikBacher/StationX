@@ -47,6 +47,7 @@ public partial class Hud
     public void OpenPanel(string id)
     {
         _panel = id;
+        _introOpen.Clear();
         _side.Visible = true;
         _sideSig = "";
         foreach (var (k, b) in _tools) b.SetPressedNoSignal(k == id);
@@ -144,6 +145,45 @@ public partial class Hud
 
     static Control Spacer() => new Control { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
 
+    /// <summary>Every panel introduction's id (for the --folded shot flag).</summary>
+    public static readonly string[] IntroIds = { "Build", "Candidates", "Huts", "Intelligence", "Y-stations", "Intercepts", "The war", "Workload", "Handbook" };
+
+    /// <summary>Introductions unfolded in the panel now open (cleared each time a panel opens).</summary>
+    readonly HashSet<string> _introOpen = new();
+
+    /// <summary>
+    /// A panel's introduction: in full the first time it's read, then folded to its first sentence with a "More" to unfold it
+    /// (until the panel is next opened).
+    /// </summary>
+    void Intro(string id, string text)
+    {
+        if (Settings.IntrosRead.Add(id)) { _introOpen.Add(id); Settings.Save(); }
+        string first = FirstSentence(text);
+        if (_introOpen.Contains(id) || first == text)
+        {
+            _sideBox.AddChild(UiTheme.Label(text, 13, UiTheme.TextDim));
+            return;
+        }
+        var l = UiTheme.Label(first, 13, UiTheme.TextDim);
+        l.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        var more = UiTheme.Button("More", () => { _introOpen.Add(id); _sideSig = ""; }, tooltip: "Show the whole introduction");
+        more.Flat = true;
+        more.AddThemeFontSizeOverride("font_size", 12);
+        more.AddThemeColorOverride("font_color", UiTheme.Accent);
+        more.SizeFlagsVertical = Control.SizeFlags.ShrinkBegin;
+        _sideBox.AddChild(Row(l, more));
+    }
+
+    /// <summary>The first sentence of a text (or its first ~110 characters, cut at a word), for folded text.</summary>
+    public static string FirstSentence(string text)
+    {
+        int dot = text.IndexOf(". ", StringComparison.Ordinal);
+        if (dot > 0 && dot <= 140) return text[..(dot + 1)];
+        if (text.Length <= 140) return text;
+        int cut = text.LastIndexOf(' ', 110);
+        return text[..(cut > 40 ? cut : 110)] + "…";
+    }
+
     /// <summary>Beside a greyed-out button: why it can't be pressed, so nobody has to hover to find out. A spacer when it can.</summary>
     static Control Why(string? why)
     {
@@ -202,7 +242,7 @@ public partial class Hud
     void BuildPanel()
     {
         _sideBox.AddChild(UiTheme.Heading("Build"));
-        _sideBox.AddChild(UiTheme.Label("Desks and machines go inside a hut, with clear space in front for whoever works them. Messages come in by dispatch rider (later by teleprinter), pass through each step, and leave by the despatch box.", 13, UiTheme.TextDim));
+        Intro("Build", "Desks and machines go inside a hut, with clear space in front for whoever works them. Messages come in by dispatch rider (later by teleprinter), pass through each step, and leave by the despatch box.");
         if (S.Funds < 0)
             _sideBox.AddChild(UiTheme.Label($"Overdrawn ({UiTheme.Money(S.Funds)}): nothing can be bought until the Park is back in credit. Finish requests: they pay on completion.", 13, Gfx.Bad));
         // What the chapter's objectives ask to be built comes first, marked, so a new player finds it at once.
@@ -401,7 +441,7 @@ public partial class Hud
         }
         _sideBox.AddChild(new HSeparator());
         _sideBox.AddChild(UiTheme.Heading("Candidates", 17));
-        _sideBox.AddChild(UiTheme.Label("Recommended by colleges, the Foreign Office and the Daily Telegraph crossword. New names arrive every week. The first week's wages are paid on hiring.", 12, UiTheme.TextDim));
+        Intro("Candidates", "Recommended by colleges, the Foreign Office and the Daily Telegraph crossword. New names arrive every week. The first week's wages are paid on hiring.");
         foreach (var c in S.Candidates.OrderBy(c => c.Notable == null).ThenBy(c => c.Role))
         {
             var v = Card(c.Notable != null ? UiTheme.Accent : null);
@@ -721,7 +761,7 @@ public partial class Hud
     void HutsPanel()
     {
         _sideBox.AddChild(UiTheme.Heading("Huts"));
-        _sideBox.AddChild(UiTheme.Label("Bletchley grew from a country house into a sprawl of timber huts. Each one opens when the work calls for it.", 13, UiTheme.TextDim));
+        Intro("Huts", "Bletchley grew from a country house into a sprawl of timber huts. Each one opens when the work calls for it.");
         foreach (var z in S.Grid.Zones)
         {
             var v = Card(z.Unlocked ? Gfx.Good : z.Available ? UiTheme.Accent : null);

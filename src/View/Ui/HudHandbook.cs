@@ -13,8 +13,8 @@ public partial class Hud
     void HandbookPanel()
     {
         _sideBox.AddChild(UiTheme.Heading("Handbook"));
-        _sideBox.AddChild(UiTheme.Label("How each kind of traffic goes through the Park. Green: you have one. Grey: not available yet. " +
-                                        "Steps marked optional help but can be skipped. Hover a step for more.", 12, UiTheme.TextDim));
+        Intro("Handbook", "How each kind of traffic goes through the Park. Green: you have one. Grey: not available yet. " +
+                                        "Steps marked optional help but can be skipped. Hover a step for more.");
         foreach (var path in Handbook.Paths)
         {
             var card = Card();

@@ -11,6 +11,8 @@ public static class Settings
     public static float UiScale = 1f;
     /// <summary>Set once a tutorial has been finished: new games then default to playing the first chapter without it.</summary>
     public static bool TutorialDone;
+    /// <summary>Panels whose introduction has been read: they open folded to their first sentence.</summary>
+    public static readonly System.Collections.Generic.HashSet<string> IntrosRead = new();
     public static bool EdgeScroll = true, Hints = true, Fullscreen, FilmGrain = true, CheckUpdates = true;
 
     /// <summary>0 Low, 1 Balanced, 2 High: what the 3D view spends on looks (see <c>Main.ApplyGraphics</c>).</summary>
@@ -36,6 +38,7 @@ public static class Settings
         EdgeScroll = (bool)cfg.GetValue("controls", "edge_scroll", EdgeScroll);
         Hints = (bool)cfg.GetValue("controls", "hints", Hints);
         TutorialDone = (bool)cfg.GetValue("controls", "tutorial_done", TutorialDone);
+        foreach (var id in ((string)cfg.GetValue("controls", "intros_read", "")).Split('|', System.StringSplitOptions.RemoveEmptyEntries)) IntrosRead.Add(id);
         CheckUpdates = (bool)cfg.GetValue("updates", "check", CheckUpdates);
     }
 
@@ -57,6 +60,7 @@ public static class Settings
         cfg.SetValue("controls", "edge_scroll", EdgeScroll);
         cfg.SetValue("controls", "hints", Hints);
         cfg.SetValue("controls", "tutorial_done", TutorialDone);
+        cfg.SetValue("controls", "intros_read", string.Join("|", IntrosRead));
         cfg.SetValue("updates", "check", CheckUpdates);
         cfg.Save(Path);
     }

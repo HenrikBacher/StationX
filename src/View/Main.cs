@@ -366,6 +366,7 @@ public partial class Main : Node3D
                 var p = c.Split(',');
                 Rig.LookAtTile(float.Parse(p[0]), float.Parse(p[1]));
             }
+            if (args.ContainsKey("folded")) foreach (var id in Ui.Hud.IntroIds) Settings.IntrosRead.Add(id);
             if (args.TryGetValue("tutstep", out var ts)) { State.Tutorial = true; State.TutorialStep = int.Parse(ts); }
             if (args.TryGetValue("panel", out var panel)) Hud.OpenPanel(panel);
             // --scroll=end : the open panel scrolled to its foot (the Staff panel's candidates)

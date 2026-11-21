@@ -365,6 +365,9 @@ Then (user requests, 2026-11-19):
   Tips (`NextHint`) wait while it runs. Skip only ends the guidance (user: no jumping ahead) and sets `Settings.TutorialDone`
   (also set on finishing), which makes new games default to "Without" (New game → First chapter). Off for shots and the
   self-test unless `--tutorial`; `--tutstep=N` shows a step. The self-test checks card, Next and Skip.
+- Folding text: a tip shows its first sentence (`FirstSentence`, ≤ 140 chars) with More/Less beside Got it; the tutorial card
+  stays whole. Panel introductions go through `Intro(id, text)`: in full the first time (`Settings.IntrosRead`, saved as
+  `intros_read`), then folded with More, unfolded until the panel next opens (`_introOpen`). `--folded` marks all read (`IntroIds`).
 - An open side panel slides the picture right by half its width (`CameraRig.ShiftPx` → `Cam.HOffset`; shots settle it).
 
 ### Graphics overhaul: period realism, CC0 assets allowed

@@ -15,9 +15,9 @@ public partial class Hud
     void YStationsPanel()
     {
         _sideBox.AddChild(UiTheme.Heading("Y-stations"));
-        _sideBox.AddChild(UiTheme.Label("The listening stations take down German traffic for the Park. Each network needs " +
+        Intro("Y-stations", "The listening stations take down German traffic for the Park. Each network needs " +
                                         $"{Defs.SetsWanted} receiver sets; with fewer it comes in late and garbled, and an extra set copies it cleaner. " +
-                                        "Spare sets search the band when a network changes its frequencies.", 13, UiTheme.TextDim));
+                                        "Spare sets search the band when a network changes its frequencies.");
 
         var count = UiTheme.Label($"Receiver sets: {S.ReceiverSets}, {S.SpareSets} spare", 14, UiTheme.Text, Fonts.BodyBold);
         count.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;

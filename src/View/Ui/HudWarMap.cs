@@ -14,8 +14,8 @@ public partial class Hud
     void WarMapPanel()
     {
         _sideBox.AddChild(UiTheme.Heading("The war"));
-        _sideBox.AddChild(UiTheme.Label("Every request is for something: a convoy to route round the U-boats, a raid to meet, a battle to warn of. " +
-                                        "Deliver in time and it goes our way.", 13, UiTheme.TextDim));
+        Intro("The war", "Every request is for something: a convoy to route round the U-boats, a raid to meet, a battle to warn of. " +
+                                        "Deliver in time and it goes our way.");
         var w = S.War;
         _sideBox.AddChild(UiTheme.Label($"Ships brought home {w.ShipsSaved} · sunk {w.ShipsSunk}", 13));
         _sideBox.AddChild(UiTheme.Label($"Raiders shot down {w.BombersDowned} · raids unopposed {w.RaidsUnopposed}", 13));
