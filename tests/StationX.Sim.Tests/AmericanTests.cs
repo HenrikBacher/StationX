@@ -869,3 +869,41 @@ public class ConstructionTests
         Assert.Equal(1, g.Stats.Rebuilt);
     }
 }
+
+public class ScenarioTests
+{
+    [Fact]
+    public void AScenarioStartsAtItsChapterAndEndsWithAMedal()
+    {
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        var g = GameState.NewScenario(7, Difficulty.Normal, "britain");
+        var prep = sw.Elapsed;
+        Assert.Equal(Campaign.IndexOf("Their Finest Hour"), g.ActIndex);
+        Assert.Equal(0, g.ScenarioScore());
+        Assert.Equal(Difficulty.Normal, g.Difficulty);
+        Assert.True(g.Reputation >= Defs.ScenarioRep);
+        Assert.Equal(21, g.ScenarioDaysLeft);
+        var ai = new AutoPlayer(g);
+        while (g.Status == GameStatus.Playing)
+        {
+            if (g.ActCompletePending) g.ContinueAfterAct();
+            ai.Think();
+            g.Advance(60);
+        }
+        Assert.Equal(GameStatus.Won, g.Status);
+        Assert.Equal(g.ScenarioStartDay + 21, g.Day);
+        Assert.True(g.ScenarioScore() > 0);
+        Assert.Equal(Scenarios.MedalFor(g.ScenarioPlayed!, g.ScenarioScore()), g.ScenarioMedal());
+        Assert.True(prep.TotalSeconds < 30, $"preparing took {prep.TotalSeconds:0.0} s");
+    }
+
+    [Fact]
+    public void MedalsByTheMarks()
+    {
+        var s = Scenarios.ById("dolphin")!;
+        Assert.Equal(Medal.None, Scenarios.MedalFor(s, s.Bronze - 1));
+        Assert.Equal(Medal.Bronze, Scenarios.MedalFor(s, s.Bronze));
+        Assert.Equal(Medal.Silver, Scenarios.MedalFor(s, s.Silver));
+        Assert.Equal(Medal.Gold, Scenarios.MedalFor(s, s.Gold + 50));
+    }
+}

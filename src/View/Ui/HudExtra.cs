@@ -621,6 +621,16 @@ public partial class Hud
             case "save": ShowSaves(true); break;
             case "load": ShowSaves(false); break;
             case "newgame": ShowNewGame(); break;
+            case "scenarios": _ngScenarios = true; ShowNewGame(); break;
+            case "scenarioend":
+                // The end of a scenario whose days are up.
+                if (S.ScenarioPlayed is { } sce)
+                {
+                    S.Stats.Delivered[Net.Red] = S.Stats.Delivered.GetValueOrDefault(Net.Red) + sce.Silver + 4;
+                    S.Status = GameStatus.Won;
+                    ShowEnd(true);
+                }
+                break;
             case "custom": _ngCustomOn = true; _ngCustom.Patience = 0.6; ShowNewGame(); break;
             case "flash":
                 S.DebugFlash();
@@ -908,6 +918,9 @@ public partial class Hud
     bool _titleOpen;
     Difficulty _ngDifficulty = Difficulty.Normal;
     GameMode _ngMode = GameMode.Campaign;
+    /// <summary>The New game sheet's Scenarios choice, and the scenario picked there.</summary>
+    bool _ngScenarios;
+    string _ngScenarioId = Scenarios.All[0].Id;
     int _ngAct;
     bool _ngCustomOn;
     bool? _ngTutorial;
@@ -941,9 +954,22 @@ public partial class Hud
         v.AddChild(Ink("Game", 13, Fonts.BodyBold, UiTheme.Stamp));
         v.AddChild(Choice(new[]
         {
-            (GameMode.Campaign, "Campaign", "Seven chapters, from the first police ciphers in 1939 through SHARK, Tunny and Colossus to D-Day and VE Day in 1945."),
-            (GameMode.FreePlay, "Free play", "No objectives and no closure: requests keep coming, and the war moves on every ten days."),
-        }, _ngMode, m => _ngMode = m));
+            (0, "Campaign", "Seven chapters, from the first police ciphers in 1939 through SHARK, Tunny and Colossus to D-Day and VE Day in 1945."),
+            (1, "Free play", "No objectives and no closure: requests keep coming, and the war moves on every ten days."),
+            (2, "Scenarios", "A few weeks at a turning point of the war, with one thing to do and a medal for doing it well."),
+        }, _ngScenarios ? 2 : _ngMode == GameMode.FreePlay ? 1 : 0, m => { _ngScenarios = m == 2; _ngMode = m == 1 ? GameMode.FreePlay : GameMode.Campaign; }));
+        if (_ngScenarios)
+        {
+            ScenarioChoices(v);
+            v.AddChild(Ink("Difficulty", 13, Fonts.BodyBold, UiTheme.Stamp));
+            v.AddChild(Choice(Enum.GetValues<Difficulty>().Select(d => (d, Defs.Difficulties[d].Name, Defs.Difficulties[d].Blurb)), _ngDifficulty, d => _ngDifficulty = d));
+            var srow = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.End };
+            srow.AddThemeConstantOverride("separation", 12);
+            srow.AddChild(PaperButton("Back", () => { if (_titleOpen) ShowTitle(); else ShowPauseMenu(); }));
+            srow.AddChild(PaperButton("Begin", () => BeginScenario(_ngScenarioId, _ngDifficulty)));
+            v.AddChild(srow);
+            return;
+        }
         v.AddChild(Ink(_ngMode == GameMode.Campaign
             ? "The war as Bletchley saw it, in seven chapters: the police ciphers of 1939, the Polish gift, the Battle of Britain, DOLPHIN, SHARK, Tunny and Colossus, and the Second Front to victory in Europe in May 1945."
             : "A sandbox. Pick where to start; everything earlier is already built and researched.", 13, Fonts.Body));
@@ -1038,6 +1064,46 @@ public partial class Hud
                           tutorial: _ngMode == GameMode.Campaign && (_ngTutorial ?? !Settings.TutorialDone));
         }));
         v.AddChild(row);
+    }
+
+    /// <summary>The scenarios to pick from, each with its marks and the best medal won in it on this computer.</summary>
+    void ScenarioChoices(VBoxContainer v)
+    {
+        v.AddChild(Ink("Scenario", 13, Fonts.BodyBold, UiTheme.Stamp));
+        foreach (var s in Scenarios.All)
+        {
+            bool on = s.Id == _ngScenarioId;
+            var (best, bestScore) = Records.Medal(s.Id);
+            var b = PaperButton($"{s.Name}  ·  {s.Days} days" + (best != Medal.None ? $"  ·  best: {Scenarios.Name(best).ToLowerInvariant()} ({bestScore})" : ""),
+                                () => { _ngScenarioId = s.Id; ShowNewGame(); });
+            b.Alignment = HorizontalAlignment.Left;
+            if (!on)
+            {
+                b.AddThemeStyleboxOverride("normal", UiTheme.Box(new Color(0, 0, 0, 0), UiTheme.PaperInk, 2, 18, 4));
+                b.AddThemeColorOverride("font_color", UiTheme.PaperInk);
+            }
+            v.AddChild(b);
+            if (on)
+                v.AddChild(Ink($"{s.Blurb} Deliver {s.Measure}: bronze at {s.Bronze}, silver at {s.Silver}, gold at {s.Gold}. " +
+                               "The Park is as the war had built it by then.", 13, Fonts.Body));
+        }
+    }
+
+    /// <summary>Starts a scenario: a moment's notice, since the Park is first built up to its date.</summary>
+    void BeginScenario(string id, Difficulty d)
+    {
+        var v = Paper(520);
+        v.AddChild(Letterhead());
+        v.AddChild(new HSeparator());
+        v.AddChild(Ink(Scenarios.ById(id)?.Name ?? "", 24, Fonts.Heading));
+        v.AddChild(Ink("Preparing the Park as it stood on the day…", 14, Fonts.Body));
+        // Two frames: one to show the note, one to build the Park.
+        Callable.From(() => Callable.From(() =>
+        {
+            _titleOpen = false;
+            CloseModal();
+            _main.NewScenario(Random.Shared.Next(100000), d, id);
+        }).CallDeferred()).CallDeferred();
     }
 
     // ---------------------------------------------------------------- dilemmas

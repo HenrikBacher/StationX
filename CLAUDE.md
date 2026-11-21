@@ -456,6 +456,14 @@ Then (user requests, 2026-11-19):
   that turn, and its results are very sensitive to when it orders and fills a hut), so Normal's `RepLossMult` is now 1.1
   (was 1.0): Normal 36–40/80, Easy 40, Hard 2–3. Shots: `--modal=building` (Hut 11 half built), `--modal=rebuild`
   (needs 1942: `--days=88`).
+- Scenarios and medals (`Scenarios.cs`): `ScenarioDef` (id, chapter title, days, measure, `Counts(net)`, bronze/silver/gold).
+  `GameState.NewScenario` builds the Park by autoplaying the campaign on Easy to the chapter (another seed if it loses; ~1–2 s
+  in Release), then the chosen difficulty, reputation ≥ `ScenarioRep` 60, funds ≥ `ScenarioFunds` 2000, `ScenarioBaseline`
+  of deliveries. `CheckScenario` at midnight ends it (`Status` Won, `ScenarioMedal`); a loss gets no medal. Marks from the
+  autoplayer (`SCENARIOS=1 [SCENARIO_SEEDS=N] dotnet test … --filter ScenarioCalibration`): silver ≈ its median, gold ≈ its
+  top tenth. New game → Scenarios (`ScenarioChoices`, `BeginScenario` shows a note first), the chapter card's line, the end
+  sheet (`ScenarioEnd`), `Records.Medal`/`SubmitMedal` (section "medals"). Shots: `--scenario=ID`, `--modal=scenarios`,
+  `--modal=scenarioend`. A scenario is `Mode` Campaign with `ScenarioId` set.
 
 ### Graphics overhaul: period realism, CC0 assets allowed
 

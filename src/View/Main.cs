@@ -287,7 +287,9 @@ public partial class Main : Node3D
         var mode = args.ContainsKey("freeplay") ? GameMode.FreePlay : GameMode.Campaign;
         int startAct = args.TryGetValue("act", out var sa) ? int.Parse(sa) : 0;
         _tutorialArg = args.ContainsKey("tutorial");
-        NewGame(seed, showTitle: _shotPath == null && !_selfTest && !args.ContainsKey("skip-title"), diff, mode, startAct);
+        // --scenario=ID: start that scenario (for shots, with --days counted from its start).
+        if (args.TryGetValue("scenario", out var scen) && Scenarios.ById(scen) != null) NewScenario(seed, diff, scen);
+        else NewGame(seed, showTitle: _shotPath == null && !_selfTest && !args.ContainsKey("skip-title"), diff, mode, startAct);
         // A save file by path (a copy, so the player's own saves are never opened for writing).
         if (args.TryGetValue("loadfile", out var lf)) LoadState(SaveGame.Load(System.IO.File.ReadAllText(lf)));
         if (args.TryGetValue("load", out var slot))
@@ -453,6 +455,15 @@ public partial class Main : Node3D
         State.Events.RemoveAll(e => e.Kind == EventKind.ActStarted);
         if (showTitle) Hud.ShowStart();
         else if (_shotPath == null && !_selfTest) Hud.ShowBriefing();
+    }
+
+    /// <summary>A short scenario (Scenarios.cs): the Park built up to its date by the autoplayer, then the player's.</summary>
+    public void NewScenario(int seed, Difficulty difficulty, string id)
+    {
+        var g = GameState.NewScenario(seed, difficulty, id);
+        g.Tutorial = false;
+        AdoptState(g);
+        if (_shotPath == null && !_selfTest) Hud.ShowBriefing();
     }
 
     /// <summary>Switches to a loaded game.</summary>

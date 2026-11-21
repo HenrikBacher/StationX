@@ -62,3 +62,42 @@ public class Balance(ITestOutputHelper output)
         }
     }
 }
+
+/// <summary>What the autoplayer scores in each scenario, to set the medal marks (SCENARIOS=1).</summary>
+public class ScenarioCalibration
+{
+    readonly Xunit.Abstractions.ITestOutputHelper output;
+    public ScenarioCalibration(Xunit.Abstractions.ITestOutputHelper o) => output = o;
+
+    [Fact]
+    public void Report()
+    {
+        if (Environment.GetEnvironmentVariable("SCENARIOS") != "1") return;
+        int n = int.TryParse(Environment.GetEnvironmentVariable("SCENARIO_SEEDS"), out int k) ? k : 20;
+        foreach (var s in Scenarios.All)
+        {
+            var scores = new int[n];
+            var lost = new bool[n];
+            var prep = new double[n];
+            System.Threading.Tasks.Parallel.For(0, n, i =>
+            {
+                var sw = System.Diagnostics.Stopwatch.StartNew();
+                var g = GameState.NewScenario(3 + 37 * i, Difficulty.Normal, s.Id);
+                prep[i] = sw.Elapsed.TotalSeconds;
+                var ai = new AutoPlayer(g);
+                while (g.Status == GameStatus.Playing)
+                {
+                    if (g.ActCompletePending) g.ContinueAfterAct();
+                    ai.Think();
+                    g.Advance(60);
+                    g.Events.Clear();
+                }
+                scores[i] = g.ScenarioScore();
+                lost[i] = g.Status == GameStatus.Lost;
+            });
+            var sorted = scores.OrderBy(x => x).ToArray();
+            output.WriteLine($"{s.Id,-9} lost {lost.Count(x => x)}/{n}  p25 {sorted[n / 4]}  median {sorted[n / 2]}  p75 {sorted[3 * n / 4]}  p90 {sorted[9 * n / 10]}  " +
+                             $"prep {prep.Average():0.0}s max {prep.Max():0.0}s  medals now: {string.Join(" ", Enum.GetValues<Medal>().Select(m => $"{m} {Enumerable.Range(0, n).Count(i => !lost[i] && Scenarios.MedalFor(s, scores[i]) == m)}"))}");
+        }
+    }
+}

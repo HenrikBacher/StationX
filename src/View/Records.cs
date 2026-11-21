@@ -27,6 +27,28 @@ public static class Records
         return previous;
     }
 
+    /// <summary>The best medal won in a scenario, and its score.</summary>
+    public static (Medal medal, int score) Medal(string id)
+    {
+        if (!Settings.Persist) return (StationX.Sim.Medal.None, 0);
+        var cfg = new ConfigFile();
+        if (cfg.Load(Path) != Error.Ok) return (StationX.Sim.Medal.None, 0);
+        var p = ((string)cfg.GetValue("medals", id, "")).Split('|');
+        return p.Length == 2 && System.Enum.TryParse<Medal>(p[0], out var m) && int.TryParse(p[1], out int sc) ? (m, sc) : (StationX.Sim.Medal.None, 0);
+    }
+
+    /// <summary>Keeps a scenario's result if it beats the best score so far. Returns the previous best.</summary>
+    public static (Medal medal, int score) SubmitMedal(string id, Medal medal, int score)
+    {
+        var previous = Medal(id);
+        if (!Settings.Persist || score <= previous.score) return previous;
+        var cfg = new ConfigFile();
+        cfg.Load(Path);
+        cfg.SetValue("medals", id, $"{medal}|{score}");
+        cfg.Save(Path);
+        return previous;
+    }
+
     /// <summary>A finished war: when it began (real time), the difficulty, how it ended, its score and the last date reached.</summary>
     public sealed record War(string Key, string Played, Difficulty Difficulty, bool Won, int Score, string Reached);
 

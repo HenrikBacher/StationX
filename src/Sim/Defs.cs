@@ -161,6 +161,9 @@ public static partial class Defs
     /// <summary>Building time (Construction.cs): days to put up a hut or a brick block, paying to hurry, rebuilding in brick.</summary>
     public const double HutBuildDays = 2, BlockBuildDays = 4, HurryShare = 0.4, RebuildDays = 6, RebuildSlow = 1.12;
     public const int BrickExtra = 400, BrickTipFunds = 3000;
+    /// <summary>A scenario starts with at least this reputation and money (Scenarios.cs).</summary>
+    public const double ScenarioRep = 60;
+    public const int ScenarioFunds = 2000;
     /// <summary>Friendships and marriages (Friendships.cs).</summary>
     public const double FriendChance = 0.12, FriendMorale = 0.01, CourtAfterDays = 21, CourtChance = 0.03, WedAfterDays = 30, WedChance = 0.04,
         WeddingMorale = 0.03, WeddingCoupleMorale = 0.2, WeddingNoLeaveMorale = 0.1, MarriedApartMorale = 0.03;

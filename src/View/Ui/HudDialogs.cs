@@ -346,11 +346,35 @@ public partial class Hud
         return box;
     }
 
+    /// <summary>The end of a scenario: its measure, the medal, the marks, and the best on this computer.</summary>
+    void ScenarioEnd(VBoxContainer v, ScenarioDef sc, bool won)
+    {
+        int score = S.ScenarioScore();
+        var medal = S.ScenarioMedal();
+        var previous = Records.SubmitMedal(sc.Id, medal, won ? score : 0);
+        v.AddChild(Ink(sc.Name.ToUpperInvariant(), 30, Fonts.Heading, won ? UiTheme.PaperInk : UiTheme.Stamp));
+        v.AddChild(Ink(won ? $"{score} {sc.Measure} delivered in {sc.Days} days." : $"Closed down with {S.ScenarioDaysLeft} days to go, after {score} {sc.Measure}.", 16));
+        v.AddChild(Ink(won ? (medal == Medal.None ? "No medal" : $"{Scenarios.Name(medal)} medal") : "No medal", 26, Fonts.Heading, UiTheme.Stamp));
+        v.AddChild(Ink($"Bronze at {sc.Bronze}, silver at {sc.Silver}, gold at {sc.Gold}." +
+                       (previous.score > 0 ? (won && score > previous.score ? $" A new best (was {previous.score})." : $" Your best: {previous.score}, {Scenarios.Name(previous.medal).ToLowerInvariant()}.") : ""), 13));
+        var row = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.End };
+        row.AddThemeConstantOverride("separation", 12);
+        row.AddChild(PaperButton("Try again", () => { CloseModal(); BeginScenario(sc.Id, S.Difficulty); }));
+        row.AddChild(PaperButton("New game…", () => { _ngScenarios = true; ShowNewGame(); }));
+        row.AddChild(PaperButton("Quit", () => Main.QuitGame()));
+        v.AddChild(row);
+    }
+
     void ShowEnd(bool won)
     {
         var v = Paper(820);
         v.AddChild(Letterhead());
         v.AddChild(new HSeparator());
+        if (S.ScenarioPlayed is { } sc)
+        {
+            ScenarioEnd(v, sc, won);
+            return;
+        }
         string heading = !won ? "Closed down" : S.ActIndex == Campaign.Acts.Length - 1 ? "VICTORY" : S.ActIndex > Campaign.EnigmaFinale ? "TUNNY" : "SHARK";
         v.AddChild(Ink(heading, 34, Fonts.Heading, won ? UiTheme.PaperInk : UiTheme.Stamp));
         if (!string.IsNullOrEmpty(S.EndReason)) v.AddChild(Ink(S.EndReason, 15));

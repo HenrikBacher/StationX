@@ -383,6 +383,18 @@ public partial class Hud : CanvasLayer
             l.MouseFilter = Control.MouseFilterEnum.Pass;
             _objBox.AddChild(l);
         }
+        if (S.ScenarioPlayed is { } sc)
+        {
+            int score = S.ScenarioScore();
+            var medal = Scenarios.MedalFor(sc, score);
+            string next = medal switch { Medal.None => $"bronze at {sc.Bronze}", Medal.Bronze => $"silver at {sc.Silver}", Medal.Silver => $"gold at {sc.Gold}", _ => "gold" };
+            var sl = UiTheme.Label($"{sc.Name.ToUpperInvariant()} · {S.ScenarioDaysLeft} day{(S.ScenarioDaysLeft == 1 ? "" : "s")} left · {score} {sc.Measure} ({next})", 13,
+                                   medal == Medal.None ? UiTheme.Accent : Gfx.Good, Fonts.BodyBold);
+            sl.TooltipText = $"A scenario: {sc.Days} days from {sc.Act}. Deliver {sc.Measure}: bronze at {sc.Bronze}, silver at {sc.Silver}, gold at {sc.Gold}. " +
+                             "Lose Whitehall's confidence and there's no medal at all. The chapter's objectives still move the war on.";
+            sl.MouseFilter = Control.MouseFilterEnum.Pass;
+            _objBox.AddChild(sl);
+        }
         foreach (var g in S.Mode == GameMode.FreePlay ? Enumerable.Empty<Goal>() : act.Goals)
         {
             int p = g.Progress(S);
