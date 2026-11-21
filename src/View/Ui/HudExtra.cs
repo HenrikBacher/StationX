@@ -342,6 +342,9 @@ public partial class Hud
             $"Summer in the Bombe bay: with {Defs.HotBombes} or more Bombes running, the hut is a furnace, and the Wrens there tire faster and grow short-tempered. An extractor fan (£{Defs.Station(StationType.Fan).Cost}, under Build) draws the air through.");
         yield return ("worn", S.Stations.Any(s => s.Wears && s.Wear > 0.7 && !s.IsDown(S.Now)),
             "A machine is badly worn (the orange lamp). Service it from its panel while it's idle: an hour now saves five hours of breakdown later.");
+        yield return ("extend", S.Contracts.Exists(c => S.Behind(c) && S.CantExtend(c.Id) == null),
+            "A request is heading for a miss. On its card, Ask for more time: the ministry gives half as long again for a quarter off the fee and a point of reputation, " +
+            "and its convoy or raid goes ahead without the decrypts. A miss costs more. Each ministry grants it once a week.");
         yield return ("crib", S.ActiveNets.Any(n => S.CribChoiceOpen(n) && S.CribFor(n, S.Day) == CribKind.Desk),
             "A key has gone stubborn (a change of German habits, or a false Bombe stop today), and its row on the keys card now offers a choice of crib for the day. " +
             "Once another Enigma key is broken, a re-encodement is the surest: slow to find, but the stop holds. Against a change of habits, the weather report " +
@@ -598,6 +601,15 @@ public partial class Hud
                 S.Funds = Math.Max(S.Funds, 2000);
                 S.Slus.Clear();
                 if (S.SluTheatres().FirstOrDefault() is { } first) S.SendSlu(first.Id);
+                break;
+            case "extend":
+                // Requests in their last hours, one of them heading for a miss.
+                foreach (var c in S.Contracts.Where(c => c.State == ContractState.Active && !c.Standing && !c.Flash && c.Tag == null).Take(2))
+                {
+                    c.Due = S.Now + 5 * 60;
+                    c.Delivered = Math.Min(c.Delivered, c.Quantity / 3);
+                }
+                OpenPanel("requests");
                 break;
             case "cribs":
                 // Two stubborn keys: one left to the desk, one on the weather report.

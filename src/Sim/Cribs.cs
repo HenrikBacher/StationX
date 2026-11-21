@@ -82,8 +82,8 @@ public sealed partial class GameState
         return k == CribKind.Reencoded && !OtherKeyBroken(m.Net) ? CribKind.Desk : k;
     }
 
-    /// <summary>Whether this message's crib shrugs off a change of German habits.</summary>
-    bool CribIgnoresStale(Message m) => CribOf(m) is CribKind.Weather or CribKind.Reencoded;
+    /// <summary>Whether this message's crib shrugs off a change of German habits (the weather report only softens it).</summary>
+    bool CribIgnoresStale(Message m) => CribOf(m) == CribKind.Reencoded;
 
     /// <summary>How much longer the crib desk takes over the menu, by crib.</summary>
     double CribTimeMult(Message m) => CribOf(m) switch
@@ -115,7 +115,7 @@ public sealed partial class GameState
 
     public static string CribBlurb(CribKind k) => k switch
     {
-        CribKind.Weather => $"WETTERVORHERSAGE goes out at fixed hours whatever else the Germans change. The menu takes {(Defs.CribWeatherTime - 1) * 100:0}% longer (waiting for the morning report), holds a little better, and a change of habits doesn't touch it.",
+        CribKind.Weather => $"WETTERVORHERSAGE goes out at fixed hours whatever else the Germans change. The menu takes {(Defs.CribWeatherTime - 1) * 100:0}% longer (waiting for the morning report) and holds a little better; after a change of habits it takes {(Defs.CribWeatherStale - 1) * 100:0}% longer instead of {(Defs.StaleCribMult - 1) * 100:0}%.",
         CribKind.Routine => $"KEINE BESONDEREN EREIGNISSE: short, everywhere and quick to set. The menu takes {(1 - Defs.CribRoutineTime) * 100:0}% less time, but more Bombe stops are false.",
         CribKind.Reencoded => $"The same text found in a key already broken today: slow to find ({(Defs.CribReencodedTime - 1) * 100:0}% longer), but the stop is almost certain, the Bombe run is shorter, and a change of habits doesn't matter.",
         _ => "The crib desk's usual mix of cribs.",

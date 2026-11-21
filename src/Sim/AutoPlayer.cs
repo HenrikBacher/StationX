@@ -263,6 +263,10 @@ public sealed class AutoPlayer
             foreach (var n in new[] { Net.Dolphin, Net.Shark })
                 if (g.Funds > 3000 && g.CanGarden(n) == null && g.Day % 3 == 0) g.Garden(n);
 
+        // The extend tip: a request heading for a miss gets more time.
+        foreach (var c in g.Contracts.ToList())
+            if (g.Behind(c) && g.CantExtend(c.Id) == null) g.Extend(c.Id);
+
         // The crib tip: a re-encodement once another key is broken; against a change of habits, the weather report.
         foreach (var n in g.ActiveNets.ToList())
         {

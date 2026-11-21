@@ -721,7 +721,7 @@ public sealed partial class GameState
             case StationType.Crib:
                 if (Kissed(m.Net, m.Day)) t *= Defs.KissCribMult;
                 else if (Gardened(m.Net, m.Day)) t *= 0.5;
-                else if (Stale(m.Net, m.Day) && !CribIgnoresStale(m)) t *= Defs.StaleCribMult;
+                else if (Stale(m.Net, m.Day) && !CribIgnoresStale(m)) t *= CribOf(m) == CribKind.Weather ? Defs.CribWeatherStale : Defs.StaleCribMult;
                 if (Analysed(m.Net, m.Day)) t *= Defs.SixtaCribMult;
                 t *= CribTimeMult(m);
                 t *= CounterMult(m.Net, StationType.Crib);

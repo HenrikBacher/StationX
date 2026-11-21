@@ -666,6 +666,19 @@ public partial class Hud
             last.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
             last.AutowrapMode = TextServer.AutowrapMode.WordSmart;
             var cid = c.Id;
+            if (c.Extended) last.Text += " · more time given";
+            if (!c.Standing && !c.Flash && c.Tag == null && !c.Extended && left <= Defs.ExtendWithinHours * 60)
+            {
+                string? why = S.CantExtend(cid);
+                double by = GameState.ExtendBy(c);
+                var op = S.OperationFor(cid);
+                var ext = UiTheme.Button("Ask for more time", () => { S.Extend(cid); _sideSig = ""; },
+                    tooltip: $"Another {Hours(by)}, for £{c.Reward - (int)Math.Round(c.Reward * (1 - Defs.ExtendRewardCut)):N0} off the fee and {Defs.ExtendRep:0} reputation" +
+                             (op is { State: OpState.Pending } ? $"; {op.Name} goes ahead without the decrypts." : ".") +
+                             $" Missing it outright costs {GameState.MissedRep(c):0.#} reputation. Each ministry gives more time once a week.");
+                ext.Disabled = why != null;
+                v.AddChild(Row(ext, Why(why ?? (S.Behind(c) ? "Heading for a miss" : null))));
+            }
             v.AddChild(Row(last, UiTheme.Button(c.Priority ? "Back in turn" : "Put first", () => { S.SetPriority(cid, !c.Priority); _sideSig = ""; },
                 tooltip: c.Priority ? "Let this request's paper take its turn by deadline again."
                                     : "Every desk, machine and runner handles this request's paper before anything else's.")));

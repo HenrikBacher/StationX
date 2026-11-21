@@ -292,6 +292,8 @@ public sealed class Contract
     public bool Oshima { get; set; }
     /// <summary>Put first by the player: its paper is worked and carried before anything else's.</summary>
     public bool Priority { get; set; }
+    /// <summary>Given more time once (Extensions.cs).</summary>
+    public bool Extended { get; set; }
     /// <summary>A standing order: PerDay decrypts every day, checked against a running total each 24 hours.</summary>
     public int PerDay { get; set; }
     public bool Standing => PerDay > 0;
@@ -342,6 +344,7 @@ public sealed class Stats
     public int DeliveredTotal { get; set; }
     public int ContractsCompleted { get; set; }
     public int ContractsFailed { get; set; }
+    public int Extensions { get; set; }
     public int Breakdowns { get; set; }
     /// <summary>Breakdowns our own fitters mended, and machines they serviced.</summary>
     public int FitterRepairs { get; set; }

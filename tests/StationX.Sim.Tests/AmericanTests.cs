@@ -459,10 +459,10 @@ public class CribChoiceTests
         var m = new Message { Net = Net.Red, Day = g.Day };
         double cStale = g.Duration(crib, op, m), bStale = g.Duration(bombe, wren, m);
 
-        // The weather report shrugs off the change of habits, waiting a little for the morning.
+        // The weather report softens the change of habits at the crib desk, waiting a little for the morning.
         Assert.True(g.SetCrib(Net.Red, CribKind.Weather));
-        Assert.Equal(cStale / Defs.StaleCribMult * Defs.CribWeatherTime, g.Duration(crib, op, m), 6);
-        Assert.Equal(bStale / Defs.StaleBombeMult, g.Duration(bombe, wren, m), 6);
+        Assert.Equal(cStale / Defs.StaleCribMult * Defs.CribWeatherStale * Defs.CribWeatherTime, g.Duration(crib, op, m), 6);
+        Assert.Equal(bStale, g.Duration(bombe, wren, m), 6);
 
         // "Nothing to report" is quick but keeps the stale penalty.
         Assert.True(g.SetCrib(Net.Red, CribKind.Routine));
@@ -477,5 +477,38 @@ public class CribChoiceTests
         // Broken: no more choosing.
         g.Keys[GameState.KeyId(Net.Red, g.Day)] = KeyStatus.Broken;
         Assert.False(g.CribChoiceOpen(Net.Red));
+    }
+}
+
+public class ExtensionTests
+{
+    [Fact]
+    public void ARequestCanBeGivenMoreTimeOnceNearItsDeadline()
+    {
+        var g = GameState.NewGame(7);
+        g.Advance(1);
+        var c = g.Contracts.First(k => k.State == ContractState.Offered && !k.Flash && !k.Standing && k.Tag == null);
+        Assert.True(g.Accept(c.Id));
+        Assert.NotNull(g.CantExtend(c.Id));   // too early
+        g.Now = c.Due - 6 * 60;
+        Assert.Null(g.CantExtend(c.Id));
+
+        double due = c.Due, rep = g.Reputation;
+        int reward = c.Reward;
+        Assert.True(g.Extend(c.Id));
+        Assert.Equal(due + GameState.ExtendBy(c), c.Due, 6);
+        Assert.True(c.Reward < reward);
+        Assert.True(g.Reputation < rep);
+        Assert.Equal(1, g.Stats.Extensions);
+        if (g.OperationFor(c.Id) is { } op) Assert.Equal(OpState.Lost, op.State);
+        Assert.NotNull(g.CantExtend(c.Id));   // once only
+
+        // The same ministry won't give more time again this week.
+        var d = new Contract { Id = g.NextId++, Issuer = c.Issuer, Net = c.Net, Quantity = 4, Days = 2, Due = g.Now + 120, State = ContractState.Active, Title = "x" };
+        g.Contracts.Add(d);
+        Assert.NotNull(g.CantExtend(d.Id));
+        g.Now += Defs.ExtendEveryDays * Defs.MinutesPerDay;
+        d.Due = g.Now + 120;
+        Assert.Null(g.CantExtend(d.Id));
     }
 }

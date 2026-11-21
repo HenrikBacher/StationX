@@ -379,7 +379,18 @@ Then (user requests, 2026-11-19):
   penalties; times `CribWeatherTime` 1.2 / `CribRoutineTime` 0.6 / `CribReencodedTime` 1.4, quality +0.04 / −0.15 / 0.96,
   re-encoded Bombe ×0.85. Keys card button cycles (`NextCrib`), tip `crib`; the autoplayer follows the tip (re-encodement,
   else weather when stale). Distinct from crib dragging (`CribPuzzle.cs`, where the crib fits). `--modal=cribs`.
-  Balance: Easy 37, Normal 24, Hard 1.
+  Balance: Easy 37, Normal 24, Hard 1 (40 seeds), but 80 Normal seeds showed it worth ~10 wins (41 → 51) through the
+  weather crib skipping the stale penalty; since v0.43.0 the weather crib only softens it (`CribWeatherStale` 1.3 in place of
+  `StaleCribMult` 1.6, Bombe stale kept, `CribWeatherTime` 1.1) and the re-encodement is 1.6×/0.93/Bombe ×1.
+
+### Since v0.43.0 (2026-11-21)
+
+- More time (`Extensions.cs`, from the ideas list): `CantExtend`/`Extend` on an active request in its last
+  `ExtendWithinHours` 24 (not flash, standing or tagged; once, `Contract.Extended`; per ministry every `ExtendEveryDays` 10,
+  `LastExtension`): due + half its days (0.5–1 day, `ExtendBy`), reward −25%, rep −`ExtendRep` 2, completion rep ×
+  `ExtendedRepShare` 0.5, and its war-map operation is lost at once (`ResolveOperation(c, false)`). `Behind(c)` drives the
+  card's "Heading for a miss", tip `extend` and the autoplayer. `Stats.Extensions`. `--modal=extend`. First cut (1 rep,
+  0.5–2 days, full completion rep) put Normal at 33/40. Balance (80 Normal seeds): with it 42, Easy 39, Hard 1 of 40.
 
 ### Graphics overhaul: period realism, CC0 assets allowed
 

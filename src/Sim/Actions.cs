@@ -773,7 +773,7 @@ public sealed partial class GameState
                         int reward = (int)(c.Reward * pol.Reward);
                         if (c.Standing) reward = FinishStanding(c, reward);
                         Earn(reward);
-                        AdjustRep(c.Rep * pol.Rep, "Requests completed");
+                        AdjustRep(c.Rep * pol.Rep * (c.Extended ? Defs.ExtendedRepShare : 1), "Requests completed");
                         ChangeMorale(0.02);
                         Stats.ContractsCompleted++;
                         ResolveOperation(c, won: true);

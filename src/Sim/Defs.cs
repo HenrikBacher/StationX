@@ -147,6 +147,9 @@ public static partial class Defs
     public const int QuotaFromAct = 5;
     /// <summary>Reputation a missed request always costs; the rest of its full cost (4 + its reputation) scales with what's still owed.</summary>
     public const double MissedRepBase = 2.5;
+    /// <summary>More time on a request (Extensions.cs): half its time again (12 h to 2 days), in its last day, once a week per ministry.</summary>
+    public const double ExtendShare = 0.5, ExtendMinDays = 0.5, ExtendMaxDays = 1, ExtendWithinHours = 24, ExtendEveryDays = 10,
+        ExtendRewardCut = 0.25, ExtendRep = 2, ExtendedRepShare = 0.5;
     public const double QuotaShareFrom = 0.5, QuotaSharePerAct = 0.04, QuotaShareMax = 0.8, QuotaSlope = 2.25, QuotaMaxMult = 2.25, QuotaFloor = 0.6;
     public static double QuotaShare(int act) => Math.Min(QuotaShareMax, QuotaShareFrom + QuotaSharePerAct * Math.Max(0, act - QuotaFromAct));
     /// <summary>What a decrypt counts for against the quota once stale, and once dead (fresh counts 1).</summary>
@@ -367,8 +370,8 @@ public static partial class Defs
     public const double StaleChance = 0.08;
     public const double StaleCribMult = 1.6;
     /// <summary>Choosing the crib (Cribs.cs): menu time ×, quality ±, and the re-encodement's quality and Bombe ×.</summary>
-    public const double CribWeatherTime = 1.2, CribWeatherQuality = 0.04, CribRoutineTime = 0.6, CribRoutineLoss = 0.15,
-        CribReencodedTime = 1.4, CribReencodedQuality = 0.96, CribReencodedBombe = 0.85;
+    public const double CribWeatherStale = 1.3, CribWeatherTime = 1.1, CribWeatherQuality = 0.04, CribRoutineTime = 0.6, CribRoutineLoss = 0.15,
+        CribReencodedTime = 1.6, CribReencodedQuality = 0.93, CribReencodedBombe = 1.0;
     public const double StaleBombeMult = 1.3;
     // ---- All hands ----
     public const double AllHandsCooldownDays = 7;
