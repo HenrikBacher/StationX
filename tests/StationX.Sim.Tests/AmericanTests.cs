@@ -624,3 +624,49 @@ public class GrievanceTests
         Assert.False(g.DebugGrievance("linguists"));
     }
 }
+
+public class OwnCipherTests
+{
+    static GameState InBlackout()
+    {
+        var g = GameState.NewGame(7);
+        g.DebugSkipToAct(Campaign.SharkFrom);
+        g.Dilemmas.Clear();
+        Assert.True(g.CipherRead, $"date {g.Date}");
+        return g;
+    }
+
+    [Fact]
+    public void TheCaseIsBuiltThenTheCipherChanged()
+    {
+        var g = InBlackout();
+        Assert.False(g.CipherSuspected);
+        Assert.NotNull(g.CantStudyCipher());
+        double tons = g.TonnageLost;
+        TestUtil.Run(g, 1);
+        Assert.True(g.TonnageLost > tons);
+
+        g.DebugCipher(Defs.BdienstNoticeAt);
+        Assert.True(g.CipherSuspected);
+        Assert.Null(g.CantStudyCipher());
+        double ev = g.CipherEvidence;
+        Assert.True(g.StudyCipher());
+        Assert.Equal(ev + Defs.BdienstStudyEvidence, g.CipherEvidence, 6);
+        Assert.Contains(g.Staff, s => s.OffReason == "study" && s.IsSick(g.Now));
+        Assert.NotNull(g.CantStudyCipher());   // one at a time
+
+        Assert.False(g.ChangeCipher());   // not proved yet
+        g.DebugCipher(1);
+        double rep = g.Reputation;
+        Assert.True(g.ChangeCipher());
+        Assert.False(g.CipherRead);
+        Assert.Equal(rep + Defs.BdienstProvedRep, g.Reputation, 6);
+    }
+
+    [Fact]
+    public void NotBeforeNineteenFortyTwo()
+    {
+        var g = GameState.NewGame(7);
+        Assert.False(g.CipherRead);
+    }
+}

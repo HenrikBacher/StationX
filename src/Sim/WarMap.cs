@@ -159,6 +159,7 @@ public sealed partial class GameState
     void Tally(Operation op, double share = 1)
     {
         bool won = op.State == OpState.Won;
+        if (op.Kind == OpKind.Convoy && CipherRead) share *= Defs.BdienstConvoyShare;   // the U-boats knew the route anyway
         switch (op.Kind)
         {
             case OpKind.Convoy or OpKind.Fleet:

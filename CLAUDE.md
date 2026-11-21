@@ -402,6 +402,14 @@ Then (user requests, 2026-11-19):
   the group to the action. Options: raise (`grievance-raise`: salary +10%, min £2; morale +0.15), allowance (default,
   £12 each, +0.07), refuse (−0.12), all for the group only. `--modal=grievance`. Balance: Normal 40/80, Easy 39, Hard 1.
 
+### Since v0.44.0 (2026-11-21; user: "implement all of those": own cipher, Hut 3 accuracy, fire-watching, friendships, construction, scenarios)
+
+- Our own cipher (`OwnCipher.cs`): `CipherRead` from `Defs.BdienstFrom` 1 Feb 1942 to `BdienstUntil` 10 Jun 1943 unless
+  `CipherChanged`. Daily tons (own dice 0xBD1E), won convoys save ×`BdienstConvoyShare` 0.7 (`Tally`), and once
+  `CipherSuspected` (evidence ≥ 0.15) −0.25 rep a day. Evidence +0.02 per naval decrypt; `StudyCipher` sends the best free
+  cryptanalyst off 3 days ("study") for +0.3; `ChangeCipher` at 1: +4 rep. Intelligence card, tip `owncipher`, autoplayer
+  follows. `--modal=owncipher` (needs a 1942 date: seed 7 `--days=88`). Balance: Normal 43/80.
+
 ### Graphics overhaul: period realism, CC0 assets allowed
 
 The user chose realism (not a tabletop diorama or poster art) and allowed CC0 assets. Use Poly Haven 1K JPG maps

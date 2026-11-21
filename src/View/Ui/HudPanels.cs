@@ -556,7 +556,7 @@ public partial class Hud
 
     /// <summary>What someone is doing in a word, for a Staff row (the tooltip has <see cref="Doing"/>).</summary>
     string DoingShort(Staff p) =>
-        p.Arriving(S.Now) ? "arriving" : p.IsSick(S.Now) ? (p.OffReason switch { "leave" => "on leave", "breakdown" => "broken down", "course" => "on a course", "secondment" => "on loan", _ => "sick" }) : p.Away ? "off"
+        p.Arriving(S.Now) ? "arriving" : p.IsSick(S.Now) ? (p.OffReason switch { "leave" => "on leave", "breakdown" => "broken down", "course" => "on a course", "secondment" => "on loan", "study" => "studying", _ => "sick" }) : p.Away ? "off"
         : p.HeadOf != null && p.Task == null ? "head" : p.Task switch
         {
             null => S.BackWorking && p.Role is Role.Cryptanalyst or Role.Wren ? "on back traffic" : "idle",
@@ -612,7 +612,7 @@ public partial class Hud
 
     /// <summary>What someone is doing, in a word or two, for the Staff list.</summary>
     string Doing(Staff p) =>
-        p.Arriving(S.Now) ? "arriving" : p.IsSick(S.Now) ? (p.OffReason switch { "leave" => "on leave", "breakdown" => "broken down", "course" => "on a course", "secondment" => "on loan", _ => "off sick" }) : p.Away ? "off watch"
+        p.Arriving(S.Now) ? "arriving" : p.IsSick(S.Now) ? (p.OffReason switch { "leave" => "on leave", "breakdown" => "broken down", "course" => "on a course", "secondment" => "on loan", "study" => "studying", _ => "off sick" }) : p.Away ? "off watch"
         : p.HeadOf != null && p.Task == null ? $"head of {S.Grid.Zone(p.HeadOf)?.Name}" : p.Task switch
         {
             null => S.BackWorking && p.Role is Role.Cryptanalyst or Role.Wren ? "on back traffic" : "idle",
@@ -1024,7 +1024,7 @@ public partial class Hud
             var l = UiTheme.Label($"{td.Name}: {td.Blurb}", 12, td.Good ? UiTheme.Accent : Gfx.Bad);
             _inspBox.AddChild(l);
         }
-        string doing = s.Arriving(S.Now) ? $"On the way: vetting and the train to Bletchley. Reports in about {Math.Max(1, Math.Round((s.ArrivesAt - S.Now) / 60))} h" : s.IsSick(S.Now) ? (s.OffReason == "course" ? $"On a course to learn the {Defs.RoleWord(s.Second ?? s.Role)}'s work: back in about {Math.Max(1, Math.Round((s.SickUntil - S.Now) / 60))} h" : $"{(s.OffReason switch { "leave" => "On leave", "breakdown" => "Sent home after a breakdown", "secondment" => "On loan to another department", _ => "Off sick" })}: back in about {Math.Max(1, Math.Round((s.SickUntil - S.Now) / Defs.MinutesPerDay))} days") : s.Away ? $"Off watch, back at the billets until {Defs.Shifts[s.Shift].StartHour:00}:00" : s.Task switch
+        string doing = s.Arriving(S.Now) ? $"On the way: vetting and the train to Bletchley. Reports in about {Math.Max(1, Math.Round((s.ArrivesAt - S.Now) / 60))} h" : s.IsSick(S.Now) ? (s.OffReason == "course" ? $"On a course to learn the {Defs.RoleWord(s.Second ?? s.Role)}'s work: back in about {Math.Max(1, Math.Round((s.SickUntil - S.Now) / 60))} h" : $"{(s.OffReason switch { "leave" => "On leave", "breakdown" => "Sent home after a breakdown", "secondment" => "On loan to another department", "study" => "Studying our own convoy cipher", _ => "Off sick" })}: back in about {Math.Max(1, Math.Round((s.SickUntil - S.Now) / Defs.MinutesPerDay))} days") : s.Away ? $"Off watch, back at the billets until {Defs.Shifts[s.Shift].StartHour:00}:00" : s.Task switch
         {
             { Kind: TaskKind.Operate } t => $"Working at the {S.StationById(t.Dest)?.Def.Name.ToLowerInvariant()}",
             { Kind: TaskKind.Carry, Phase: 0 } => "Fetching messages",

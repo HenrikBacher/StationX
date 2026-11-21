@@ -224,6 +224,7 @@ public sealed partial class GameState
         DailyCounters();
         DailySlus();
         DailyBackTraffic();
+        DailyOwnCipher();
         PlanFrequencyChanges();
         foreach (var k in Flows.Keys.ToList())
             if ((Flows[k] *= 0.5) < 0.25) Flows.Remove(k);
@@ -999,6 +1000,7 @@ public sealed partial class GameState
         OnDecryptUsed(m);
         if (m.Net == Net.Jn25) { RecoverBook(); ReadOshima(m); }
         if (m.Net == Net.Abwehr) ReadAbwehr();
+        if (Defs.NetOf(m.Net).Naval) NavalReadWhileOwnRead();
         var c = ContractById(m.ContractId);
         if (c != null && c.State == ContractState.Active) c.Delivered++;
     }

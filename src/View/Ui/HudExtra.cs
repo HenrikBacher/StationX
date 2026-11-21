@@ -52,6 +52,7 @@ public partial class Hud
                 tooltip: why ?? $"Desks cleared, safes checked, a word in every ear: Abwehr and SD suspicion −{Defs.SweepRelief:0}. Everyone on duty loses an hour's energy and a little morale. Once every {Defs.SweepCooldownDays} days.")));
         }
 
+        if (S.CipherSuspected) OwnCipherCard();
         if (S.SluTheatres().Any()) SluCard();
         if (S.DoubleCrossOn) DoubleCrossCard();
 
@@ -126,6 +127,28 @@ public partial class Hud
             var row = Row(name, mid, state);
             row.TooltipText = $"{a.Name}: {a.Who}.";
             _sideBox.AddChild(row);
+        }
+    }
+
+    void OwnCipherCard()
+    {
+        var v = Card(Gfx.Bad);
+        v.AddChild(UiTheme.Label("Naval Cypher No. 3", 15, UiTheme.Text, Fonts.BodyBold));
+        v.AddChild(UiTheme.Label("U-boats are waiting on convoy routes changed only hours before. If the Germans read the Admiralty's convoy cipher, " +
+                                 $"every convoy we warn still loses ships ({(1 - Defs.BdienstConvoyShare) * 100:0}% fewer saved), and the Admiralty grows impatient " +
+                                 $"({Defs.BdienstRepPerDay:0.##} reputation a day). The Admiralty won't change its cipher on a hunch: it wants proof.", 12, UiTheme.TextDim));
+        var bar = new ProgressBar { MinValue = 0, MaxValue = 1, Value = S.CipherEvidence, ShowPercentage = false, CustomMinimumSize = new Vector2(0, 8) };
+        v.AddChild(bar);
+        v.AddChild(UiTheme.Label($"The case: {S.CipherEvidence * 100:0}%. Naval decrypts add to it; a cryptanalyst studying our own signals adds {Defs.BdienstStudyEvidence * 100:0}%.", 12, UiTheme.Text));
+        if (S.CipherProved)
+            v.AddChild(Row(UiTheme.Button("Take it to the Admiralty", () => { S.ChangeCipher(); _sideSig = ""; },
+                tooltip: $"The Admiralty changes the convoy cipher: the losses stop, and +{Defs.BdienstProvedRep:0} reputation."), Spacer()));
+        else
+        {
+            var why = S.CantStudyCipher();
+            var b = UiTheme.Button($"Study our own signals ({Defs.BdienstStudyDays:0} days)", () => { S.StudyCipher(); _sideSig = ""; }, why == null,
+                tooltip: why ?? $"Your best free cryptanalyst spends {Defs.BdienstStudyDays:0} days comparing our convoy signals with the U-boat sightings.");
+            v.AddChild(Row(b, Why(why)));
         }
     }
 
@@ -342,6 +365,9 @@ public partial class Hud
             $"Summer in the Bombe bay: with {Defs.HotBombes} or more Bombes running, the hut is a furnace, and the Wrens there tire faster and grow short-tempered. An extractor fan (£{Defs.Station(StationType.Fan).Cost}, under Build) draws the air through.");
         yield return ("worn", S.Stations.Any(s => s.Wears && s.Wear > 0.7 && !s.IsDown(S.Now)),
             "A machine is badly worn (the orange lamp). Service it from its panel while it's idle: an hour now saves five hours of breakdown later.");
+        yield return ("owncipher", S.CipherSuspected,
+            "The U-boats seem to know where our convoys are going: the Germans may be reading our own convoy cipher. Intelligence (I): " +
+            "put a cryptanalyst on studying our signals to build the case, then take it to the Admiralty. Until then convoys lose ships however well we read the U-boats.");
         yield return ("extend", S.Contracts.Exists(c => S.Behind(c) && S.CantExtend(c.Id) == null),
             "A request is heading for a miss. On its card, Ask for more time: the ministry gives half as long again for a quarter off the fee and a point of reputation, " +
             "and its convoy or raid goes ahead without the decrypts. A miss costs more. Each ministry grants it once a week.");
@@ -577,6 +603,10 @@ public partial class Hud
                 S.Dilemmas.Clear();
                 S.DebugMeanwhile(new DateOnly(1942, 2, 20), new DateOnly(1942, 10, 30));
                 if (S.Dilemmas.Count > 0) ShowDilemma(S.Dilemmas[0]);
+                break;
+            case "owncipher":
+                S.DebugCipher(0.55);
+                OpenPanel("intel");
                 break;
             case "grievance":
                 S.Dilemmas.Clear();

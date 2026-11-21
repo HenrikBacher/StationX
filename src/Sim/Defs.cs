@@ -147,6 +147,10 @@ public static partial class Defs
     public const int QuotaFromAct = 5;
     /// <summary>Reputation a missed request always costs; the rest of its full cost (4 + its reputation) scales with what's still owed.</summary>
     public const double MissedRepBase = 2.5;
+    /// <summary>Our own cipher read (OwnCipher.cs): Naval Cypher No. 3, read by the B-Dienst until the Admiralty changed it.</summary>
+    public static readonly DateOnly BdienstFrom = new(1942, 2, 1), BdienstUntil = new(1943, 6, 10);
+    public const double BdienstTonsMin = 6000, BdienstTonsMax = 14000, BdienstConvoyShare = 0.7, BdienstNoticeAt = 0.15,
+        BdienstPerDecrypt = 0.02, BdienstRepPerDay = 0.25, BdienstStudyDays = 3, BdienstStudyEvidence = 0.3, BdienstProvedRep = 4;
     /// <summary>Pay and conditions (Grievances.cs): a group's case every few weeks from Their Finest Hour.</summary>
     public const double GrievanceChance = 0.05, GrievanceEveryDays = 16, GrievanceRiseShare = 0.1,
         GrievanceRaiseMorale = 0.15, GrievanceAllowMorale = 0.07, GrievanceRefuseMorale = 0.12;
