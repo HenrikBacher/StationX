@@ -205,6 +205,8 @@ public static partial class Defs
     /// idle cryptanalyst's and of an idle Wren-and-Bombe's time per message, breakthroughs per message, and a note every so many.
     /// </summary>
     /// <summary>Special Liaison Units: how much longer their services' decrypts stay fresh, and the suspicion each adds.</summary>
+    /// <summary>"Meanwhile": the least gap (days) that gets a page, the most months it counts, headlines shown, and per month: £, breakthroughs, suspicion off.</summary>
+    public const int MeanwhileMinDays = 42, MeanwhileMaxMonths = 6, MeanwhileHeadlines = 4, MeanwhileFunds = 100, MeanwhilePoints = 5, MeanwhileQuiet = 4;
     public const double SluFresh = 1.2, SluSuspicion = 1.2;
     /// <summary>Money to keep in hand after sending one, before the tip suggests it.</summary>
     public const int SluTipReserve = 400;

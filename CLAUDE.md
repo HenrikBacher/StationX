@@ -347,6 +347,11 @@ Then (user requests, 2026-11-19):
   sim) and `SuspicionPerDecrypt` ×`SluSuspicion` 1.2; upkeep in `WeeklyUpkeep`. Intelligence panel card, tip `slu` (funds ≥ cost +
   `SluTipReserve` 400), the autoplayer follows it. `--modal=slu`. Very sensitive: 1.5/1.15 put Normal at 28, 1.3/1.2 at 59 of 80;
   1.2/1.2 is neutral (50 of 80 with or without). 80-seed Normal baseline is 50 (62%).
+- Meanwhile (`Meanwhile.cs`): on the player's own step to the next act (not `DebugSkipToAct` or a later start), a gap of ≥
+  `MeanwhileMinDays` 42 raises a dilemma (`Tag` "meanwhile", header "MEANWHILE · THE NEWS") with up to `MeanwhileHeadlines` 4 of
+  `Headlines` spread over the gap; per month (max `MeanwhileMaxMonths` 6): option 0 £`MeanwhileFunds` 100, option 1 (the default)
+  `MeanwhilePoints` 5 breakthroughs, option 2 `meanwhile-quiet:N` (int) suspicion −`MeanwhileQuiet` 4 everywhere. `--modal=meanwhile`.
+  Balance 38/25/1; 80 Normal seeds 44 (55%).
 
 ### Graphics overhaul: period realism, CC0 assets allowed
 

@@ -545,6 +545,11 @@ public partial class Hud
                     }
                 if (S.DebugStory(name)) ShowDilemma(S.Dilemmas[0]);
                 break;
+            case "meanwhile":
+                S.Dilemmas.Clear();
+                S.DebugMeanwhile(new DateOnly(1942, 2, 20), new DateOnly(1942, 10, 30));
+                if (S.Dilemmas.Count > 0) ShowDilemma(S.Dilemmas[0]);
+                break;
             case "flu":
                 S.Dilemmas.Clear();
                 S.DebugFlu();
@@ -897,6 +902,7 @@ public partial class Hud
             "artist" => "MOST SECRET · MI5 · DOUBLE CROSS",
             "mole" => "MOST SECRET · MI5",
             "flu" => "THE MEDICAL OFFICER",
+            "meanwhile" => "MEANWHILE · THE NEWS",
             "welchman" or "knox" or "turing-us" => "PERSONAL · THE DIRECTOR",
             _ => d.Service == Service.Security ? "SECURITY" : $"ULTRA · {Defs.ServiceNames[d.Service].ToUpperInvariant()}",
         };

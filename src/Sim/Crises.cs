@@ -117,6 +117,9 @@ public sealed partial class GameState
                 SendOff(who, Defs.RestLeaveDays, "leave");
                 who.Strain = 0.2;
                 break;
+            case { } mq when mq.StartsWith("meanwhile-quiet:"):
+                MeanwhileAction(mq);
+                break;
             case "generator" when PowerCut:
                 Generator = true;
                 break;

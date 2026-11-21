@@ -416,3 +416,23 @@ public class SluTests
         Assert.Equal(red, g.StaleAfter(Net.Red), 6);
     }
 }
+
+public class MeanwhileTests
+{
+    [Fact]
+    public void ALongGapAsksWhereTheMonthsWent()
+    {
+        var g = GameState.NewGame(3);
+        g.Dilemmas.Clear();
+        g.DebugMeanwhile(new DateOnly(1941, 1, 1), new DateOnly(1941, 2, 1));
+        Assert.Empty(g.Dilemmas);
+        g.AddSuspicion(Service.Heer, 30);
+        g.DebugMeanwhile(new DateOnly(1942, 2, 20), new DateOnly(1942, 10, 30));
+        var d = g.Dilemmas.Single(x => x.Tag == "meanwhile");
+        Assert.Contains("Midway", d.Text);
+        Assert.Equal(3, d.Options.Count);
+        double before = g.SuspicionOf(Service.Heer);
+        Assert.True(g.ResolveDilemma(d.Id, 2));
+        Assert.Equal(before - Defs.MeanwhileQuiet * Defs.MeanwhileMaxMonths, g.SuspicionOf(Service.Heer), 6);
+    }
+}

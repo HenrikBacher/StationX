@@ -840,7 +840,9 @@ public sealed partial class GameState
             Emit(EventKind.Won, EndReason);
             return;
         }
+        var was = Date;
         StartAct(ActIndex + 1);
+        Meanwhile(was, Date);
     }
 
     /// <summary>For saves from when the campaign ended with SHARK: carry on into 1943 and the Lorenz chapter.</summary>
