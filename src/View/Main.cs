@@ -312,6 +312,10 @@ public partial class Main : Node3D
             _sun.ShadowEnabled = false;
             GetViewport().Msaa3D = Viewport.Msaa.Disabled;
             GetViewport().Scaling3DScale = 0.25f;
+            // On CI, with no GPU, don't draw the world at all: clicks on it are picked by the camera's maths, not
+            // the picture, and every 3D frame rendered in software cost the run most of its time. --selftest=draw keeps it.
+            if (OS.GetCmdlineUserArgs().All(a => a != "--selftest=draw") && RenderingServer.GetVideoAdapterName().Contains("llvmpipe"))
+                GetViewport().Disable3D = true;
             _ = SelfTest();
             return;
         }

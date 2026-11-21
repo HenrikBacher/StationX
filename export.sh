@@ -26,16 +26,22 @@ for d in build/linux build/windows; do mkdir -p "$d/music" && cp assets/music/*.
 # Game files (the patch) vs. everything else (the base the patch needs). Paths are ./relative, sorted bytewise.
 patch_files() { find . -type f \( -name StationX.pck -o -path './data_*/StationX.*' \) | LC_ALL=C sort; }
 base_files() { find . -type f ! -name StationX.pck ! -path './data_*/StationX.*' | LC_ALL=C sort; }
+# Each platform's files are packed side by side (the archives are the slow part), with pigz for the tarball if it's
+# installed (CI installs it): plain gzip uses one core.
+gz() { if command -v pigz > /dev/null; then pigz; else gzip; fi; }
+pack() {
+  local dir=$1 name=$2
+  if [ "$dir" = linux ]; then tar cf - -C linux . | gz > "$name.tar.gz"; else (cd "$dir" && zip -qr "../$name.zip" .); fi
+  (cd "$dir" && patch_files | zip -q -@ "../$name-patch.zip" && base_files | tr '\n' '\0' | xargs -0 sha256sum) > "$name-base.txt"
+  cp "$dir/StationX.pck" "$name.pck"
+  python3 ../tools/pckblocks.py "$name.pck" > "$name-pck.txt"
+  (cd "$dir" && find . -type f -path './data_*/StationX.*' | LC_ALL=C sort | zip -q -@ "../$name-code.zip")
+}
 (
   cd build
-  tar czf StationX-linux-x86_64.tar.gz -C linux .
-  (cd windows && zip -qr ../StationX-windows-x86_64.zip .)
-  for p in linux:StationX-linux-x86_64 windows:StationX-windows-x86_64; do
-    dir=${p%%:*} name=${p#*:}
-    (cd "$dir" && patch_files | zip -q -@ "../$name-patch.zip" && base_files | tr '\n' '\0' | xargs -0 sha256sum) > "$name-base.txt"
-    cp "$dir/StationX.pck" "$name.pck"
-    python3 ../tools/pckblocks.py "$name.pck" > "$name-pck.txt"
-    (cd "$dir" && find . -type f -path './data_*/StationX.*' | LC_ALL=C sort | zip -q -@ "../$name-code.zip")
-  done
+  pack linux StationX-linux-x86_64 & a=$!
+  pack windows StationX-windows-x86_64 & b=$!
+  wait "$a"   # under set -e, either failing stops the script
+  wait "$b"
 )
 ls -lh build/*.tar.gz build/*.zip build/*.txt build/*.pck

@@ -19,7 +19,11 @@ state, so the work can be resumed on any machine.
   `--inspect=Type`. Look at every visual change before committing.
 - Software rendering like CI's: prefix with `VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.json`.
 - Exports: `./export.sh` (needs the 4.7.2 mono export templates) → `build/` Linux tar.gz + Windows zip.
-- CI (`.github/workflows/release.yml`): jobs `test` ‖ `build` (self-test under xvfb, exports) → `release` on `v*` tags.
+- CI (`.github/workflows/release.yml`): jobs `test` (Release config, ~3× faster) ‖ `build` (self-test under xvfb, exports)
+  → `release` on `v*` tags. Pushes touching only CLAUDE.md/README.md/CREDITS.md don't build; a newer push to main cancels
+  an older build; tags always build. Under llvmpipe the self-test doesn't draw the 3D world (`Disable3D`; `--selftest=draw`
+  keeps it). The Godot cache holds only the two release templates (key `…-mono-slim`). To release, push and tag at once:
+  the tag run tests and builds before it publishes.
 
 ## Rules
 
