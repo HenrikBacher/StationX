@@ -341,6 +341,12 @@ Then (user requests, 2026-11-19):
   min(wrens, free Bombes)/`BackBombeMinutes` 240) a minute; +`BackPoints` 1 each, `Stats.BackRead`. Nobody's task changes, so the
   Workload panel still counts them idle; the Staff list says "on back traffic" (`BackWorking`, view only). Keys card line,
   `--modal=backtraffic`. Balance: 90/120 minutes put Normal at 26, with +1 rep per 8 messages 36; now 39/24/0.
+- Special Liaison Units (`Slus.cs`): `SluDefs` (cairo: Claymore until Colossus, Heer+Luftwaffe £300 +£30/wk; malta: U-110 until
+  Colossus, Kriegsmarine £250 +£24; normandy: D-Day on, £400 +£40). `SendSlu`/`CantSendSlu`, `Slus` (saved), `DailySlus` brings
+  them home. `SluServes(service)` → `GameState.StaleAfter`/`DeadAfter` (instance, ×`SluFresh` 1.2; use these, not `Defs.`, in the
+  sim) and `SuspicionPerDecrypt` ×`SluSuspicion` 1.2; upkeep in `WeeklyUpkeep`. Intelligence panel card, tip `slu` (funds ≥ cost +
+  `SluTipReserve` 400), the autoplayer follows it. `--modal=slu`. Very sensitive: 1.5/1.15 put Normal at 28, 1.3/1.2 at 59 of 80;
+  1.2/1.2 is neutral (50 of 80 with or without). 80-seed Normal baseline is 50 (62%).
 
 ### Graphics overhaul: period realism, CC0 assets allowed
 

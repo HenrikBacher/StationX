@@ -204,6 +204,10 @@ public static partial class Defs
     /// Back traffic: messages left unread by each unbroken key, the most kept, how often the idle are counted (minutes), the minutes of an
     /// idle cryptanalyst's and of an idle Wren-and-Bombe's time per message, breakthroughs per message, and a note every so many.
     /// </summary>
+    /// <summary>Special Liaison Units: how much longer their services' decrypts stay fresh, and the suspicion each adds.</summary>
+    public const double SluFresh = 1.2, SluSuspicion = 1.2;
+    /// <summary>Money to keep in hand after sending one, before the tip suggests it.</summary>
+    public const int SluTipReserve = 400;
     public const int BackPerMissedKey = 2, BackMax = 40, BackPoints = 1, BackReportEvery = 8;
     public const double BackStep = 10, BackCryptMinutes = 180, BackBombeMinutes = 240;
     public static readonly DateOnly KnoxDied = new(1943, 2, 27);

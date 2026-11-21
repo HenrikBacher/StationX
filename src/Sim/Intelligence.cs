@@ -44,7 +44,8 @@ public sealed partial class GameState
 
     /// <summary>Suspicion added each time a decrypt from this net is used, under the current policy.</summary>
     public double SuspicionPerDecrypt(Net net) =>
-        Defs.SuspicionPerDecrypt * Defs.Policies[Policy].Suspicion * (Defs.NetOf(net).Family == Family.Hand ? 0.6 : 1);
+        Defs.SuspicionPerDecrypt * Defs.Policies[Policy].Suspicion * (Defs.NetOf(net).Family == Family.Hand ? 0.6 : 1) *
+        (SluServes(Defs.NetOf(net).Service) ? Defs.SluSuspicion : 1);
 
     void DailyIntelligence()
     {

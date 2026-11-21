@@ -390,3 +390,29 @@ public class BackTrafficTests
         Assert.True(g.BackTraffic + g.Stats.BackRead > before);
     }
 }
+
+public class SluTests
+{
+    [Fact]
+    public void AUnitKeepsItsTheatresNewsFreshAndComesHome()
+    {
+        var g = GameState.NewGame(3);
+        g.DebugSkipToAct(Campaign.KissesFrom);
+        g.Funds = 5000;
+        double red = g.StaleAfter(Net.Red), dolphin = g.StaleAfter(Net.Dolphin), susp = g.SuspicionPerDecrypt(Net.Red);
+        int upkeep = g.WeeklyUpkeep;
+        Assert.Null(g.CantSendSlu("cairo"));
+        Assert.NotNull(g.CantSendSlu("normandy"));
+        Assert.True(g.SendSlu("cairo"));
+        Assert.Equal(5000 - 300, g.Funds);
+        Assert.Equal(red * Defs.SluFresh, g.StaleAfter(Net.Red), 6);
+        Assert.Equal(dolphin, g.StaleAfter(Net.Dolphin), 6);
+        Assert.Equal(susp * Defs.SluSuspicion, g.SuspicionPerDecrypt(Net.Red), 6);
+        Assert.Equal(upkeep + 30, g.WeeklyUpkeep);
+        Assert.False(g.SendSlu("cairo"));
+        g.DebugSkipToAct(Campaign.IndexOf("Colossus"));
+        g.Advance(Defs.MinutesPerDay);
+        Assert.Empty(g.Slus);
+        Assert.Equal(red, g.StaleAfter(Net.Red), 6);
+    }
+}

@@ -50,6 +50,7 @@ public partial class Hud
                 tooltip: why ?? $"Desks cleared, safes checked, a word in every ear: Abwehr and SD suspicion −{Defs.SweepRelief:0}. Everyone on duty loses an hour's energy and a little morale. Once every {Defs.SweepCooldownDays} days.")));
         }
 
+        if (S.SluTheatres().Any()) SluCard();
         if (S.DoubleCrossOn) DoubleCrossCard();
 
         _sideBox.AddChild(UiTheme.Caps("Policy on using ULTRA", 12, UiTheme.Accent));
@@ -122,6 +123,30 @@ public partial class Hud
             state.CustomMinimumSize = new Vector2(64, 0);
             var row = Row(name, mid, state);
             row.TooltipText = $"{a.Name}: {a.Who}.";
+            _sideBox.AddChild(row);
+        }
+    }
+
+    void SluCard()
+    {
+        _sideBox.AddChild(UiTheme.Caps("Special Liaison Units", 12, UiTheme.Accent));
+        _sideBox.AddChild(UiTheme.Label("Small units of officers with their own ciphers who hand Hut 3's reports to commanders in the field and burn them after. " +
+                                        $"Where there's one, its theatre's decrypts stay fresh {(Defs.SluFresh - 1) * 100:0}% longer, but more people act on them: " +
+                                        $"{(Defs.SluSuspicion - 1) * 100:0}% more suspicion each.", 12, UiTheme.TextDim));
+        foreach (var d in S.SluTheatres())
+        {
+            var name = UiTheme.Label(d.Name, 13, UiTheme.Text, Fonts.BodyBold);
+            name.CustomMinimumSize = new Vector2(130, 0);
+            var serves = UiTheme.Label(string.Join(", ", d.Serves.Select(x => Defs.ServiceNames[x])), 12, UiTheme.TextDim);
+            serves.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+            var id = d.Id;
+            var why = S.CantSendSlu(id);
+            Control right = S.Slus.Contains(id)
+                ? UiTheme.Label($"in {d.Where}", 12, Gfx.Good)
+                : UiTheme.Button($"Send one (£{d.Cost})", () => { S.SendSlu(id); _sideSig = ""; }, why == null,
+                    tooltip: why ?? $"{d.Blurb} £{d.Cost}, then £{d.Upkeep} a week until the war there is over.");
+            var row = Row(name, serves, right);
+            row.TooltipText = d.Blurb + (S.Slus.Contains(id) ? $" Upkeep £{d.Upkeep} a week until the war there is over." : "");
             _sideBox.AddChild(row);
         }
     }
@@ -367,6 +392,14 @@ public partial class Hud
         yield return ("doublecross", S.LeastSure() is { Trust: < 0.35 } && S.Act.Op == "overlord" || S.LeastSure() is { Trust: < 0.3 },
             $"{S.LeastSure()?.Name} is in danger: we haven't seen how the Abwehr takes its reports for days, and an agent left in doubt may be blown. " +
             "Abwehr decrypts (take Abwehr requests, and keep a hand-cipher desk going) show how they're received. Intelligence (I) shows each agent.");
+        foreach (var d in S.SluTheatres())
+            if (!S.Slus.Contains(d.Id) && S.Funds >= d.Cost + Defs.SluTipReserve)
+            {
+                yield return ("slu", true,
+                    $"There's no Special Liaison Unit in {d.Where} yet ({d.Name}). Send one (Intelligence, I, £{d.Cost}): commanders there get our " +
+                    $"{string.Join(" and ", d.Serves.Select(x => Defs.ServiceNames[x]))} decrypts while they still matter, so they stay fresh a fifth longer (and a fifth more suspicion each).");
+                break;
+            }
         foreach (var cm in GameState.CounterDefs)
             if (S.Counters.Contains(cm.Id) && !S.Researched.Contains(cm.Answer))
             {
@@ -530,6 +563,11 @@ public partial class Hud
                 S.Dilemmas.Clear();
                 S.DebugUncles();
                 if (S.Dilemmas.Count > 0) ShowDilemma(S.Dilemmas[0]);
+                break;
+            case "slu":
+                S.Funds = Math.Max(S.Funds, 2000);
+                S.Slus.Clear();
+                if (S.SluTheatres().FirstOrDefault() is { } first) S.SendSlu(first.Id);
                 break;
             case "backtraffic":
                 S.BackTraffic = 24;

@@ -219,6 +219,7 @@ public sealed partial class GameState
         DailyDoubleCross();
         DailyMole();
         DailyCounters();
+        DailySlus();
         DailyBackTraffic();
         PlanFrequencyChanges();
         foreach (var k in Flows.Keys.ToList())
@@ -1006,18 +1007,18 @@ public sealed partial class GameState
     {
         int p = Defs.NetOf(m.Net).Points;
         double age = Now - m.Created;
-        return age > Defs.DeadAfter(m.Net) ? 0 : age > Defs.StaleAfter(m.Net) ? p / 2 : p;
+        return age > DeadAfter(m.Net) ? 0 : age > StaleAfter(m.Net) ? p / 2 : p;
     }
 
-    public bool IsStale(Message m) => Now - m.Created > Defs.StaleAfter(m.Net);
+    public bool IsStale(Message m) => Now - m.Created > StaleAfter(m.Net);
 
     /// <summary>What a decrypt delivered now counts for against Whitehall's quota: news goes off.</summary>
     public double QuotaValue(Message m)
     {
         double age = Now - m.Created;
-        return age > Defs.DeadAfter(m.Net) ? Defs.QuotaDead : age > Defs.StaleAfter(m.Net) ? Defs.QuotaStale : 1;
+        return age > DeadAfter(m.Net) ? Defs.QuotaDead : age > StaleAfter(m.Net) ? Defs.QuotaStale : 1;
     }
-    public bool IsDead(Message m) => Now - m.Created > Defs.DeadAfter(m.Net);
+    public bool IsDead(Message m) => Now - m.Created > DeadAfter(m.Net);
 
     // ------------------------------------------------------------- keys
 

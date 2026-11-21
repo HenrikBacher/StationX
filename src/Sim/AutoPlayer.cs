@@ -270,6 +270,9 @@ public sealed class AutoPlayer
             g.DoResearch(r);
         // The chiefs tip: with nothing left to research, breakthroughs go to the Chiefs of Staff.
         if (g.ResearchDone() && g.CantReport() == null) g.ReportToChiefs();
+        // The slu tip: a liaison unit to each open theatre, with money in hand.
+        foreach (var d in g.SluTheatres())
+            if (!g.Slus.Contains(d.Id) && g.Funds >= d.Cost + Defs.SluTipReserve) g.SendSlu(d.Id);
 
         // Huts
         foreach (var z in g.Grid.Zones.Where(z => z.Available && !z.Unlocked))
