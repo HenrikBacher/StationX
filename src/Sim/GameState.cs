@@ -734,6 +734,7 @@ public sealed partial class GameState
                 break;
             case StationType.Translation:
                 if (Researched.Contains(ResearchId.Hut3Reporting)) t *= 0.6;
+                t *= CheckingTime;
                 break;
             case StationType.Index:
                 if (Researched.Contains(ResearchId.CardIndex)) t *= 0.7;
@@ -906,6 +907,7 @@ public sealed partial class GameState
                 m.Next = StationType.Translation;
                 break;
             case StationType.Translation:
+                CheckTranslation(m, op);
                 m.Next = NeedsIndex(m) ? StationType.Index : StationType.Dispatch;
                 break;
             case StationType.Japanese:

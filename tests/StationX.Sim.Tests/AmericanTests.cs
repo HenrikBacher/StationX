@@ -670,3 +670,24 @@ public class OwnCipherTests
         Assert.False(g.CipherRead);
     }
 }
+
+public class CheckingTests
+{
+    [Fact]
+    public void CheckingTradesSpeedForMistakes()
+    {
+        var g = GameState.NewGame(7);
+        g.Funds = 5000;
+        var tr = g.Place(StationType.Translation, 11, 3, 0)!;
+        var lin = g.Staff.First(s => s.Role == Role.Linguist);
+        var m = new Message { Net = Net.Red, Day = g.Day };
+        double std = g.Duration(tr, lin, m), stdErr = g.MistakeChance(2);
+        g.SetChecking(Checking.Quick);
+        Assert.True(g.Duration(tr, lin, m) < std);
+        Assert.True(g.MistakeChance(2) > stdErr);
+        g.SetChecking(Checking.Careful);
+        Assert.True(g.Duration(tr, lin, m) > std);
+        Assert.True(g.MistakeChance(2) < stdErr);
+        Assert.True(g.MistakeChance(3) < g.MistakeChance(1));   // the skilled make fewer
+    }
+}

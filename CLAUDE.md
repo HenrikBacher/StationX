@@ -409,6 +409,10 @@ Then (user requests, 2026-11-19):
   `CipherSuspected` (evidence ≥ 0.15) −0.25 rep a day. Evidence +0.02 per naval decrypt; `StudyCipher` sends the best free
   cryptanalyst off 3 days ("study") for +0.3; `ChangeCipher` at 1: +4 rep. Intelligence card, tip `owncipher`, autoplayer
   follows. `--modal=owncipher` (needs a 1942 date: seed 7 `--days=88`). Balance: Normal 43/80.
+- Hut 3's checking (`Hut3.cs`): `Checking` Quick/Standard/Careful (Intelligence panel row): translation time ×0.75/1/1.25,
+  mistakes 6%/1.5%/0.3% × (1.3 − 0.15 × skill) on own dice per message (0x4A73) in `CheckTranslation` after the
+  Translation step: −`MistakeRep` 0.4 each, `Stats.Mistranslations`. Tip `checking` (≥ 3 mistakes); the autoplayer stays on
+  Standard. Balance: Normal 39/80.
 
 ### Graphics overhaul: period realism, CC0 assets allowed
 

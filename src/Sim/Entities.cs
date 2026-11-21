@@ -345,6 +345,7 @@ public sealed class Stats
     public int ContractsCompleted { get; set; }
     public int ContractsFailed { get; set; }
     public int Extensions { get; set; }
+    public int Mistranslations { get; set; }
     public int Breakdowns { get; set; }
     /// <summary>Breakdowns our own fitters mended, and machines they serviced.</summary>
     public int FitterRepairs { get; set; }

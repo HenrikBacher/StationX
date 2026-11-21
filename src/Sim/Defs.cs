@@ -147,6 +147,9 @@ public static partial class Defs
     public const int QuotaFromAct = 5;
     /// <summary>Reputation a missed request always costs; the rest of its full cost (4 + its reputation) scales with what's still owed.</summary>
     public const double MissedRepBase = 2.5;
+    /// <summary>Hut 3's checking (Hut3.cs): translation time × and mistakes per translation, by setting; reputation per mistake.</summary>
+    public const double CheckQuickTime = 0.75, CheckCarefulTime = 1.25, CheckQuickMistakes = 0.06, CheckStandardMistakes = 0.015,
+        CheckCarefulMistakes = 0.003, MistakeRep = 0.4;
     /// <summary>Our own cipher read (OwnCipher.cs): Naval Cypher No. 3, read by the B-Dienst until the Admiralty changed it.</summary>
     public static readonly DateOnly BdienstFrom = new(1942, 2, 1), BdienstUntil = new(1943, 6, 10);
     public const double BdienstTonsMin = 6000, BdienstTonsMax = 14000, BdienstConvoyShare = 0.7, BdienstNoticeAt = 0.15,

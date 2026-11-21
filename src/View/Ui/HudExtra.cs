@@ -56,6 +56,20 @@ public partial class Hud
         if (S.SluTheatres().Any()) SluCard();
         if (S.DoubleCrossOn) DoubleCrossCard();
 
+        _sideBox.AddChild(UiTheme.Caps("Hut 3's checking", 12, UiTheme.Accent));
+        var chk = new HBoxContainer();
+        chk.AddThemeConstantOverride("separation", 4);
+        foreach (var c in Enum.GetValues<Checking>())
+        {
+            var b = UiTheme.Button(c.ToString(), () => { S.SetChecking(c); _sideSig = ""; }, tooltip: GameState.CheckingBlurb(c));
+            b.ToggleMode = true;
+            b.SetPressedNoSignal(S.Checking == c);
+            b.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+            chk.AddChild(b);
+        }
+        _sideBox.AddChild(chk);
+        _sideBox.AddChild(UiTheme.Label(GameState.CheckingBlurb(S.Checking) + $" Each mistake costs {Defs.MistakeRep:0.#} reputation" +
+                                        (S.Stats.Mistranslations > 0 ? $"; {S.Stats.Mistranslations} so far." : "."), 12, UiTheme.TextDim));
         _sideBox.AddChild(UiTheme.Caps("Policy on using ULTRA", 12, UiTheme.Accent));
         var pol = new HBoxContainer();
         pol.AddThemeConstantOverride("separation", 4);
@@ -365,6 +379,9 @@ public partial class Hud
             $"Summer in the Bombe bay: with {Defs.HotBombes} or more Bombes running, the hut is a furnace, and the Wrens there tire faster and grow short-tempered. An extractor fan (£{Defs.Station(StationType.Fan).Cost}, under Build) draws the air through.");
         yield return ("worn", S.Stations.Any(s => s.Wears && s.Wear > 0.7 && !s.IsDown(S.Now)),
             "A machine is badly worn (the orange lamp). Service it from its panel while it's idle: an hour now saves five hours of breakdown later.");
+        yield return ("checking", S.Stats.Mistranslations >= 3 && S.Checking != Checking.Careful,
+            "Hut 3 has sent out translations that were wrong, and each one costs reputation. Intelligence (I): Hut 3's checking can be made Careful " +
+            "(slower translation, hardly any mistakes), or Quick when the translation desks can't keep up.");
         yield return ("owncipher", S.CipherSuspected,
             "The U-boats seem to know where our convoys are going: the Germans may be reading our own convoy cipher. Intelligence (I): " +
             "put a cryptanalyst on studying our signals to build the case, then take it to the Admiralty. Until then convoys lose ships however well we read the U-boats.");
