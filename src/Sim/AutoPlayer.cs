@@ -247,7 +247,7 @@ public sealed class AutoPlayer
                 .OrderBy(s => s.Posted == jz ? 0 : 1).ThenBy(s => s.Skill).FirstOrDefault();
             if (who != null && g.LearnJapanese(who.Id)) _japaneseAt = g.Now;
         }
-        if (g.MaxSuspicion > 60) g.SetPolicy(Policy.Cautious);
+        if (g.MaxSuspicion > Defs.WaryFrom + 10) g.SetPolicy(Policy.Cautious);   // the wary tip
         else if (g.MaxSuspicion < 30) g.SetPolicy(Policy.Standard);
         // Stations the act's goals ask for come first; save up for them rather than spend elsewhere.
         bool saving = false;

@@ -225,6 +225,7 @@ public sealed partial class GameState
         DailySlus();
         DailyBackTraffic();
         DailyOwnCipher();
+        DailySuspicionWorry();
         PlanFrequencyChanges();
         foreach (var k in Flows.Keys.ToList())
             if ((Flows[k] *= 0.5) < 0.25) Flows.Remove(k);
@@ -697,6 +698,7 @@ public sealed partial class GameState
         var def = st.Def;
         var net = Defs.NetOf(m.Net);
         double t = def.Minutes;
+        if (KeyBreakingStep(st.Type)) t *= WaryMult(net.Service);
         switch (st.Type)
         {
             case StationType.Registration:
@@ -757,6 +759,7 @@ public sealed partial class GameState
         if (Analysed(m.Net, m.Day)) t *= Defs.SixtaBombeMult;
         if (Kissed(m.Net, m.Day)) t *= Defs.KissBombeMult;
         t *= CounterMult(m.Net, StationType.Bombe);
+        t *= WaryMult(Defs.NetOf(m.Net).Service);
         if (!HasStation(StationType.Checking)) t *= 1.25;
         if (Stale(m.Net, m.Day) && !Gardened(m.Net, m.Day) && !Kissed(m.Net, m.Day) && !CribIgnoresStale(m)) t *= Defs.StaleBombeMult;
         if (CribOf(m) == CribKind.Reencoded) t *= Defs.CribReencodedBombe;

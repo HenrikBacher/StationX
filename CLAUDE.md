@@ -413,6 +413,12 @@ Then (user requests, 2026-11-19):
   mistakes 6%/1.5%/0.3% × (1.3 − 0.15 × skill) on own dice per message (0x4A73) in `CheckTranslation` after the
   Translation step: −`MistakeRep` 0.4 each, `Stats.Mistranslations`. Tip `checking` (≥ 3 mistakes); the autoplayer stays on
   Standard. Balance: Normal 39/80.
+- Suspicion effects (user request, `SuspicionEffects.cs`): `WaryMult(sv)` = 1 + `WaryMax` 0.5 × (s − `WaryFrom` 40)/60 on the
+  key-breaking steps (`KeyBreakingStep`: crib, hand cipher, Testery, Heath Robinson, Colossus, Zygalski, Banburismus, in
+  `Duration`) and in `BombeFactor`; from `WorryFrom` 75 −`WorryRep` 0.3 rep a day per service (`DailySuspicionWorry`).
+  `SuspicionMeans(s)` words it for the panel rows, the dilemma dialog and the War map's decision cards (`OpContext`, `OpGain`).
+  Tip `wary` (≥ 50); the autoplayer goes cautious above 50 (was 60). Without that, Normal fell to 32/80; with it 40/80,
+  Easy 39, Hard 0. Shots: `--modal=wary` (War map with two decisions waiting), `--modal=waryintel`.
 
 ### Graphics overhaul: period realism, CC0 assets allowed
 

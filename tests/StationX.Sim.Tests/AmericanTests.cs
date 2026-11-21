@@ -691,3 +691,27 @@ public class CheckingTests
         Assert.True(g.MistakeChance(3) < g.MistakeChance(1));   // the skilled make fewer
     }
 }
+
+public class SuspicionEffectTests
+{
+    [Fact]
+    public void RisingSuspicionSlowsKeysThenWorriesWhitehall()
+    {
+        Assert.Equal(1, GameState.WaryMultAt(Defs.WaryFrom), 6);
+        Assert.Equal(1 + Defs.WaryMax, GameState.WaryMultAt(Defs.SuspicionLimit), 6);
+
+        var g = TestUtil.BombeLine(12, checking: true);
+        var crib = g.Stations.First(s => s.Type == StationType.Crib);
+        var bombe = g.Stations.First(s => s.Type == StationType.Bombe);
+        var op = g.Staff.First(s => s.Role == Role.Cryptanalyst);
+        var wren = g.Staff.First(s => s.Role == Role.Wren);
+        var m = new Message { Net = Net.Red, Day = g.Day };
+        double c0 = g.Duration(crib, op, m), b0 = g.Duration(bombe, wren, m);
+        g.Suspicion[Service.Luftwaffe] = 70;
+        double mult = GameState.WaryMultAt(70);
+        Assert.Equal(c0 * mult, g.Duration(crib, op, m), 6);
+        Assert.Equal(b0 * mult, g.Duration(bombe, wren, m), 6);
+        Assert.Contains("slower", GameState.SuspicionMeans(70));
+        Assert.Contains("Whitehall", GameState.SuspicionMeans(80));
+    }
+}

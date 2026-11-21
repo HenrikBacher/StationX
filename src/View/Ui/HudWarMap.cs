@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Godot;
 using StationX.Sim;
@@ -10,6 +11,32 @@ public partial class Hud
 {
     string WarMapSig() =>
         string.Join(",", S.Operations.Select(o => $"{o.Id}{(int)o.State}{(int)o.Use}")) + $"|{(int)(S.WarMood * 100)}|{S.CoverLeft}|{S.Policy}";
+
+    /// <summary>What using this operation's decrypts would bring, at a share of the full result.</summary>
+    static string OpGain(Operation o, double share) => o.Kind switch
+    {
+        OpKind.Convoy or OpKind.Fleet => $"about {Math.Round(o.Stake * share):0} ships brought home",
+        OpKind.Raid => $"about {Math.Max(1, Math.Round(o.Stake / 6.0 * share)):0} raiders shot down",
+        _ => share >= 1 ? "the commanders warned in full" : "the commanders warned, a little late",
+    };
+
+    /// <summary>The context for deciding how to use an operation's decrypts: what's at stake, what each choice would do to suspicion, and what else bears on it.</summary>
+    IEnumerable<(string, Color)> OpContext(Operation o)
+    {
+        var sv = Defs.NetOf(o.Net).Service;
+        double now = S.SuspicionOf(sv);
+        double act = Math.Min(Defs.SuspicionLimit, now + Defs.OpActSuspicion * S.Rules.SuspicionMult);
+        double cover = Math.Min(Defs.SuspicionLimit, now + Defs.OpCoverSuspicion * S.CoverSuspicionFactor(sv) * S.Rules.SuspicionMult);
+        yield return ($"At stake: act, {OpGain(o, 1)}; with cover, {OpGain(o, 0.75)}; held back, nothing.", UiTheme.Text);
+        yield return ($"{Defs.ServiceNames[sv]} suspicion {now:0} ({GameState.SuspicionMeans(now)}). Act: to {act:0}" +
+                      (GameState.SuspicionMeans(act) != GameState.SuspicionMeans(now) ? $" ({GameState.SuspicionMeans(act)})" : "") +
+                      (S.CoverLeft > 0 ? $". Cover: to {cover:0}." : ". No cover stories left this week."),
+                      act >= Defs.WorryFrom ? Gfx.Bad : act >= Defs.WaryFrom ? Gfx.Warn : UiTheme.TextDim);
+        if (S.DirectionFinding.Contains(sv)) yield return ("Direction-finding makes the cover story more believable here.", UiTheme.TextDim);
+        if (o.Kind == OpKind.Convoy && S.CipherRead)
+            yield return ($"The U-boats may know the route anyway: while they read our convoy cipher, only {Defs.BdienstConvoyShare * 100:0}% of the ships count as saved.", Gfx.Warn);
+        if (S.WarMood < 1.08) yield return ("Acting or covering lifts the grant 2% for a week (up to 8%).", UiTheme.TextDim);
+    }
 
     void WarMapPanel()
     {
@@ -37,12 +64,20 @@ public partial class Hud
                 var card = new VBoxContainer();
                 card.AddChild(UiTheme.Label($"{o.Name} · {o.Place}", 13, UiTheme.Accent));
                 card.AddChild(UiTheme.Label(o.Won, 12, UiTheme.TextDim));
+                foreach (var (line, col) in OpContext(o)) card.AddChild(UiTheme.Label(line, 12, col));
                 int oid = o.Id;
                 var act = UiTheme.Button("Act", () => { S.UseOperation(oid, OpUse.Acted); _sideSig = ""; }, tooltip: $"Full result; {Defs.ServiceNames[Defs.NetOf(o.Net).Service]} suspicion +{Defs.OpActSuspicion:0}");
                 var cover = UiTheme.Button("With cover", () => { S.UseOperation(oid, OpUse.Covered); _sideSig = ""; }, tooltip: $"Three-quarters of the result; suspicion +{Defs.OpCoverSuspicion}");
                 cover.Disabled = S.CoverLeft <= 0;
                 var hold = UiTheme.Button("Hold back", () => { S.UseOperation(oid, OpUse.Withheld); _sideSig = ""; }, tooltip: "Nothing is done: no result, no risk");
                 if (S.CoverLeft <= 0) cover.TooltipText = $"No cover stories left this week ({Defs.CoverPerWeek} a week).";
+                var sv = Defs.NetOf(o.Net).Service;
+                double sNow = S.SuspicionOf(sv);
+                double sAct = Math.Min(Defs.SuspicionLimit, sNow + Defs.OpActSuspicion * S.Rules.SuspicionMult);
+                double sCover = Math.Min(Defs.SuspicionLimit, sNow + Defs.OpCoverSuspicion * S.CoverSuspicionFactor(sv) * S.Rules.SuspicionMult);
+                act.TooltipText = $"Act: {OpGain(o, 1)}. {Defs.ServiceNames[sv]} suspicion {sNow:0} → {sAct:0} ({GameState.SuspicionMeans(sAct)}).";
+                if (S.CoverLeft > 0) cover.TooltipText = $"With cover: {OpGain(o, 0.75)}. Suspicion {sNow:0} → {sCover:0} ({GameState.SuspicionMeans(sCover)}). Uses one of {S.CoverLeft} cover stories left this week.";
+                hold.TooltipText = "Nothing is done, nothing is given away: no result, and no grant from it. Worth it when the service is close to locking us out.";
                 card.AddChild(Row(act, cover, hold, Spacer(), UiTheme.Label($"{Math.Max(0, (o.DecideBy - S.Now) / 60):0} h left", 12, UiTheme.TextDim)));
                 _sideBox.AddChild(card);
             }

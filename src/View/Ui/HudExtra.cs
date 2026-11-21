@@ -37,9 +37,17 @@ public partial class Hud
             var state = UiTheme.Label(locked ? $"locked out, {until - S.Day + 1} d" : $"{(int)v}/{(int)Defs.SuspicionLimit}", 12, locked ? Gfx.Bad : UiTheme.TextDim);
             var row = Row(name, bar, state);
             row.TooltipText = locked ? $"The {Defs.ServiceNames[sv]} have tightened their procedures: their keys can't be broken for {until - S.Day + 1} more day(s)."
-                                     : $"{Defs.ServiceNames[sv]} suspicion {(int)v} of {(int)Defs.SuspicionLimit}. Acting on their decrypts raises it; cover stories, direction-finding and a cautious policy keep it down.";
+                                     : $"{Defs.ServiceNames[sv]} suspicion {(int)v} of {(int)Defs.SuspicionLimit}: {GameState.SuspicionMeans(v)}. Acting on their decrypts raises it; cover stories, direction-finding and a cautious policy keep it down.";
             _sideBox.AddChild(row);
+            if (!locked && v >= Defs.WaryFrom)
+            {
+                var means = UiTheme.Label(GameState.SuspicionMeans(v), 11, v >= Defs.WorryFrom ? Gfx.Bad : Gfx.Warn);
+                means.HorizontalAlignment = HorizontalAlignment.Right;
+                _sideBox.AddChild(means);
+            }
         }
+        _sideBox.AddChild(UiTheme.Label($"From {Defs.WaryFrom:0} a service grows wary and varies its habits: its keys get slower to break, up to {Defs.WaryMax * 100:0}% at the limit. " +
+                                        $"From {Defs.WorryFrom:0} Whitehall worries about the source too ({Defs.WorryRep:0.##} reputation a day). At {Defs.SuspicionLimit:0} it locks us out for {Defs.LockdownDays + 1} days.", 11, UiTheme.TextDim));
 
         if (S.ActIndex >= Defs.SecurityFromAct)
         {
@@ -379,6 +387,9 @@ public partial class Hud
             $"Summer in the Bombe bay: with {Defs.HotBombes} or more Bombes running, the hut is a furnace, and the Wrens there tire faster and grow short-tempered. An extractor fan (£{Defs.Station(StationType.Fan).Cost}, under Build) draws the air through.");
         yield return ("worn", S.Stations.Any(s => s.Wears && s.Wear > 0.7 && !s.IsDown(S.Now)),
             "A machine is badly worn (the orange lamp). Service it from its panel while it's idle: an hour now saves five hours of breakdown later.");
+        yield return ("wary", Enum.GetValues<Service>().Any(sv => S.SuspicionOf(sv) >= Defs.WaryFrom + 10 && !S.LockedDown(sv)),
+            $"A German service has grown wary: its keys are getting slower to break, and from {Defs.WorryFrom:0} Whitehall will worry about the source too. " +
+            "Use cover stories (War map) or hold back, choose the cautious policy (Intelligence), and let it cool: suspicion fades a few points a day.");
         yield return ("checking", S.Stats.Mistranslations >= 3 && S.Checking != Checking.Careful,
             "Hut 3 has sent out translations that were wrong, and each one costs reputation. Intelligence (I): Hut 3's checking can be made Careful " +
             "(slower translation, hardly any mistakes), or Quick when the translation desks can't keep up.");
@@ -620,6 +631,21 @@ public partial class Hud
                 S.Dilemmas.Clear();
                 S.DebugMeanwhile(new DateOnly(1942, 2, 20), new DateOnly(1942, 10, 30));
                 if (S.Dilemmas.Count > 0) ShowDilemma(S.Dilemmas[0]);
+                break;
+            case "wary" or "waryintel":
+                // One service wary, one worried; the War map with a convoy and a raid waiting on a decision, or the Intelligence panel.
+                S.Suspicion[Service.Luftwaffe] = 82;
+                S.Suspicion[Service.Heer] = 56;
+                S.Suspicion[Service.Kriegsmarine] = 44;
+                if (name == "wary")
+                    foreach (var o in S.Operations.Where(o => o.State == OpState.Pending).GroupBy(o => o.Kind).Select(k => k.First()).Take(2))
+                    {
+                        o.State = OpState.Won;
+                        o.Use = OpUse.Undecided;
+                        o.ResolvedAt = S.Now;
+                        o.DecideBy = S.Now + Defs.OpDecideHours * 60;
+                    }
+                OpenPanel(name == "wary" ? "war" : "intel");
                 break;
             case "owncipher":
                 S.DebugCipher(0.55);
@@ -1037,7 +1063,8 @@ public partial class Hud
         var keys = S.ActiveNets.Where(n => Defs.NetOf(n).Service == d.Service).Select(n => Defs.NetOf(n).Name).ToList();
         string lose = keys.Count == 0 ? "" : $" At {(int)Defs.SuspicionLimit} it tightens its procedures and {(keys.Count == 1 ? keys[0] : string.Join(", ", keys.Take(keys.Count - 1)) + " and " + keys[^1])} can't be broken for {Defs.LockdownDays + 1} days.";
         if (d.Options.Any(o => o.Suspicion != 0))
-            v.AddChild(Ink($"{Defs.ServiceNames[d.Service]} suspicion is {(int)now} of {(int)Defs.SuspicionLimit}.{lose}", 12, Fonts.Body,
+            v.AddChild(Ink($"{Defs.ServiceNames[d.Service]} suspicion is {(int)now} of {(int)Defs.SuspicionLimit} ({GameState.SuspicionMeans(now)}). From {Defs.WaryFrom:0} its keys get slower to break; " +
+                           $"from {Defs.WorryFrom:0} Whitehall worries about the source.{lose}", 12, Fonts.Body,
                 now >= Defs.SuspicionWarn ? UiTheme.Stamp : null));
         for (int i = 0; i < d.Options.Count; i++)
         {
@@ -1056,7 +1083,7 @@ public partial class Hud
             if (o.Suspicion != 0)
             {
                 double after = System.Math.Clamp(now + (o.Suspicion > 0 ? o.Suspicion * S.Rules.SuspicionMult : o.Suspicion), 0, Defs.SuspicionLimit);
-                fx += $" (to {(int)after}{(after >= Defs.SuspicionLimit ? ": they'd lock us out" : "")})";
+                fx += $" (to {(int)after}: {GameState.SuspicionMeans(after)})";
             }
             if (fx.Length > 0) box.AddChild(Ink(fx, 12, Fonts.Body, UiTheme.PaperInk with { A = 0.75f }));
             v.AddChild(box);

@@ -546,6 +546,8 @@ public static partial class Defs
     public const double SuspicionPerDecrypt = 0.8;
     public const double SuspicionDecayPerDay = 5;
     public const double SuspicionWarn = 70;
+    /// <summary>Rising suspicion (SuspicionEffects.cs): keys slow from WaryFrom up to +WaryMax at the limit; Whitehall worries from WorryFrom.</summary>
+    public const double WaryFrom = 40, WaryMax = 0.5, WorryFrom = 75, WorryRep = 0.3;
     public const double SuspicionLimit = 100;
     public const int LockdownDays = 2;
 
