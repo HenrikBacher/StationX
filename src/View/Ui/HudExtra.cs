@@ -367,6 +367,13 @@ public partial class Hud
         yield return ("doublecross", S.LeastSure() is { Trust: < 0.35 } && S.Act.Op == "overlord" || S.LeastSure() is { Trust: < 0.3 },
             $"{S.LeastSure()?.Name} is in danger: we haven't seen how the Abwehr takes its reports for days, and an agent left in doubt may be blown. " +
             "Abwehr decrypts (take Abwehr requests, and keep a hand-cipher desk going) show how they're received. Intelligence (I) shows each agent.");
+        foreach (var cm in GameState.CounterDefs)
+            if (S.Counters.Contains(cm.Id) && !S.Researched.Contains(cm.Answer))
+            {
+                yield return ("counter-" + cm.Id, true,
+                    cm.News + $" It costs {Defs.Research[cm.Answer].Cost} breakthroughs (Research, T); until then every day of it is slower.");
+                break;
+            }
         yield return ("dayton", S.DaytonBombes > 0 && !S.HasStation(StationType.OutstationLink),
             $"Washington's Bombes at Dayton will run our four-rotor menus whenever our own are busy ({S.DaytonBombes} of them now, more each month), " +
             "but the menus go by the outstation teleprinter and the cable. Build an outstation teleprinter (Build).");
@@ -523,6 +530,10 @@ public partial class Hud
                 S.Dilemmas.Clear();
                 S.DebugUncles();
                 if (S.Dilemmas.Count > 0) ShowDilemma(S.Dilemmas[0]);
+                break;
+            case "counters":
+                // Every countermeasure in force and unanswered, to see the keys card and the tip.
+                foreach (var cm in GameState.CounterDefs) { S.Researched.Remove(cm.Answer); S.DebugCounter(cm.Id); }
                 break;
             case "brusa":
                 S.Dilemmas.Clear();

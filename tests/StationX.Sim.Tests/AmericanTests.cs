@@ -328,3 +328,41 @@ public class NotableStoryTests
         Assert.DoesNotContain(g.Staff, s => s.Notable == "Dilly Knox" && !s.Leaving);
     }
 }
+
+public class CountermeasureTests
+{
+    [Fact]
+    public void ACountermeasureSlowsItsStepUntilAnswered()
+    {
+        var g = TestUtil.BombeLine(12, checking: true);
+        var crib = g.Stations.First(s => s.Type == StationType.Crib);
+        var bombe = g.Stations.First(s => s.Type == StationType.Bombe);
+        var op = g.Staff.First(s => s.Role == Role.Cryptanalyst);
+        var wren = g.Staff.First(s => s.Role == Role.Wren);
+        var red = new Message { Net = Net.Red, Day = g.Day };
+        double c0 = g.Duration(crib, op, red), b0 = g.Duration(bombe, wren, red);
+        g.DebugCounter("uhr");
+        Assert.Contains(ResearchId.UhrBox, g.ResearchAvailable);
+        Assert.Equal(c0 * 1.7, g.Duration(crib, op, red), 6);
+        Assert.Equal(b0, g.Duration(bombe, wren, red), 6);
+        Assert.Single(g.CountersOn(Net.Red));
+        Assert.Empty(g.CountersOn(Net.Dolphin));   // naval: untouched
+        g.DebugCounter("ukwd");
+        Assert.Equal(b0 * 1.8, g.Duration(bombe, wren, red), 6);
+        g.Points = 1000;
+        Assert.True(g.DoResearch(ResearchId.UhrBox));
+        Assert.Equal(c0, g.Duration(crib, op, red), 6);
+        Assert.Single(g.CountersOn(Net.Red));
+    }
+
+    [Fact]
+    public void TheyComeWithTheirChapters()
+    {
+        var g = GameState.NewGame(3);
+        g.DebugSkipToAct(Campaign.IndexOf("D-Day"));
+        Assert.Empty(g.Counters);
+        for (int i = 0; i < 3; i++) { g.Advance(Defs.MinutesPerDay); g.Reputation = 100; g.Dilemmas.Clear(); g.Events.Clear(); }
+        Assert.Contains("ukwd", g.Counters);
+        Assert.DoesNotContain("sz42", g.Counters);
+    }
+}

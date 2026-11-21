@@ -434,6 +434,14 @@ public partial class Hud : CanvasLayer
                 st.MouseFilter = Control.MouseFilterEnum.Pass;
                 texts.AddChild(st);
             }
+            if (!free)
+                foreach (var cm in S.CountersOn(n))
+                {
+                    var cl = UiTheme.Label(cm.Effect, 11, Gfx.Warn);
+                    cl.TooltipText = cm.News;
+                    cl.MouseFilter = Control.MouseFilterEnum.Pass;
+                    texts.AddChild(cl);
+                }
             if (!free && S.Kissed(n, S.Day))
             {
                 var k = UiTheme.Label("Kissed by WERFT", 11, Gfx.Good);

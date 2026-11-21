@@ -217,6 +217,7 @@ public sealed partial class GameState
         DailyBook();
         DailyDoubleCross();
         DailyMole();
+        DailyCounters();
         PlanFrequencyChanges();
         foreach (var k in Flows.Keys.ToList())
             if ((Flows[k] *= 0.5) < 0.25) Flows.Remove(k);
@@ -713,6 +714,12 @@ public sealed partial class GameState
                 else if (Gardened(m.Net, m.Day)) t *= 0.5;
                 else if (Stale(m.Net, m.Day)) t *= Defs.StaleCribMult;
                 if (Analysed(m.Net, m.Day)) t *= Defs.SixtaCribMult;
+                t *= CounterMult(m.Net, StationType.Crib);
+                break;
+            case StationType.Testery:
+            case StationType.HeathRobinson:
+            case StationType.Colossus:
+                t *= CounterMult(m.Net, st.Type);
                 break;
             case StationType.Translation:
                 if (Researched.Contains(ResearchId.Hut3Reporting)) t *= 0.6;
@@ -737,6 +744,7 @@ public sealed partial class GameState
         if (m.Rerun) t *= 0.5;
         if (Analysed(m.Net, m.Day)) t *= Defs.SixtaBombeMult;
         if (Kissed(m.Net, m.Day)) t *= Defs.KissBombeMult;
+        t *= CounterMult(m.Net, StationType.Bombe);
         if (!HasStation(StationType.Checking)) t *= 1.25;
         if (Stale(m.Net, m.Day) && !Gardened(m.Net, m.Day) && !Kissed(m.Net, m.Day)) t *= Defs.StaleBombeMult;
         return t;

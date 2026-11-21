@@ -44,6 +44,7 @@ public enum ResearchId
     CardIndex, ZygalskiSheets, Cillies, Bombe, DiagonalBoard, Hut3Reporting,
     Banburismus, Hollerith, ShortWeatherCipher, FourRotorBombe,
     PneumaticTubes, Turingery, Colossus, HeathRobinson,
+    Duenna, ColossusII, UhrBox,
 }
 
 public sealed record StationDef(
@@ -708,6 +709,12 @@ public static partial class Defs
             "Newman's tape-comparing machine for the Newmanry, named after the cartoonist's contraptions. Build Heath Robinsons.", 30),
         [ResearchId.Colossus] = new(ResearchId.Colossus, "Colossus",
             "Tommy Flowers' valve computer, built at Dollis Hill in eleven months. Build Colossi.", 50),
+        [ResearchId.Duenna] = new(ResearchId.Duenna, "Duenna",
+            "A Bombe attachment from Hut 6 and the Letchworth works that finds the day's wiring of the Luftwaffe's rewirable reflector. Ends UKW-D's slowdown.", 150),
+        [ResearchId.ColossusII] = new(ResearchId.ColossusII, "Colossus Mark 2",
+            "Flowers' second Colossus reads the tape five ways at once, fast enough to find the wheel patterns as well as the settings. Ends the daily patterns' slowdown.", 200),
+        [ResearchId.UhrBox] = new(ResearchId.UhrBox, "The Uhr box",
+            "Hut 6 works out the Uhr's wiring from careless operators and builds its own. Ends the Uhr's slowdown.", 150),
     };
 
     public static readonly Dictionary<Issuer, string> IssuerNames = new()

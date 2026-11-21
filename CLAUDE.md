@@ -327,6 +327,15 @@ Then (user requests, 2026-11-19):
   from `Defs.KnoxDied` or after the Testery: fired, morale), `turing-us` (from U-559; away 30 days, `TuringWent` → Dayton +1), the
   bicycle toast. The autoplayer takes option 0 for staff dilemmas. `--modal=welchman|knox|turing-us`. Balance 39/23/3.
 
+### Since v0.39.0 (2026-11-21; user: "proceed with the gameplay ideas": countermeasures, back traffic, SLUs, Meanwhile)
+
+- Countermeasures (`Countermeasures.cs`): `CounterDefs` (id, act, days in, which nets, which steps, ×, answer research) come in by
+  `DailyCounters` (ukwd: D-Day +1, Luftwaffe Enigma Bombe ×1.8; sz42: Market Garden +1, Lorenz Testery/Heath Robinson/Colossus
+  ×1.8; uhr: Ardennes +1, Luftwaffe crib ×1.7), add their answer to `ResearchAvailable` (`ResearchId` Duenna 150, ColossusII 200,
+  UhrBox 150, appended) and slow `CounterMult` in `BombeFactor`/`Duration` until researched. Keys card line per network
+  (`CountersOn`), tip `counter-<id>`, `--modal=counters`. The autoplayer buys the answers at once (it has the points), so balance
+  is unchanged: 39/23/3.
+
 ### Graphics overhaul: period realism, CC0 assets allowed
 
 The user chose realism (not a tabletop diorama or poster art) and allowed CC0 assets. Use Poly Haven 1K JPG maps
