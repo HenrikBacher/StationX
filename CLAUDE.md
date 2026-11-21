@@ -465,6 +465,18 @@ Then (user requests, 2026-11-19):
   sheet (`ScenarioEnd`), `Records.Medal`/`SubmitMedal` (section "medals"). Shots: `--scenario=ID`, `--modal=scenarios`,
   `--modal=scenarioend`. A scenario is `Mode` Campaign with `ScenarioId` set.
 
+### Since v0.46.0
+
+- Delta updates (user: "make the updater faster"; chose our own over Velopack): `export.sh` also publishes `<platform>.pck`
+  (raw), `<platform>-pck.txt` (`tools/pckblocks.py`: 64 KB blocks, rsync weak checksum + SHA-256, whole-file SHA-256) and
+  `<platform>-code.zip` (data_*/StationX.*). `PckDelta` (plain C#, linked into the tests) rolls the weak checksum over the
+  local pack, confirms hits by SHA-256 (`Match`), joins missing blocks into ranges, and `Assemble` checks the whole file.
+  The check works out the plan (`Updater._delta`, offer says "under 1 MB"); `InstallDelta` fetches the code zip and the
+  ranges (4 at a time, `FetchRange` needs 206) and falls back to the patch on any failure. Big downloads come in 4 ranged
+  parts (`Download`), one stream if the server won't. v0.45.0 → v0.46.0: 0.11 MB of a 39.5 MB pack, match 0.1 s.
+  `LIVE_RANGE=1` test checks GitHub keeps ranges across its redirect; `PCK_OLD/PCK_NEW/PCK_MANIFEST` test real packs.
+  The first release with these files can only be delta-updated *from* by the next one (older copies use the patch).
+
 ### Graphics overhaul: period realism, CC0 assets allowed
 
 The user chose realism (not a tabletop diorama or poster art) and allowed CC0 assets. Use Poly Haven 1K JPG maps

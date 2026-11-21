@@ -99,6 +99,7 @@ jobs:
             build/*.zip
             build/*.tar.gz
             build/*.txt
+            build/*.pck
           retention-days: 14
 
   release:
@@ -133,5 +134,5 @@ jobs:
             echo "- **Windows**: \`StationX-windows-x86_64.zip\`"
           } > release-notes.md
           cat release-notes.md
-          gh release create "$GITHUB_REF_NAME" build/*.zip build/*.tar.gz build/*.txt \
+          gh release create "$GITHUB_REF_NAME" build/*.zip build/*.tar.gz build/*.txt build/*.pck \
             --title "Station X $GITHUB_REF_NAME" --notes-file release-notes.md

@@ -26,12 +26,21 @@ public static class Updater
     /// <summary>The newer version on offer, once the check has found one.</summary>
     public static string? Latest { get; private set; }
     public static string? PageUrl { get; private set; }
-    static string? _assetUrl, _patchUrl, _baseUrl;
-    static long _assetSize, _patchSize;
+    static string? _assetUrl, _patchUrl, _baseUrl, _pckUrl, _pckListUrl, _codeUrl;
+    static long _assetSize, _patchSize, _codeSize;
+    /// <summary>
+    /// The delta: which blocks of the new game pack this copy already has (PckDelta), worked out during the check when the
+    /// patch fits and the release lists its pack's blocks. Null when there's none to use.
+    /// </summary>
+    static PckDelta.Plan? _delta;
     /// <summary>True once the small patch is known to fit this copy (same engine and .NET runtime as the new release).</summary>
     public static bool PatchFits { get; private set; }
-    /// <summary>What the update will download, in MB.</summary>
-    public static int DownloadMB => (int)Math.Ceiling((PatchFits ? _patchSize : _assetSize) / 1e6);
+    /// <summary>What the update will download, in bytes: the changed blocks and the code, the patch, or the whole game.</summary>
+    public static long DownloadBytes => _delta != null ? _delta.FetchBytes + _codeSize : PatchFits ? _patchSize : _assetSize;
+    /// <summary>What the update will download, in MB (at least 1).</summary>
+    public static int DownloadMB => (int)Math.Max(1, Math.Ceiling(DownloadBytes / 1e6));
+    /// <summary>The download as words: "under 1 MB", "about 32 MB".</summary>
+    public static string DownloadSize => DownloadBytes < 1_000_000 ? "under 1 MB" : $"about {DownloadMB} MB";
     /// <summary>What the updater is doing, for the title screen ("Downloading 40%", or an error).</summary>
     public static string? Status { get; private set; }
     public static bool Busy { get; private set; }
@@ -90,6 +99,14 @@ public static class Updater
                 _patchSize = patch.GetProperty("size").GetInt64();
                 _baseUrl = bas.GetProperty("browser_download_url").GetString();
             }
+            if (Asset(Platform + ".pck") is { ValueKind: JsonValueKind.Object } pck && Asset(Platform + "-pck.txt") is { ValueKind: JsonValueKind.Object } list
+                && Asset(Platform + "-code.zip") is { ValueKind: JsonValueKind.Object } code)
+            {
+                _pckUrl = pck.GetProperty("browser_download_url").GetString();
+                _pckListUrl = list.GetProperty("browser_download_url").GetString();
+                _codeUrl = code.GetProperty("browser_download_url").GetString();
+                _codeSize = code.GetProperty("size").GetInt64();
+            }
             PageUrl = latest.GetProperty("html_url").GetString();
             Notes.Clear();
             foreach (var (r, v) in newer) Notes.Add((v!.ToString(), NewAndFixed(r.GetProperty("body").GetString() ?? "")));
@@ -102,6 +119,16 @@ public static class Updater
                 PatchFits = await Task.Run(() => PatchManifest.BaseMatches(manifest, dir));
                 GD.Print(PatchFits ? "Update: the small patch fits this copy." : "Update: this copy differs from the new release's base; the full download is needed.");
                 Notify();
+                if (PatchFits && _pckListUrl != null && File.Exists(Path.Combine(dir, "StationX.pck")))
+                {
+                    var blocks = PckDelta.Parse(await Http.GetStringAsync(_pckListUrl));
+                    if (blocks != null)
+                    {
+                        _delta = await Task.Run(() => PckDelta.Match(blocks, File.ReadAllBytes(Path.Combine(dir, "StationX.pck"))));
+                        GD.Print($"Update: {_delta.FetchBytes / 1e6:0.00} MB of the new game pack to fetch, the rest already here.");
+                        Notify();
+                    }
+                }
             }
         }
         catch (Exception e) { GD.Print($"Update check failed: {e.Message}"); }
@@ -146,34 +173,30 @@ public static class Updater
             Directory.CreateDirectory(staging);
             string archive = Path.Combine(staging, patch ? Platform + "-patch.zip" : AssetName!);
 
+            string files = Path.Combine(staging, "files");
             Status = "Downloading…"; Notify();
-            using (var resp = await Http.GetAsync(patch ? _patchUrl : _assetUrl, HttpCompletionOption.ResponseHeadersRead))
+            if (patch && _delta != null && _pckUrl != null && _codeUrl != null)
             {
-                resp.EnsureSuccessStatusCode();
-                long total = resp.Content.Headers.ContentLength ?? 0;
-                await using var src = await resp.Content.ReadAsStreamAsync();
-                await using var dst = File.Create(archive);
-                var buf = new byte[1 << 16];
-                long got = 0;
-                int n, lastPct = -2;
-                while ((n = await src.ReadAsync(buf)) > 0)
+                try
                 {
-                    await dst.WriteAsync(buf.AsMemory(0, n));
-                    got += n;
-                    int pct = total > 0 ? (int)(got * 100 / total) : -1;
-                    if (pct != lastPct)
-                    {
-                        lastPct = pct;
-                        Progress = total > 0 ? (double)got / total : -1;
-                        Status = total > 0 ? $"Downloading… {got / 1_000_000} of {total / 1_000_000} MB" : $"Downloading… {got / 1_000_000} MB";
-                        Notify();
-                    }
+                    await InstallDelta(dir, staging, files);
+                    Status = "Installing…"; Notify();
+                    if (OS.GetName() == "Windows") RestartWindows(exe, dir, files, staging);
+                    else RestartUnix(exe, dir, files, staging);
+                    return;
+                }
+                catch (Exception e)
+                {
+                    // Anything wrong with the pieces: the patch as before.
+                    GD.Print($"Update: the delta didn't work ({e.Message}); downloading the patch.");
+                    _delta = null;
+                    if (Directory.Exists(files)) Directory.Delete(files, true);
                 }
             }
+            await Download(patch ? _patchUrl! : _assetUrl!, archive);
 
             Progress = 1;
             Status = "Unpacking…"; Notify();
-            string files = Path.Combine(staging, "files");
             await Task.Run(() =>
             {
                 if (archive.EndsWith(".zip")) ZipFile.ExtractToDirectory(archive, files);
@@ -200,6 +223,136 @@ public static class Updater
                 ? $"Couldn't install here ({e.Message}). Download it from the releases page instead."
                 : $"Update failed: {e.Message}";
             Notify();
+        }
+    }
+
+    /// <summary>
+    /// The delta: the new code (a small zip) and the new game pack rebuilt from this copy's pack plus only the blocks that
+    /// changed, fetched as ranges. Throws if any piece is missing or the rebuilt pack isn't the release's.
+    /// </summary>
+    static async Task InstallDelta(string dir, string staging, string files)
+    {
+        var plan = _delta!;
+        long total = plan.FetchBytes + _codeSize, got = 0;
+        void Count(long n)
+        {
+            long now = System.Threading.Interlocked.Add(ref got, n);
+            Progress = total > 0 ? Math.Min(1, (double)now / total) : -1;
+            Status = $"Downloading… {now / 1e6:0.0} of {total / 1e6:0.0} MB";
+            Notify();
+        }
+        string codeZip = Path.Combine(staging, "code.zip");
+        await Download(_codeUrl!, codeZip, Count);
+        // The changed blocks, a few requests at a time.
+        var ranges = plan.Ranges();
+        var fetched = new System.Collections.Concurrent.ConcurrentDictionary<long, byte[]>();
+        using var gate = new System.Threading.SemaphoreSlim(4);
+        await Task.WhenAll(ranges.Select(async r =>
+        {
+            await gate.WaitAsync();
+            try { fetched[r.start] = await FetchRange(_pckUrl!, r.start, r.length, Count); }
+            finally { gate.Release(); }
+        }));
+        Status = "Unpacking…"; Notify();
+        await Task.Run(() =>
+        {
+            Directory.CreateDirectory(files);
+            var old = File.ReadAllBytes(Path.Combine(dir, "StationX.pck"));
+            if (!PckDelta.Assemble(plan, old, fetched, Path.Combine(files, "StationX.pck")))
+                throw new InvalidOperationException("the rebuilt game pack doesn't match the release");
+            ZipFile.ExtractToDirectory(codeZip, files);
+            File.Delete(codeZip);
+        });
+    }
+
+    /// <summary>One stretch of a file by a ranged request; the server must answer with exactly that stretch.</summary>
+    static async Task<byte[]> FetchRange(string url, long start, long length, Action<long>? count = null)
+    {
+        using var req = new HttpRequestMessage(HttpMethod.Get, url);
+        req.Headers.Range = new System.Net.Http.Headers.RangeHeaderValue(start, start + length - 1);
+        using var resp = await Http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead);
+        if (resp.StatusCode != System.Net.HttpStatusCode.PartialContent) throw new InvalidOperationException($"no ranged download ({(int)resp.StatusCode})");
+        var data = new byte[length];
+        await using var src = await resp.Content.ReadAsStreamAsync();
+        int at = 0, n;
+        while (at < length && (n = await src.ReadAsync(data.AsMemory(at, (int)Math.Min(1 << 16, length - at)))) > 0)
+        {
+            at += n;
+            count?.Invoke(n);
+        }
+        if (at != length) throw new IOException("the download was cut short");
+        return data;
+    }
+
+    /// <summary>
+    /// Downloads a file. A big one comes in four parts at once (ranged requests), which is usually much faster than one
+    /// stream; if the server won't do ranges, one stream as before.
+    /// </summary>
+    static async Task Download(string url, string path, Action<long>? count = null)
+    {
+        long total = 0, got = 0;
+        int lastPct = -2;
+        count ??= n =>
+        {
+            long now = System.Threading.Interlocked.Add(ref got, n);
+            int pct = total > 0 ? (int)(now * 100 / total) : -1;
+            if (pct == lastPct) return;
+            lastPct = pct;
+            Progress = total > 0 ? (double)now / total : -1;
+            Status = total > 0 ? $"Downloading… {now / 1_000_000} of {total / 1_000_000} MB" : $"Downloading… {now / 1_000_000} MB";
+            Notify();
+        };
+        using (var head = new HttpRequestMessage(HttpMethod.Get, url))
+        {
+            head.Headers.Range = new System.Net.Http.Headers.RangeHeaderValue(0, 0);
+            using var probe = await Http.SendAsync(head, HttpCompletionOption.ResponseHeadersRead);
+            if (probe.StatusCode == System.Net.HttpStatusCode.PartialContent && probe.Content.Headers.ContentRange?.Length is long len)
+                total = len;
+        }
+        const int parts = 4;
+        if (total >= 8_000_000)
+        {
+            try
+            {
+                using (var f = new FileStream(path, FileMode.Create, System.IO.FileAccess.Write)) f.SetLength(total);
+                long size = (total + parts - 1) / parts;
+                await Task.WhenAll(Enumerable.Range(0, parts).Select(async k =>
+                {
+                    long start = k * size, len = Math.Min(size, total - start);
+                    using var req = new HttpRequestMessage(HttpMethod.Get, url);
+                    req.Headers.Range = new System.Net.Http.Headers.RangeHeaderValue(start, start + len - 1);
+                    using var resp = await Http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead);
+                    if (resp.StatusCode != System.Net.HttpStatusCode.PartialContent) throw new InvalidOperationException("no ranged download");
+                    await using var src = await resp.Content.ReadAsStreamAsync();
+                    await using var dst = new FileStream(path, FileMode.Open, System.IO.FileAccess.Write, FileShare.Write);
+                    dst.Position = start;
+                    var buf = new byte[1 << 16];
+                    long left = len;
+                    int n;
+                    while (left > 0 && (n = await src.ReadAsync(buf.AsMemory(0, (int)Math.Min(buf.Length, left)))) > 0)
+                    {
+                        await dst.WriteAsync(buf.AsMemory(0, n));
+                        left -= n;
+                        count(n);
+                    }
+                    if (left != 0) throw new IOException("the download was cut short");
+                }));
+                return;
+            }
+            catch (InvalidOperationException) { got = 0; lastPct = -2; }
+        }
+        // One stream.
+        using var one = await Http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
+        one.EnsureSuccessStatusCode();
+        total = one.Content.Headers.ContentLength ?? 0;
+        await using var s = await one.Content.ReadAsStreamAsync();
+        await using var d = File.Create(path);
+        var b = new byte[1 << 16];
+        int m;
+        while ((m = await s.ReadAsync(b)) > 0)
+        {
+            await d.WriteAsync(b.AsMemory(0, m));
+            count(m);
         }
     }
 

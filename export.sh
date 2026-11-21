@@ -2,7 +2,10 @@
 # Builds release exports into build/: StationX-linux-x86_64.tar.gz and StationX-windows-x86_64.zip, and for each a
 # small update: <name>-patch.zip holds only the game's own files (StationX.pck and data_*/StationX.*), and
 # <name>-base.txt lists the SHA-256 of every other file (engine, .NET runtime). The in-game updater fetches the patch
-# when the player's copy has exactly those other files, and the full download otherwise.
+# when the player's copy has exactly those other files, and the full download otherwise. Better still, the updater
+# rebuilds the new game pack from its own: <name>.pck is the raw pack (for ranged requests), <name>-pck.txt lists its
+# blocks (tools/pckblocks.py), and <name>-code.zip holds just data_*/StationX.*; an update is then the changed blocks
+# and the code, usually under a megabyte.
 # Needs the Godot 4.7.2 .NET export templates in ~/.local/share/godot/export_templates/4.7.2.stable.mono
 # (Editor → Manage Export Templates, or unzip the official .tpz there). Set GODOT to use a different binary.
 set -euo pipefail
@@ -13,7 +16,7 @@ if [ ! -d "$tpl" ]; then
   echo "Export templates missing: $tpl" >&2
   exit 1
 fi
-rm -rf build/linux build/windows build/both build/*.zip build/*.tar.gz build/*.txt
+rm -rf build/linux build/windows build/both build/*.zip build/*.tar.gz build/*.txt build/*.pck
 mkdir -p build/linux build/windows && touch build/.gdignore
 "$godot" --headless --path . --export-release "Linux" build/linux/StationX.x86_64
 "$godot" --headless --path . --export-release "Windows" build/windows/StationX.exe
@@ -30,6 +33,9 @@ base_files() { find . -type f ! -name StationX.pck ! -path './data_*/StationX.*'
   for p in linux:StationX-linux-x86_64 windows:StationX-windows-x86_64; do
     dir=${p%%:*} name=${p#*:}
     (cd "$dir" && patch_files | zip -q -@ "../$name-patch.zip" && base_files | tr '\n' '\0' | xargs -0 sha256sum) > "$name-base.txt"
+    cp "$dir/StationX.pck" "$name.pck"
+    python3 ../tools/pckblocks.py "$name.pck" > "$name-pck.txt"
+    (cd "$dir" && find . -type f -path './data_*/StationX.*' | LC_ALL=C sort | zip -q -@ "../$name-code.zip")
   done
 )
-ls -lh build/*.tar.gz build/*.zip build/*.txt
+ls -lh build/*.tar.gz build/*.zip build/*.txt build/*.pck
