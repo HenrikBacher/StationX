@@ -74,6 +74,8 @@ public static class SaveGame
         // Saves from before everyone was posted to a building.
         g.PostUnposted();
         g.Grid.RebuildOccupancy(g.Stations);
+        // Saves from before the riders' in-tray.
+        if (!g.Stations.Exists(s => s.Type == StationType.RiderTray)) g.PlaceRiderTray();
         g.Grid.FitInteriors(g.Stations);
         // Saves from before the ULTRA choice: operations already won were already acted on.
         foreach (var op in g.Operations)

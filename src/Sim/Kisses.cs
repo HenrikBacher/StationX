@@ -84,7 +84,7 @@ public sealed partial class GameState
         var m = new Message
         {
             Id = NextId++, Net = Net.Werft, Day = (int)Math.Floor(sent / Defs.MinutesPerDay), Created = sent, Since = Now,
-            Loc = line ? Loc.Output : Loc.Input, LocId = desk.Id,
+            Loc = line || desk.Type == StationType.RiderTray ? Loc.Output : Loc.Input, LocId = desk.Id,
             Garbled = dice.NextDouble() < Defs.GarbledChance * (hour < 6 || hour >= 20 ? 1.6 : 1) * WeatherGarble * CoverGarble(Net.Werft),
         };
         Messages[m.Id] = m;
@@ -95,7 +95,7 @@ public sealed partial class GameState
         }
         else
         {
-            desk.Input.Add(m.Id);
+            if (m.Loc == Loc.Output) desk.Output.Add(m.Id); else desk.Input.Add(m.Id);
             RiderArrived(Net.Werft, desk);
         }
         return true;

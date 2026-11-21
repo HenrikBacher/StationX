@@ -112,6 +112,7 @@ public partial class StationModel : Node3D
             case StationType.Bombe4: Bombe(4, new Color("2c3442"), 1.15f); break;
             case StationType.Typex: Typex(); break;
             case StationType.Dispatch: Despatch(); break;
+            case StationType.RiderTray: RiderTray(); break;
             case StationType.Canteen: Canteen(); break;
             case StationType.CommonRoom: CommonRoom(); break;
             case StationType.Rounders: Rounders(); break;
@@ -805,6 +806,32 @@ public partial class StationModel : Node3D
         l.PixelSize = 0.004f;
     }
 
+    /// <summary>A small hall table with a wire tray, and a painted board: where the dispatch riders hand in.</summary>
+    void RiderTray()
+    {
+        var wood = new Color("5a3d26");
+        Mesh3.BoxAt(this, -0.38f, 0.66f, -0.3f, 0.76f, 0.05f, 0.6f, wood);
+        foreach (var (lx, lz) in new[] { (-0.34f, -0.26f), (0.3f, -0.26f), (-0.34f, 0.22f), (0.3f, 0.22f) })
+            Mesh3.BoxAt(this, lx, 0, lz, 0.04f, 0.66f, 0.04f, wood.Darkened(0.15f));
+        // The wire tray.
+        var wire = new Color("8a8478");
+        Mesh3.BoxAt(this, -0.2f, 0.71f, -0.16f, 0.4f, 0.01f, 0.3f, wire);
+        Mesh3.BoxAt(this, -0.2f, 0.71f, -0.16f, 0.4f, 0.06f, 0.01f, wire);
+        Mesh3.BoxAt(this, -0.2f, 0.71f, 0.13f, 0.4f, 0.06f, 0.01f, wire);
+        Mesh3.BoxAt(this, -0.2f, 0.71f, -0.16f, 0.01f, 0.06f, 0.3f, wire);
+        Mesh3.BoxAt(this, 0.19f, 0.71f, -0.16f, 0.01f, 0.06f, 0.3f, wire);
+        // A board on a post at the back: DESPATCH RIDERS.
+        Mesh3.BoxAt(this, -0.02f, 0.71f, -0.28f, 0.04f, 0.5f, 0.03f, wood);
+        Mesh3.BoxAt(this, -0.3f, 1.05f, -0.29f, 0.6f, 0.2f, 0.02f, Gfx.Cream);
+        // Lettered on both faces, so it reads from either side of the hall.
+        foreach (var (z, yaw) in new[] { (-0.265f, 0f), (-0.295f, 180f) })
+        {
+            var l = Mesh3.Text(this, "DESPATCH\nRIDERS", new Vector3(0, 1.15f, z), 22, Gfx.Black, Fonts.BodyBold, billboard: false);
+            l.PixelSize = 0.0035f;
+            l.RotationDegrees = new Vector3(0, yaw, 0);
+        }
+    }
+
     // ----------------------------------------------------------- message piles
 
     void BuildPiles()
@@ -813,6 +840,7 @@ public partial class StationModel : Node3D
         {
             StationType.Inbox => (new Vector3(-0.2f, 0.72f, 0.1f), new Vector3(0.18f, 0.72f, 0.12f)),
             StationType.Dispatch => (new Vector3(0, 0.67f, -0.05f), new Vector3(0, 0.67f, -0.05f)),
+            StationType.RiderTray => (new Vector3(0, 0.72f, 0), new Vector3(0, 0.72f, 0)),
             StationType.Typex => (new Vector3(-0.32f, DeskTop, 0.15f), new Vector3(0.32f, DeskTop, 0.15f) with { X = 0.3f, Z = -0.25f }),
             StationType.Bombe or StationType.Bombe4 => (new Vector3(-0.75f, 0.42f, H / 2 + 0.08f), new Vector3(-0.58f, 0.42f, H / 2 + 0.08f)),
             StationType.Zygalski => (new Vector3(-0.75f, 0.75f, 0.7f), new Vector3(0.75f, 0.75f, -0.7f)),

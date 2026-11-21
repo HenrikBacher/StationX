@@ -465,6 +465,7 @@ public class MachineTests(ITestOutputHelper output)
         g.Place(StationType.Registration, 5, 3, 0, free: true);
         g.Place(StationType.HandCipher, 8, 3, 0, free: true);
         g.Place(StationType.Translation, 11, 3, 0, free: true);
+        g.Place(StationType.Canteen, 12, 6, 0, free: true);
         var c = g.AddScripted(Net.Police, 4, 4, 0, 0, "t", "t", "t");
         g.Advance(1);
         TestUtil.Run(g, 0.3);
@@ -2179,7 +2180,11 @@ public class TeleprinterTests
         Assert.True(c.Spawned > 0);
         Assert.Contains(g.Messages.Values, m => m.ContractId == c.Id);
         Assert.NotEmpty(g.RiderDrops);
-        Assert.Equal(reg.Id, g.RiderDrops[0].StationId);
+        // The rider hands the bundle in at the in-tray by the Mansion door; a clerk takes it on to registration.
+        var tray = g.Stations.Single(s => s.Type == StationType.RiderTray);
+        Assert.Equal(tray.Id, g.RiderDrops[0].StationId);
+        g.Advance(16 * 60);   // the watch has gone home by now: the bundle waits in the tray for the morning
+        Assert.True(g.Flows.ContainsKey($"{tray.Id}>{reg.Id}"));
     }
 
     [Fact]

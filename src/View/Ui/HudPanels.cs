@@ -243,7 +243,7 @@ public partial class Hud
     void BuildPanel()
     {
         _sideBox.AddChild(UiTheme.Heading("Build"));
-        Intro("Build", "Desks and machines go inside a hut, with clear space in front for whoever works them. Messages come in by dispatch rider (later by teleprinter), pass through each step, and leave by the despatch box.");
+        Intro("Build", "Desks and machines go inside a hut, with clear space in front for whoever works them. Messages come in by dispatch rider to the in-tray by the Mansion door (later by teleprinter), pass through each step, and leave by the despatch box.");
         if (S.Funds < 0)
             _sideBox.AddChild(UiTheme.Label($"Overdrawn ({UiTheme.Money(S.Funds)}): nothing can be bought until the Park is back in credit. Finish requests: they pay on completion.", 13, Gfx.Bad));
         // What the chapter's objectives ask to be built comes first, marked, so a new player finds it at once.
@@ -251,6 +251,7 @@ public partial class Hud
             : S.Act.Goals.Where(g => g.Kind == GoalKind.Build && g.Station is not null && g.Progress(S) < g.Target).Select(g => g.Station!.Value).ToHashSet();
         foreach (StationType t in Enum.GetValues<StationType>().OrderBy(t => wanted.Contains(t) ? 0 : 1))
         {
+            if (t == StationType.RiderTray) continue;   // the Park has its one from the start
             var d = Defs.Station(t);
             bool unlocked = S.StationUnlocked(t, out var why);
             if (!unlocked && (why == "Not needed yet" || t == StationType.Zygalski && S.IndicatorChanged)) continue;   // not yet, or no longer, in play
@@ -1057,6 +1058,14 @@ public partial class Hud
             return;
         var id2 = st.Id;
         var move = UiTheme.Button($"Move (£{Defs.MoveCost})", () => _main.BeginMove(id2), S.Funds >= Defs.MoveCost && !st.PendingRemoval, tooltip: "Pick it up and put it somewhere else (M)");
+        if (st.Type == StationType.RiderTray)
+        {
+            // The Park's only one: it can go somewhere handier, not away.
+            _inspBox.AddChild(UiTheme.Label(st.Output.Count == 0 ? "Nothing waiting to be taken to registration."
+                : $"{st.Output.Count} waiting for a messenger or clerk to take them to registration.", 12, UiTheme.TextDim));
+            _inspBox.AddChild(Row(Spacer(), move));
+            return;
+        }
         _inspBox.AddChild(Row(Spacer(), move, UiTheme.Button(st.PendingRemoval ? "Keep it" : $"Remove (refund £{(int)(d.Cost * Defs.SellRefund)})",
             () => { S.RequestRemove(id2); _inspSig = ""; })));
         if (st.PendingRemoval)

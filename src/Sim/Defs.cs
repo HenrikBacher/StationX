@@ -13,7 +13,7 @@ public enum StationType
     Canteen, CommonRoom, Rounders, Checking, Tube, OutstationLink,
     Testery, Colossus, TunnyMachine,
     Stove, SickBay, Index, TrafficAnalysis, HeathRobinson,
-    Fan, Japanese,
+    Fan, Japanese, RiderTray,
 }
 
 public enum Family { Hand, Enigma, Lorenz }
@@ -631,7 +631,7 @@ public static partial class Defs
     public static readonly Dictionary<StationType, StationDef> Stations = new()
     {
         [StationType.Inbox] = new(StationType.Inbox, "Teleprinter",
-            "Prints the traffic of Y-stations with a teleprinter line (Y-stations, Y). Without one, dispatch riders bring it to registration.",
+            "Prints the traffic of Y-stations with a teleprinter line (Y-stations, Y). Without one, dispatch riders bring it to the riders' in-tray by the Mansion door.",
             250, 1, 1, null, 0, 0, null, 0),
         [StationType.Registration] = new(StationType.Registration, "Registration desk",
             "Logs callsigns and frequencies, works out which key net each message belongs to, and spots garbled intercepts.",
@@ -690,6 +690,9 @@ public static partial class Defs
         [StationType.Japanese] = new(StationType.Japanese, "Japanese desk",
             "The Japanese naval section. With the additive stripped, JN-25's code groups are looked up in the book recovered so far and put into English. Only linguists back from the Bedford Japanese course can work it.",
             150, 2, 1, Role.Linguist, 75, 6, null, 0),
+        [StationType.RiderTray] = new(StationType.RiderTray, "Riders' in-tray",
+            "A table inside the Mansion's front door where the dispatch riders hand in their bundles. A messenger or clerk takes them on to registration. There's only ever one: it can be moved but not removed.",
+            0, 1, 1, null, 0, 0, null, 0),
         [StationType.SickBay] = new(StationType.SickBay, "Sick bay",
             "Two iron beds, a screen and a nursing sister in the Mansion. The sick get well sooner and pass less on.",
             350, 2, 1, null, 0, 0, null, 2, Upkeep: 15),
@@ -779,7 +782,7 @@ public static partial class Defs
     public sealed record ZoneRole(string Purpose, StationType[] Allows);
 
     /// <summary>Allowed in every hut: everyone needs tea, and the tubes have to start somewhere.</summary>
-    public static readonly StationType[] Everywhere = { StationType.Canteen, StationType.Tube };
+    public static readonly StationType[] Everywhere = { StationType.Canteen, StationType.Tube, StationType.RiderTray };
 
     /// <summary>What each building is for, after its real wartime job. Stations can only be built where they belong.</summary>
     public static readonly Dictionary<string, ZoneRole> ZoneRoles = new()

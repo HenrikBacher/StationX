@@ -710,6 +710,7 @@ public sealed partial class GameState
         g.Funds = g.Rules.StartFunds;
         Array.Fill(g.Grid.Occupant, -1);
         g.Place(StationType.Dispatch, 16, 3, 0, free: true);
+        g.PlaceRiderTray();
         foreach (var (role, x, y) in new[] { (Role.Clerk, 7, 6), (Role.Clerk, 8, 7), (Role.Cryptanalyst, 10, 6), (Role.Linguist, 11, 7) })
         {
             var p = g.NewPerson(role, 1);

@@ -103,13 +103,20 @@ public sealed partial class GameState
     /// </summary>
     public bool LineWorking(Net n) => Lines.Contains(YStationOf(n).Id) && TeleprinterFor(n) != null;
 
-    /// <summary>The registration desk a dispatch rider hands a bundle to: the least loaded one.</summary>
+    /// <summary>
+    /// Where a dispatch rider hands a bundle in: the riders' in-tray by the Mansion door, for a messenger or clerk to take on
+    /// to registration; with no tray (an old save with no room for one), straight to the least loaded registration desk.
+    /// </summary>
     public Station? RiderDesk()
     {
         Station? best = null;
         foreach (var s in Stations)
             if (s.Type == StationType.Registration && !s.PendingRemoval && !s.Obsolete && !s.IsDown(Now) && (best == null || s.Input.Count < best.Input.Count))
                 best = s;
+        // With no registration desk to go on to, the bundle waits at the Y-station.
+        if (best == null) return null;
+        foreach (var s in Stations)
+            if (s.Type == StationType.RiderTray) return s;
         return best;
     }
 

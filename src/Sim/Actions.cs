@@ -20,6 +20,7 @@ public sealed partial class GameState
         }
         if (t == StationType.Zygalski && IndicatorChanged) { reason = "Obsolete since 1 May 1940"; return false; }
         if (t == StationType.Japanese && !JapanOpen) { reason = "From February 1942"; return false; }
+        if (t == StationType.RiderTray) { reason = "There's one already"; return false; }
         reason = "";
         return true;
     }
@@ -155,7 +156,7 @@ public sealed partial class GameState
     public void RequestRemove(int stationId)
     {
         var st = StationById(stationId);
-        if (st == null) return;
+        if (st == null || st.Type == StationType.RiderTray) return;
         st.PendingRemoval = !st.PendingRemoval;
     }
 
@@ -750,7 +751,7 @@ public sealed partial class GameState
                         var m = new Message
                         {
                             Id = NextId++, Net = c.Net, ContractId = c.Id, Day = (int)Math.Floor(sent / Defs.MinutesPerDay), Created = sent, Since = Now,
-                            Loc = line ? Loc.Output : Loc.Input, LocId = desk.Id,
+                            Loc = line || desk.Type == StationType.RiderTray ? Loc.Output : Loc.Input, LocId = desk.Id,
                             Garbled = ActIndex >= 1 && Rng.Chance(Defs.GarbledChance * (hour < 6 || hour >= 20 ? 1.6 : 1) * WeatherGarble * CoverGarble(c.Net)),
                         };
                         Messages[m.Id] = m;
@@ -762,7 +763,7 @@ public sealed partial class GameState
                         }
                         else
                         {
-                            desk.Input.Add(m.Id);
+                            if (m.Loc == Loc.Output) desk.Output.Add(m.Id); else desk.Input.Add(m.Id);
                             RiderArrived(c.Net, desk);
                         }
                     }

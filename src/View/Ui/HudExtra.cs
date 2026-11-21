@@ -540,7 +540,7 @@ public partial class Hud
             return ("accept", "Open Requests (R) and accept one as soon as it comes in: the Y-station sends nothing until a ministry has asked for it. " +
                               "The first rider takes a while, so build the desks in your objectives (top right, and first under Build) meanwhile.");
         if (!Has(StationType.Registration))
-            return ("reg", "Dispatch riders bring the intercepts up the drive, and need a desk to hand them to. Open Build (B) and place a registration desk in the Mansion: every message is logged there first.");
+            return ("reg", "Dispatch riders bring the intercepts up the drive to the in-tray inside the Mansion door, and a clerk takes them on to registration. Open Build (B) and place a registration desk in the Mansion: every message is logged there first.");
         if (!Has(StationType.HandCipher))
             return ("hand", "Place a hand-cipher desk. Your cryptanalysts work the police ciphers there with pencil and paper.");
         if (!Has(StationType.Translation))

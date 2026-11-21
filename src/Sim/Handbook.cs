@@ -25,7 +25,7 @@ public static class Handbook
             new[] { Net.Police, Net.Abwehr },
             new[]
             {
-                new[] { Opt(StationType.Inbox, "for traffic over a teleprinter line; riders bring the rest to registration"), S(StationType.Registration), S(StationType.HandCipher), S(StationType.Translation), S(StationType.Dispatch) },
+                new[] { Opt(StationType.Inbox, "for traffic over a teleprinter line; riders bring the rest to the riders' in-tray"), S(StationType.Registration), S(StationType.HandCipher), S(StationType.Translation), S(StationType.Dispatch) },
             }),
         new("Enigma: breaking the day's key",
             "The keys change at midnight. One message a day per network goes to the cryptanalysts: a crib becomes a menu, a Bombe finds the settings, " +
@@ -41,7 +41,7 @@ public static class Handbook
             new[] { Net.Red, Net.LightBlue, Net.Brown, Net.Chaffinch, Net.Dolphin, Net.Shark },
             new[]
             {
-                new[] { Opt(StationType.Inbox, "for traffic over a teleprinter line; riders bring the rest to registration"), S(StationType.Registration), S(StationType.Typex), S(StationType.Translation), Opt(StationType.Index, "in later chapters"), S(StationType.Dispatch) },
+                new[] { Opt(StationType.Inbox, "for traffic over a teleprinter line; riders bring the rest to the riders' in-tray"), S(StationType.Registration), S(StationType.Typex), S(StationType.Translation), Opt(StationType.Index, "in later chapters"), S(StationType.Dispatch) },
             }),
         new("Naval Enigma",
             "The Kriegsmarine's keys are harder: Banburismus cuts down the wheel orders a Bombe has to try. SHARK needs four-wheel Bombes and the short " +
@@ -59,7 +59,7 @@ public static class Handbook
             new[] { Net.Werft },
             new[]
             {
-                new[] { Opt(StationType.Inbox, "for traffic over a teleprinter line; riders bring the rest to registration"), S(StationType.Registration), S(StationType.HandCipher, "the kiss: a perfect crib"), S(StationType.Crib, "today's naval key"), S(StationType.Bombe, "a shorter run") },
+                new[] { Opt(StationType.Inbox, "for traffic over a teleprinter line; riders bring the rest to the riders' in-tray"), S(StationType.Registration), S(StationType.HandCipher, "the kiss: a perfect crib"), S(StationType.Crib, "today's naval key"), S(StationType.Bombe, "a shorter run") },
             }),
         new("JN-25",
             "From the Blackout. The Japanese navy's fleet code, cabled from the Far East Combined Bureau and coming in overnight. A hand-cipher desk strips the " +
@@ -68,7 +68,7 @@ public static class Handbook
             new[] { Net.Jn25 },
             new[]
             {
-                new[] { Opt(StationType.Inbox, "for traffic over a teleprinter line; riders bring the cables to registration"), S(StationType.Registration), S(StationType.HandCipher, "strips the additive"), S(StationType.Japanese, "Japanese readers only"), S(StationType.Dispatch) },
+                new[] { Opt(StationType.Inbox, "for traffic over a teleprinter line; riders bring the cables to the riders' in-tray"), S(StationType.Registration), S(StationType.HandCipher, "strips the additive"), S(StationType.Japanese, "Japanese readers only"), S(StationType.Dispatch) },
             }),
         new("TUNNY",
             "The German high command's teleprinter cipher, the Lorenz machine. The wheel settings are found by hand in the Testery, faster on Newman's " +
@@ -77,7 +77,7 @@ public static class Handbook
             new[]
             {
                 new[] { S(StationType.Registration), S(StationType.Testery, "or Heath Robinson, or Colossus") },
-                new[] { Opt(StationType.Inbox, "for traffic over a teleprinter line; riders bring the rest to registration"), S(StationType.Registration), S(StationType.TunnyMachine), S(StationType.Translation), Opt(StationType.Index), S(StationType.Dispatch) },
+                new[] { Opt(StationType.Inbox, "for traffic over a teleprinter line; riders bring the rest to the riders' in-tray"), S(StationType.Registration), S(StationType.TunnyMachine), S(StationType.Translation), Opt(StationType.Index), S(StationType.Dispatch) },
             }),
     };
 }
