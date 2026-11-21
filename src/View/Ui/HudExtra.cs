@@ -531,6 +531,9 @@ public partial class Hud
                 S.DebugUncles();
                 if (S.Dilemmas.Count > 0) ShowDilemma(S.Dilemmas[0]);
                 break;
+            case "backtraffic":
+                S.BackTraffic = 24;
+                break;
             case "counters":
                 // Every countermeasure in force and unanswered, to see the keys card and the tip.
                 foreach (var cm in GameState.CounterDefs) { S.Researched.Remove(cm.Answer); S.DebugCounter(cm.Id); }

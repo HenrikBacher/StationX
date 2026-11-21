@@ -181,6 +181,7 @@ public sealed partial class GameState
         TickCrises();
         TickInspection();
         TickSocial();
+        TickBackTraffic();
         TickOperations();
         TickSupplies();
         TickGreatOp();
@@ -218,6 +219,7 @@ public sealed partial class GameState
         DailyDoubleCross();
         DailyMole();
         DailyCounters();
+        DailyBackTraffic();
         PlanFrequencyChanges();
         foreach (var k in Flows.Keys.ToList())
             if ((Flows[k] *= 0.5) < 0.25) Flows.Remove(k);

@@ -200,6 +200,12 @@ public static partial class Defs
     /// </summary>
     public const double WelchmanFaster = 0.9, WelchmanUpheaval = 1.3, KnoxStrain = 0.3, KnoxDiedMorale = 0.04;
     public const int WelchmanUpheavalDays = 2, StoryAgainDays = 14, KnoxPoints = 5, TuringAwayDays = 30;
+    /// <summary>
+    /// Back traffic: messages left unread by each unbroken key, the most kept, how often the idle are counted (minutes), the minutes of an
+    /// idle cryptanalyst's and of an idle Wren-and-Bombe's time per message, breakthroughs per message, and a note every so many.
+    /// </summary>
+    public const int BackPerMissedKey = 2, BackMax = 40, BackPoints = 1, BackReportEvery = 8;
+    public const double BackStep = 10, BackCryptMinutes = 180, BackBombeMinutes = 240;
     public static readonly DateOnly KnoxDied = new(1943, 2, 27);
     /// <summary>The Wicked Uncles' early letter: offered below this reputation from Claymore; what it brings, and the proper channels instead.</summary>
     public const double UnclesAt = 25, UnclesRep = 10, UnclesMorale = 0.04, UnclesChannelsRep = 4;

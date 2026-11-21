@@ -366,3 +366,27 @@ public class CountermeasureTests
         Assert.DoesNotContain("sz42", g.Counters);
     }
 }
+
+public class BackTrafficTests
+{
+    [Fact]
+    public void TheIdleWorkOffOldTraffic()
+    {
+        var g = TestUtil.BombeLine(12, checking: true);
+        g.BackTraffic = 20;
+        int points = g.Points;
+        TestUtil.Run(g, 0.5);
+        Assert.True(g.BackTraffic < 20, $"still {g.BackTraffic}");
+        Assert.True(g.Points > points);
+        Assert.True(g.Stats.BackRead > 0);
+    }
+
+    [Fact]
+    public void UnbrokenKeysLeaveTrafficUnread()
+    {
+        var g = TestUtil.BombeLine(12, checking: true);
+        int before = g.BackTraffic;
+        g.Advance(Defs.MinutesPerDay * 2);
+        Assert.True(g.BackTraffic + g.Stats.BackRead > before);
+    }
+}

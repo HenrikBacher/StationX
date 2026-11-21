@@ -350,6 +350,7 @@ public sealed class Stats
     public int XxChecks { get; set; }
     public int MoleLeakDays { get; set; }
     public int Countermeasures { get; set; }
+    public int BackRead { get; set; }
     public bool MoleCaught { get; set; }
     /// <summary>Messages passed straight across between neighbouring desks, no runner needed.</summary>
     public int HandOvers { get; set; }
@@ -373,6 +374,7 @@ public sealed class Stats
         XxChecks = XxChecks,
         MoleLeakDays = MoleLeakDays,
         Countermeasures = Countermeasures,
+        BackRead = BackRead,
         MoleCaught = MoleCaught,
     };
 

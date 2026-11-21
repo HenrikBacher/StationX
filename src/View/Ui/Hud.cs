@@ -392,7 +392,7 @@ public partial class Hud : CanvasLayer
             var state = S.KeyBroken(n, S.Day) ? "broken" : S.KeyState(n, S.Day).ToString();
             return $"{n}:{state}:{waiting}:{S.KeyRouteProblem(n)}:{S.KeyOrderOf(n)}:{S.Kissed(n, S.Day)}";
         }).ToList();
-        var sig = S.Day + "|" + string.Join(";", lines) + $"|{S.KissesOpen}{S.ReadWerft}{S.WerftProblem()}";
+        var sig = S.Day + "|" + string.Join(";", lines) + $"|{S.KissesOpen}{S.ReadWerft}{S.WerftProblem()}|{S.Counters.Count}{S.Researched.Count}|{S.BackTraffic / 2}{S.BackWorking}";
         if (sig == _keySig) return;
         _keySig = sig;
         Clear(_keyBox);
@@ -478,6 +478,17 @@ public partial class Hud : CanvasLayer
             _keyBox.AddChild(row);
         }
         if (S.KissesOpen) WerftRow();
+        if (S.BackTraffic > 0)
+        {
+            var b = UiTheme.Label($"Back traffic: {S.BackTraffic} old messages unread" + (S.BackWorking ? ", being read" : ""), 11,
+                S.BackWorking ? Gfx.Good : UiTheme.TextDim);
+            b.TooltipText = "Each day a key isn't broken leaves its traffic unread. In quiet hours, idle cryptanalysts and Wrens with a Bombe standing " +
+                            $"free go back to it without being asked: +{Defs.BackPoints} breakthrough for each message read. It needs both, " +
+                            "so spare hands on the same watch earn something.";
+            b.MouseFilter = Control.MouseFilterEnum.Pass;
+            b.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+            _keyBox.AddChild(b);
+        }
     }
 
     /// <summary>Kisses: the dockyard cipher, read only for the cribs it gives the naval keys.</summary>

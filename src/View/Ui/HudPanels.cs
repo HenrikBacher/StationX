@@ -500,7 +500,7 @@ public partial class Hud
         p.Arriving(S.Now) ? "arriving" : p.IsSick(S.Now) ? (p.OffReason switch { "leave" => "on leave", "breakdown" => "broken down", "course" => "on a course", _ => "sick" }) : p.Away ? "off"
         : p.HeadOf != null && p.Task == null ? "head" : p.Task switch
         {
-            null => "idle",
+            null => S.BackWorking && p.Role is Role.Cryptanalyst or Role.Wren ? "on back traffic" : "idle",
             { Kind: TaskKind.Operate } => "working",
             { Kind: TaskKind.Rest, Loafing: true } => "free",
             { Kind: TaskKind.Rest } => "break",
@@ -556,9 +556,9 @@ public partial class Hud
         p.Arriving(S.Now) ? "arriving" : p.IsSick(S.Now) ? (p.OffReason switch { "leave" => "on leave", "breakdown" => "broken down", "course" => "on a course", _ => "off sick" }) : p.Away ? "off watch"
         : p.HeadOf != null && p.Task == null ? $"head of {S.Grid.Zone(p.HeadOf)?.Name}" : p.Task switch
         {
-            null => "idle",
+            null => S.BackWorking && p.Role is Role.Cryptanalyst or Role.Wren ? "on back traffic" : "idle",
             { Kind: TaskKind.Operate } => "working",
-            { Kind: TaskKind.Rest, Loafing: true } => "sitting, free",
+            { Kind: TaskKind.Rest, Loafing: true } => S.BackWorking && p.Role is Role.Cryptanalyst or Role.Wren ? "on back traffic" : "sitting, free",
             { Kind: TaskKind.Rest } => "on a break",
             { Kind: TaskKind.Leave } => "going off",
             _ => "carrying",

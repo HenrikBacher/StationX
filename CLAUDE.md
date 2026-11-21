@@ -335,6 +335,12 @@ Then (user requests, 2026-11-19):
   UhrBox 150, appended) and slow `CounterMult` in `BombeFactor`/`Duration` until researched. Keys card line per network
   (`CountersOn`), tip `counter-<id>`, `--modal=counters`. The autoplayer buys the answers at once (it has the points), so balance
   is unchanged: 39/23/3.
+- Back traffic (`BackTraffic.cs`, from the Bombe research): `DailyBackTraffic` adds `BackPerMissedKey` (2) per covered machine-cipher
+  net whose key wasn't broken yesterday, up to `BackMax` 40. `TickBackTraffic` every `BackStep` 10 minutes by the clock (no unsaved
+  timer): idle (no task, or loafing) on-duty cryptanalysts and Wrens with free Bombes read at min(crypt/`BackCryptMinutes` 180,
+  min(wrens, free Bombes)/`BackBombeMinutes` 240) a minute; +`BackPoints` 1 each, `Stats.BackRead`. Nobody's task changes, so the
+  Workload panel still counts them idle; the Staff list says "on back traffic" (`BackWorking`, view only). Keys card line,
+  `--modal=backtraffic`. Balance: 90/120 minutes put Normal at 26, with +1 rep per 8 messages 36; now 39/24/0.
 
 ### Graphics overhaul: period realism, CC0 assets allowed
 
