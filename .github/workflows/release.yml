@@ -95,7 +95,7 @@ jobs:
           missing=$(for p in xvfb mesa-vulkan-drivers pigz; do dpkg -s "$p" > /dev/null 2>&1 || echo "$p"; done | xargs)
           echo "Packages to install: ${missing:-none}"
           if [ -n "$missing" ]; then
-            sudo apt-get update -qq && sudo NEEDRESTART_SUSPEND=1 DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends $missing > /dev/null
+            sudo apt-get update -qq && sudo NEEDRESTART_SUSPEND=1 DEBIAN_FRONTEND=noninteractive apt-get install -y -qq $missing > /dev/null
           fi
           dotnet build StationX.csproj --nologo -v q
           xvfb-run -a -s "-screen 0 1600x900x24" timeout 600 "$GODOT" --path . --resolution 1600x900 -- --selftest
