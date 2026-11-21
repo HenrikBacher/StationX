@@ -36,7 +36,7 @@ state, so the work can be resumed on any machine.
 
 ## Current work (2026-11-19)
 
-Last release **v0.39.0** (the Americans, the Wicked Uncles' early letter, Double Cross, a mole, flu waves, against history, custom games, the notables' stories); v0.38.0 had postings for everyone, RAF fitters, the JN-25 code book, Matapan, Ōshima, Hut 7, the Park at night, reputation forecast, war record, colour-blind networks, first-hour pass; v0.37.0 had JN-25 and the Japanese desk, the Recreational Club, the billets bus, umbrellas and torches, smoother frames; v0.36.0 had Chiefs reports, geese, smoke, the Graphics setting, commuters through the gate; v0.35.0 had the Telegraph crossword, the Prime Minister's visit, Let N go, bicycles; v0.34.0 had courses, Bombe-bay heat; v0.33.0 had Whitehall's quota, Workload panel, kisses; v0.32.0 put a request first, MOST IMMEDIATE telegrams; v0.31.0 had dispatch riders and the gate, music and ambience, failable operations; v0.30.0 had the
+Last release **v0.40.0** (German countermeasures, back traffic, Special Liaison Units, Meanwhile); v0.39.0 had the Americans, the Wicked Uncles' early letter, Double Cross, a mole, flu waves, against history, custom games, the notables' stories; v0.38.0 had postings for everyone, RAF fitters, the JN-25 code book, Matapan, Ōshima, Hut 7, the Park at night, reputation forecast, war record, colour-blind networks, first-hour pass; v0.37.0 had JN-25 and the Japanese desk, the Recreational Club, the billets bus, umbrellas and torches, smoother frames; v0.36.0 had Chiefs reports, geese, smoke, the Graphics setting, commuters through the gate; v0.35.0 had the Telegraph crossword, the Prime Minister's visit, Let N go, bicycles; v0.34.0 had courses, Bombe-bay heat; v0.33.0 had Whitehall's quota, Workload panel, kisses; v0.32.0 put a request first, MOST IMMEDIATE telegrams; v0.31.0 had dispatch riders and the gate, music and ambience, failable operations; v0.30.0 had the
 campaign to VE Day with great operations, Y-stations, the variety engine and update sheets;
 v0.29.0 had idle tea breaks and patch updates; v0.28.0 had breaks, watches, collisions, the updater. Before that **v0.27.0**: cold handovers, the stranded-staff fix, intelligence freshness by service, security sweeps,
 merged static building meshes (`Park3D.MergeStatic`; screenshots print draw calls). v0.26.0 had overhaul parts 1–5
@@ -327,7 +327,7 @@ Then (user requests, 2026-11-19):
   from `Defs.KnoxDied` or after the Testery: fired, morale), `turing-us` (from U-559; away 30 days, `TuringWent` → Dayton +1), the
   bicycle toast. The autoplayer takes option 0 for staff dilemmas. `--modal=welchman|knox|turing-us`. Balance 39/23/3.
 
-### Since v0.39.0 (2026-11-21; user: "proceed with the gameplay ideas": countermeasures, back traffic, SLUs, Meanwhile)
+### In v0.40.0 (2026-11-21; user: "proceed with the gameplay ideas": countermeasures, back traffic, SLUs, Meanwhile)
 
 - Countermeasures (`Countermeasures.cs`): `CounterDefs` (id, act, days in, which nets, which steps, ×, answer research) come in by
   `DailyCounters` (ukwd: D-Day +1, Luftwaffe Enigma Bombe ×1.8; sz42: Market Garden +1, Lorenz Testery/Heath Robinson/Colossus
