@@ -445,6 +445,17 @@ Then (user requests, 2026-11-19):
   drives the person panel lines (+/−), a dot in the Staff list (green helping, red hurting), the Staff panel's "Friends
   and feuds" line (`TieCounts`), and green/red rings under the selected person's friend and rival (`Main.TieRing`). Shots:
   `--modal=wedding`, `--inspect=Role --ties`, `--scroll=N` (pixels). Balance: Normal 43/80.
+- Construction (`Construction.cs`, view `Park3DBuild.cs`): `UnlockZone` pays and starts the builders (`Zone.BuildUntil`,
+  `BuildDays`, `Hurried`, `Rebuilding`); `TickConstruction` (each step) opens it. `HutBuildDays` 2, `BlockBuildDays` 4;
+  `HurryBuilders` (`HurryShare` 0.4 of cost, half the time left, once). `RebuildInBrick` from `BrickFrom` 1 Mar 1942 (cost
+  + `BrickExtra` 400, `RebuildDays` 6, desks ×`RebuildSlow` 1.12 via `ZoneFactor`), then `Zone.Brick`: `GameState.Heated(z)`
+  (no cold) and the brick fire chance. Huts panel `BuildingRow`, zone panel, objective "(builders: N h)", Park plot frame or
+  courses by `BuildStep` (5 steps in the rebuild signature), scaffolding (`Scaffold`). Tip `brick` (funds ≥ 3000); the
+  autoplayer rebuilds the busiest timber hut and waits for a hut being built before placing its desks elsewhere.
+  Balance: even a one-tick delay in opening raised the bot's Normal wins from 85 to 108 of 160 (it fills other buildings in
+  that turn, and its results are very sensitive to when it orders and fills a hut), so Normal's `RepLossMult` is now 1.1
+  (was 1.0): Normal 36–40/80, Easy 40, Hard 2–3. Shots: `--modal=building` (Hut 11 half built), `--modal=rebuild`
+  (needs 1942: `--days=88`).
 
 ### Graphics overhaul: period realism, CC0 assets allowed
 

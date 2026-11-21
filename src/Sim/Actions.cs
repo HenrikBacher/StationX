@@ -162,10 +162,11 @@ public sealed partial class GameState
     public bool UnlockZone(string id)
     {
         var z = Grid.Zone(id);
-        if (z == null || z.Unlocked || !z.Available || Funds < z.Cost) return false;
+        if (z == null || z.Unlocked || !z.Available || Funds < z.Cost || Building(z)) return false;
         Funds -= z.Cost;
-        z.Unlocked = true;
-        Emit(EventKind.Good, $"{z.Name} is open. Its floor is ready for desks and machines.");
+        double days = z.Brick ? Defs.BlockBuildDays : Defs.HutBuildDays;
+        StartBuilding(z, days);
+        Emit(EventKind.Info, $"The builders are on the plot for {z.Name}: its floor will be ready in about {days * 24:0} hours. Pay them to work on (Huts) and it's sooner.");
         return true;
     }
 

@@ -380,6 +380,10 @@ public partial class Hud
             "the Park can take on more requests: a request on a network whose key is already broken each day costs only Typex and translation time.");
         yield return ("vetting", S.Staff.Any(s => s.Arriving(S.Now)),
             "New recruits are vetted and put on a train: they take most of a day to report. Hire ahead of need, not when the pile is already on the desk.");
+        yield return ("brick", S.BrickOpen && S.TimberHuts >= 2 && S.Stats.Rebuilt == 0 && !S.Grid.Zones.Any(z => z.Rebuilding)
+                               && S.Funds >= Defs.BrickTipFunds,
+            "The Office of Works can now rebuild the timber huts in brick, around the people working in them. A brick hut is warm all winter " +
+            "with no stove, and an incendiary is far less likely to burn it out. Huts (H): rebuild one when you have the money.");
         yield return ("couple", S.CouplesApart().FirstOrDefault() is { a: not null } cp,
             S.CouplesApart().FirstOrDefault() is { a: { } ca, b: { } cb }
                 ? $"{ca.Name} and {cb.Name} are married but on different watches, and hardly see each other: both grow unhappier every day. Staff (S): put them on the same watch."
@@ -672,6 +676,24 @@ public partial class Hud
             case "owncipher":
                 S.DebugCipher(0.55);
                 OpenPanel("intel");
+                break;
+            case "building":
+                // Hut 6 going up (half done), and the Huts panel open.
+                S.Funds += 5000;
+                if ((S.Grid.Zone("hut11") is { Unlocked: false } h11 ? h11 : S.Grid.Zones.FirstOrDefault(z => !z.Unlocked && !z.Brick)) is { } gz)
+                {
+                    gz.Available = true;
+                    S.UnlockZone(gz.Id);
+                    gz.BuildUntil = S.Now + (gz.BuildUntil - S.Now) * 0.45;
+                }
+                OpenPanel("huts");
+                break;
+            case "rebuild":
+                // A timber hut being rebuilt in brick.
+                S.Funds += 5000;
+                if (S.Grid.Zones.FirstOrDefault(z => z.Unlocked && !z.Brick && z.Id != "mansion") is { } rz)
+                    S.DebugRebuild(rz.Id);
+                OpenPanel("huts");
                 break;
             case "wedding":
                 S.Dilemmas.Clear();

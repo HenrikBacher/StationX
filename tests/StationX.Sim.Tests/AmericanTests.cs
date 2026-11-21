@@ -558,7 +558,7 @@ public class PoachingTests
         rep = h.Reputation;
         double morale = b2.Morale;
         Assert.True(h.ResolveDilemma(h.Dilemmas.Single().Id, 2));
-        Assert.Equal(rep - Defs.PoachRefuseRep, h.Reputation, 6);
+        Assert.Equal(rep - Defs.PoachRefuseRep * h.Rules.RepLossMult, h.Reputation, 6);
         Assert.True(b2.Morale > morale);
     }
 
@@ -811,5 +811,61 @@ public class FriendshipTests
         var f = g.Staff.FirstOrDefault(s => s.Friend != null);
         Assert.NotNull(f);
         Assert.Equal(f!.Id, g.StaffById(f.Friend!.Value)!.Friend);
+    }
+}
+
+public class ConstructionTests
+{
+    static (GameState g, Zone z) Setup()
+    {
+        var g = GameState.NewGame(7);
+        g.Funds = 10000;
+        var z = g.Grid.Zone("hut1")!;
+        z.Available = true;
+        return (g, z);
+    }
+
+    [Fact]
+    public void AHutTakesTheBuildersTime()
+    {
+        var (g, z) = Setup();
+        Assert.True(g.UnlockZone(z.Id));
+        Assert.False(z.Unlocked);
+        Assert.True(g.Building(z));
+        Assert.False(g.UnlockZone(z.Id));   // paid once
+        g.Advance(Defs.HutBuildDays * Defs.MinutesPerDay - 60);
+        Assert.False(z.Unlocked);
+        g.Advance(120);
+        Assert.True(z.Unlocked);
+        Assert.False(g.Building(z));
+    }
+
+    [Fact]
+    public void HurryingHalvesTheTimeLeft()
+    {
+        var (g, z) = Setup();
+        g.UnlockZone(z.Id);
+        double left = z.BuildUntil - g.Now;
+        int funds = g.Funds;
+        Assert.True(g.HurryBuilders(z.Id));
+        Assert.Equal(left / 2, z.BuildUntil - g.Now, 6);
+        Assert.Equal(funds - g.HurryCost(z), g.Funds);
+        Assert.NotNull(g.CantHurry(z));
+    }
+
+    [Fact]
+    public void RebuiltInBrickIsWarmAndBrick()
+    {
+        var (g, z) = Setup();
+        z.Unlocked = true;
+        Assert.NotNull(g.CantRebuild(z));   // 1939: not yet
+        g.DebugRebuild(z.Id);
+        Assert.True(z.Rebuilding);
+        Assert.False(GameState.Heated(z));
+        g.Advance(Defs.RebuildDays * Defs.MinutesPerDay);
+        Assert.True(z.Brick);
+        Assert.False(z.Rebuilding);
+        Assert.True(GameState.Heated(z));
+        Assert.Equal(1, g.Stats.Rebuilt);
     }
 }

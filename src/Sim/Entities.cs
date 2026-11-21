@@ -359,6 +359,7 @@ public sealed class Stats
     public int FiresCaught { get; set; }
     public int Friendships { get; set; }
     public int Weddings { get; set; }
+    public int Rebuilt { get; set; }
     public int FiresLost { get; set; }
     public int FireWatchNights { get; set; }
     public int Breakdowns { get; set; }

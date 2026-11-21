@@ -405,7 +405,7 @@ public sealed partial class GameState
         if (!Winter) return null;
         _coldZones.Clear();
         foreach (var z in Grid.Zones)
-            if (z.Unlocked && !Defs.Heated(z.Id)) _coldZones.Add(z);
+            if (z.Unlocked && !Heated(z)) _coldZones.Add(z);
         foreach (var st in Stations)
             if (st.Type == StationType.Stove && !st.PendingRemoval && Grid.ZoneAt(st.X, st.Y) is { } z) _coldZones.Remove(z);
         return _coldZones;
@@ -415,7 +415,7 @@ public sealed partial class GameState
     public HashSet<string>? ColdZones()
     {
         if (!Winter) return null;
-        var cold = Grid.Zones.Where(z => z.Unlocked && !Defs.Heated(z.Id)).Select(z => z.Id).ToHashSet();
+        var cold = Grid.Zones.Where(z => z.Unlocked && !Heated(z)).Select(z => z.Id).ToHashSet();
         foreach (var st in Stations)
             if (st.Type == StationType.Stove && !st.PendingRemoval && Grid.ZoneAt(st.X, st.Y) is { } z) cold.Remove(z.Id);
         return cold;

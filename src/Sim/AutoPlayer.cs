@@ -263,6 +263,11 @@ public sealed class AutoPlayer
             foreach (var n in new[] { Net.Dolphin, Net.Shark })
                 if (g.Funds > 3000 && g.CanGarden(n) == null && g.Day % 3 == 0) g.Garden(n);
 
+        // The brick tip: rebuild a timber hut in brick when there's money to spare, one at a time, the busiest first.
+        if (g.BrickOpen && g.Funds >= Defs.BrickTipFunds && !g.Grid.Zones.Any(z => z.Rebuilding))
+            if (g.Grid.Zones.Where(z => g.CantRebuild(z) == null).OrderByDescending(z => g.Stations.Count(s => z.InOuter(s.X, s.Y))).FirstOrDefault() is { } bz)
+                g.RebuildInBrick(bz.Id);
+
         // The couple tip: a married couple on different watches goes onto the same one.
         foreach (var (a, b) in g.CouplesApart().ToList()) g.SetShift(b.Id, a.Shift);
 
@@ -319,7 +324,7 @@ public sealed class AutoPlayer
 
         // A stove in every working timber hut before winter.
         if (g.Date.Month is >= 10 or <= 3)
-            foreach (var z in g.Grid.Zones.Where(z => z.Unlocked && !Defs.Heated(z.Id)))
+            foreach (var z in g.Grid.Zones.Where(z => z.Unlocked && !GameState.Heated(z)))
                 if (g.Stations.Any(s => z.InOuter(s.X, s.Y)) && !g.Stations.Any(s => s.Type == StationType.Stove && z.InOuter(s.X, s.Y))
                     && g.Funds > Defs.Station(StationType.Stove).Cost + 50)
                     TryBuildIn(StationType.Stove, z);
@@ -508,6 +513,8 @@ public sealed class AutoPlayer
         }
         if (Defs.Station(t).Outdoor) return TryBuildOutdoor(t);
         var zones = PreferredZones.TryGetValue(t, out var z) ? z : new[] { "mansion" };
+        // A hut ordered for this work and still being built: wait for it rather than fill another building.
+        if (zones.Any(id => g.Grid.Zone(id) is { Rebuilding: false } pz && g.Building(pz))) return false;
         // Index and despatch go where the translations are, so paper doesn't cross the park and back.
         if (t is StationType.Index or StationType.Dispatch)
         {

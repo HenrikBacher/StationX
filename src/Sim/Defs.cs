@@ -158,6 +158,9 @@ public static partial class Defs
     public const double GrievanceChance = 0.05, GrievanceEveryDays = 16, GrievanceRiseShare = 0.1,
         GrievanceRaiseMorale = 0.15, GrievanceAllowMorale = 0.07, GrievanceRefuseMorale = 0.12;
     public const int GrievanceAllowance = 12, GrievanceMinRise = 2;
+    /// <summary>Building time (Construction.cs): days to put up a hut or a brick block, paying to hurry, rebuilding in brick.</summary>
+    public const double HutBuildDays = 2, BlockBuildDays = 4, HurryShare = 0.4, RebuildDays = 6, RebuildSlow = 1.12;
+    public const int BrickExtra = 400, BrickTipFunds = 3000;
     /// <summary>Friendships and marriages (Friendships.cs).</summary>
     public const double FriendChance = 0.12, FriendMorale = 0.01, CourtAfterDays = 21, CourtChance = 0.03, WedAfterDays = 30, WedChance = 0.04,
         WeddingMorale = 0.03, WeddingCoupleMorale = 0.2, WeddingNoLeaveMorale = 0.1, MarriedApartMorale = 0.03;
@@ -586,7 +589,7 @@ public static partial class Defs
     public static readonly Dictionary<Difficulty, DifficultyDef> Difficulties = new()
     {
         [Difficulty.Easy] = new(Difficulty.Easy, "Easy", "More money, longer deadlines, slower German suspicion.", 2200, 1.2, 1, 0.6, 0.7, 0.5),
-        [Difficulty.Normal] = new(Difficulty.Normal, "Normal", "As intended.", 1500, 0.9, 0, 1.0, 1.0),
+        [Difficulty.Normal] = new(Difficulty.Normal, "Normal", "As intended.", 1500, 0.9, 0, 1.0, 1.1),
         [Difficulty.Hard] = new(Difficulty.Hard, "Hard", "Less money, tighter deadlines, and the Germans notice everything.", 1100, 0.85, -0.25, 1.4, 1.2, 1.2),
     };
 

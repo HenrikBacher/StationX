@@ -19,6 +19,14 @@ public sealed class Zone
     public bool Brick { get; set; }
     public bool Available { get; set; }
     public bool Unlocked { get; set; }
+    /// <summary>The builders are on it until this minute (Construction.cs); 0 when not.</summary>
+    public double BuildUntil { get; set; }
+    /// <summary>How long the current building work takes in all, for its progress.</summary>
+    public double BuildDays { get; set; }
+    /// <summary>The builders were paid to work on.</summary>
+    public bool Hurried { get; set; }
+    /// <summary>An open timber hut being rebuilt in brick around the people in it.</summary>
+    public bool Rebuilding { get; set; }
     public List<Room> Rooms { get; set; } = new();
     public List<Partition> Partitions { get; set; } = new();
 

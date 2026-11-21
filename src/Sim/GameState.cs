@@ -181,6 +181,7 @@ public sealed partial class GameState
         WorkStations(dt);
         TickRemote();
         TickRaids();
+        TickConstruction();
         TickCrises();
         TickInspection();
         TickSocial();

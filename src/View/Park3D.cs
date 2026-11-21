@@ -165,7 +165,7 @@ public partial class Park3D : Node3D
     public override void _Process(double delta)
     {
         if (State == null) return;
-        var sig = string.Join(",", State.Grid.Zones.Select(z => $"{z.Available}{z.Unlocked}"));
+        var sig = string.Join(",", State.Grid.Zones.Select(z => $"{z.Available}{z.Unlocked}{z.Brick}{BuildStep(State, z)}"));
         if (sig == _sig) return;
         _sig = sig;
         Rebuild();
@@ -253,8 +253,16 @@ public partial class Park3D : Node3D
 
         foreach (var z in g.Zones)
         {
-            if (z.Unlocked) Building(z);
-            else Foundations(z);
+            if (z.Unlocked)
+            {
+                Building(z);
+                if (z.Rebuilding && State.Building(z)) Rebuilding(z);
+            }
+            else
+            {
+                Foundations(z);
+                if (State.Building(z)) GoingUp(z, (float)State.BuildProgress(z));
+            }
         }
 
         Grounds(g);
@@ -1346,7 +1354,8 @@ public partial class Park3D : Node3D
         Mesh3.BoxAt(_buildings, cx - 1.1f, 0, cy + 0.9f, 0.08f, 0.9f, 0.08f, Gfx.OakDark);
         Mesh3.BoxAt(_buildings, cx + 1.02f, 0, cy + 0.9f, 0.08f, 0.9f, 0.08f, Gfx.OakDark);
         Mesh3.BoxAt(_buildings, cx - 1.25f, 0.55f, cy + 0.85f, 2.5f, 0.6f, 0.06f, new Color("cfc6ad"));
-        var text = z.Available ? $"{z.Name.ToUpperInvariant()}\nOpen for £{z.Cost:N0}" : $"{z.Name.ToUpperInvariant()}\nNot yet authorised";
+        var text = State?.Building(z) == true ? $"{z.Name.ToUpperInvariant()}\nBuilders on site"
+            : z.Available ? $"{z.Name.ToUpperInvariant()}\nOpen for £{z.Cost:N0}" : $"{z.Name.ToUpperInvariant()}\nNot yet authorised";
         // Signwritten on the board, front and back, so it reads from either side and never floats over anything.
         foreach (var (face, yaw) in new[] { (cy + 0.912f, 0f), (cy + 0.848f, Mathf.Pi) })
         {

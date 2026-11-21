@@ -393,6 +393,8 @@ public partial class Hud : CanvasLayer
             tick.AddThemeStyleboxOverride("panel", UiTheme.Box(done ? Gfx.Good : new Color(0, 0, 0, 0), done ? Gfx.Good : UiTheme.TextDim, 2, 0));
             row.AddChild(tick);
             var text = g.Target > 1 ? $"{g.Text}  ({p}/{g.Target})" : g.Text;
+            if (g.Kind == GoalKind.ZoneOpen && S.Grid.Zone(g.Tag!) is { } gz && S.Building(gz))
+                text += $"  (builders: {Math.Max(1, Math.Ceiling(S.BuildHoursLeft(gz))):0} h)";
             var l = UiTheme.Label(text, 14, done ? UiTheme.TextDim : UiTheme.Text);
             l.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
             row.AddChild(l);

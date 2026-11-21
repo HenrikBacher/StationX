@@ -78,7 +78,7 @@ public partial class Hud
             "requests" => string.Join(",", S.Contracts.Select(c => $"{c.Id}{c.State}{c.Priority}{c.Delivered}{c.Spawned}{c.MilestonesChecked}{(int)((c.State == ContractState.Offered ? c.OfferExpires : c.Due) - S.Now) / 60}")) +
                           $"|{string.Join(",", S.KeyBoardNets().Select(n => S.KeyRoute(n)))}",
             "research" => $"{S.Points}|{string.Join(",", S.Researched)}|{string.Join(",", S.ResearchAvailable)}|{S.ChiefsReports}|{S.CantReport()}",
-            "huts" => $"{S.Funds / 100}|{S.OutstationBombes}|{S.CanBuyOutstation()}|" + string.Join(",", S.Grid.Zones.Select(z => $"{z.Available}{z.Unlocked}")),
+            "huts" => $"{S.Funds / 100}|{S.OutstationBombes}|{S.CanBuyOutstation()}|" + string.Join(",", S.Grid.Zones.Select(z => $"{z.Available}{z.Unlocked}{z.Brick}{z.Hurried}{(int)S.BuildHoursLeft(z)}")),
             "intel" => IntelSig(),
             "ystations" => YSig(),
             "intercepts" => InterceptsSig(),
@@ -822,16 +822,27 @@ public partial class Hud
     void HutsPanel()
     {
         _sideBox.AddChild(UiTheme.Heading("Huts"));
-        Intro("Huts", "Bletchley grew from a country house into a sprawl of timber huts. Each one opens when the work calls for it.");
+        Intro("Huts", "Bletchley grew from a country house into a sprawl of timber huts. Each one opens when the work calls for it. " +
+                      $"Building takes time: about {Defs.HutBuildDays * 24:0} hours for a hut and {Defs.BlockBuildDays * 24:0} for a brick block, so order one before the work arrives.");
         foreach (var z in S.Grid.Zones)
         {
+            bool building = S.Building(z);
             var v = Card(z.Unlocked ? Gfx.Good : z.Available ? UiTheme.Accent : null);
-            var name = UiTheme.Label(z.Name, 15, UiTheme.Text, Fonts.BodyBold);
+            var name = UiTheme.Label(z.Name + (z.Brick && z.Id != "mansion" ? " (brick)" : ""), 15, UiTheme.Text, Fonts.BodyBold);
             name.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-            Control right = z.Unlocked ? UiTheme.Label("Open", 13, Gfx.Good)
-                : z.Available ? UiTheme.Button($"Open for £{z.Cost:N0}", () => S.UnlockZone(z.Id), S.Funds >= z.Cost)
+            Control right = z.Unlocked ? UiTheme.Label(building ? "Open, builders in" : "Open", 13, Gfx.Good)
+                : building ? UiTheme.Label("Being built", 13, UiTheme.Accent)
+                : z.Available ? UiTheme.Button($"Open for £{z.Cost:N0}", () => { S.UnlockZone(z.Id); _sideSig = ""; }, S.Funds >= z.Cost,
+                                               tooltip: $"The builders take about {(z.Brick ? Defs.BlockBuildDays : Defs.HutBuildDays) * 24:0} hours to put it up.")
                 : UiTheme.Label("Not yet authorised", 12, UiTheme.TextDim);
             v.AddChild(Row(name, right));
+            if (building) v.AddChild(BuildingRow(z));
+            else if (z.Unlocked && !z.Brick && z.Id != "mansion" && S.BrickOpen)
+            {
+                string? why = S.CantRebuild(z);
+                v.AddChild(UiTheme.Label($"Rebuild in brick: warm all winter and far safer from incendiaries. {Defs.RebuildDays:0} days with the builders in, its desks a little slower meanwhile.", 12, UiTheme.TextDim));
+                v.AddChild(Row(Why(why), UiTheme.Button($"Rebuild in brick (£{S.RebuildCost(z):N0})", () => { S.RebuildInBrick(z.Id); _sideSig = ""; }, why == null, tooltip: why ?? "")));
+            }
             if (Defs.ZoneRoles.TryGetValue(z.Id, out var role))
             {
                 v.AddChild(UiTheme.Label(role.Purpose, 12, UiTheme.Text));
@@ -844,6 +855,27 @@ public partial class Hud
             v.AddChild(Row(UiTheme.Label($"{z.W - 2}×{z.H - 2} tiles of floor", 12, UiTheme.TextDim), Spacer(), go));
         }
         OutstationCard();
+    }
+
+    /// <summary>Building work under way: how far on, when it's done, and paying the builders to work on.</summary>
+    Control BuildingRow(Zone z)
+    {
+        var v = new VBoxContainer();
+        var bar = new ProgressBar { MinValue = 0, MaxValue = 1, Value = S.BuildProgress(z), ShowPercentage = false, CustomMinimumSize = new Vector2(120, 8),
+                                    SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, SizeFlagsVertical = Control.SizeFlags.ShrinkCenter };
+        bar.AddThemeStyleboxOverride("fill", UiTheme.Box(UiTheme.Accent, new Color(0, 0, 0, 0), 2, 0));
+        double h = S.BuildHoursLeft(z);
+        string left = h < 1.5 ? "nearly done" : $"about {Math.Ceiling(h):0} h to go";
+        v.AddChild(UiTheme.Label((z.Rebuilding ? "Rebuilding in brick: " : "Builders on site: ") + left, 12, UiTheme.Text));
+        v.AddChild(bar);
+        string? why = S.CantHurry(z);
+        if (!z.Hurried)
+        {
+            v.AddChild(UiTheme.Label("Pay them to work on into the evenings: half the time left.", 11, UiTheme.TextDim));
+            v.AddChild(Row(Why(why), UiTheme.Button($"Hurry (£{S.HurryCost(z):N0})", () => { S.HurryBuilders(z.Id); _sideSig = ""; _inspSig = ""; }, why == null, tooltip: why ?? "")));
+        }
+        else v.AddChild(UiTheme.Label("The builders are working on into the evenings.", 11, UiTheme.TextDim));
+        return v;
     }
 
     // -------------------------------------------------------------- inspector
@@ -890,7 +922,7 @@ public partial class Hud
         string sig = st != null
             ? $"st{st.Id}{st.Input.Count}{st.Output.Count}{st.OperatorId}{st.OperatorPresent}{st.Current}{(int)(st.Progress * 20)}{st.PendingRemoval}{st.X},{st.Y}|{string.Join(",", S.PinnedTo(st.Id).Select(p => p.Id))}|{S.Funds >= Defs.MoveCost}|{(int)(st.Wear * 20)}{st.IsDown(S.Now)}{S.Funds >= Defs.ServiceCost}|{(st.Receives == null ? "all" : string.Join(",", st.Receives))}{S.ActiveNets.Count}|{OldestHours(st)}|{(int)(S.BookRecovered * 100)}"
             : sf != null ? $"sf{sf.Id}{sf.Task?.Kind}{sf.Task?.Dest}{sf.Leaving}{sf.Decrypts}{sf.Away}{sf.IsSick(S.Now)}{sf.Shift}{sf.Pinned}{sf.Posted}{sf.HeadOf}{sf.HeadStyle}{S.Grid.Zones.Count(z => z.Unlocked)}{(int)(sf.Energy * 10)}{(int)(sf.Morale * 10)}{(int)(sf.Strain * 10)}{sf.Rival}{(sf.Rival != null && S.WithRival(sf))}{sf.Friend}{sf.Courting}{sf.Spouse}{S.Ties(sf).Sum(t => t.sign + 2)}{sf.OffReason}{sf.Second}{(int)S.Funds / 50}{sf.CarelessKnown}{(int)(sf.Experience / 60)}{sf.Skill}"
-            : $"z{z!.Id}{z.Unlocked}{S.Funds >= z.Cost}{S.ColdZones()?.Contains(z.Id)}{S.HotZones()?.Contains(z.Id)}";
+            : $"z{z!.Id}{z.Unlocked}{S.Funds >= z.Cost}{S.ColdZones()?.Contains(z.Id)}{S.HotZones()?.Contains(z.Id)}{z.Brick}{z.Hurried}{(int)S.BuildHoursLeft(z)}{S.CantRebuild(z)}{S.CantHurry(z)}";
         if (sig == _inspSig) return;
         _inspSig = sig;
         Clear(_inspBox);
@@ -1241,12 +1273,28 @@ public partial class Hud
             _inspBox.AddChild(UiTheme.Label("Freezing: no stove. People here tire faster and grumble. Build a coke stove (£60).", 12, Gfx.Warn));
         if (z.Unlocked && S.HotZones() is { } hot && hot.Contains(z.Id))
             _inspBox.AddChild(UiTheme.Label($"Sweltering: its Bombes heat the air and nothing draws it out. People here tire faster and grow short-tempered. Build an extractor fan (£{Defs.Station(StationType.Fan).Cost}).", 12, Gfx.Warn));
+        if (z.Unlocked)
+        {
+            if (S.Building(z)) _inspBox.AddChild(BuildingRow(z));
+            else if (!z.Brick && z.Id != "mansion" && S.BrickOpen)
+            {
+                string? why = S.CantRebuild(z);
+                _inspBox.AddChild(UiTheme.Label($"Timber. Rebuilt in brick it would be warm all winter and far safer from incendiaries ({Defs.RebuildDays:0} days with the builders in).", 12, UiTheme.TextDim));
+                _inspBox.AddChild(Row(Why(why), UiTheme.Button($"Rebuild in brick (£{S.RebuildCost(z):N0})", () => { S.RebuildInBrick(z.Id); _inspSig = ""; }, why == null, tooltip: why ?? "")));
+            }
+            return;
+        }
         if (!z.Available)
         {
             _inspBox.AddChild(UiTheme.Label("The Treasury hasn't authorised this hut yet. It will be needed later in the war.", 13, UiTheme.TextDim));
             return;
         }
-        _inspBox.AddChild(UiTheme.Label($"Foundations are laid. Building the hut costs £{z.Cost:N0}.", 13));
+        if (S.Building(z))
+        {
+            _inspBox.AddChild(BuildingRow(z));
+            return;
+        }
+        _inspBox.AddChild(UiTheme.Label($"Foundations are laid. Building the hut costs £{z.Cost:N0}, and the builders take about {(z.Brick ? Defs.BlockBuildDays : Defs.HutBuildDays) * 24:0} hours.", 13));
         _inspBox.AddChild(Row(Spacer(), UiTheme.Button($"Open {z.Name}", () =>
         {
             if (S.UnlockZone(z.Id)) { _inspZone = null; _inspSig = ""; }

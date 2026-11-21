@@ -31,6 +31,13 @@ public sealed partial class GameState
     /// <summary>How a building's desks are working: faster once reorganised, slower in the upheaval.</summary>
     double ZoneFactor(Station st)
     {
+        double builders = 1;
+        if (Grid.ZoneAt(st.X, st.Y) is { Rebuilding: true } bz) builders = BuildersFactor(bz);
+        return builders * ReorganisedFactor(st);
+    }
+
+    double ReorganisedFactor(Station st)
+    {
         if (Reorganised.Count == 0) return 1;
         var z = Grid.ZoneAt(st.X, st.Y)?.Id;
         if (z == null || !Reorganised.Contains(z)) return 1;
