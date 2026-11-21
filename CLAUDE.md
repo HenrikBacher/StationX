@@ -352,6 +352,12 @@ Then (user requests, 2026-11-19):
   `Headlines` spread over the gap; per month (max `MeanwhileMaxMonths` 6): option 0 £`MeanwhileFunds` 100, option 1 (the default)
   `MeanwhilePoints` 5 breakthroughs, option 2 `meanwhile-quiet:N` (int) suspicion −`MeanwhileQuiet` 4 everywhere. `--modal=meanwhile`.
   Balance 38/25/1; 80 Normal seeds 44 (55%).
+- Interface pass (user: "review the interface and improve it"): `UiTheme.Money` (−£1,552, never £-1,552; use it for any
+  amount that can go negative); the side panel's content has a 12 px gutter clear of its scrollbar; `Why(reason)` beside a
+  greyed-out button says why (Chiefs report; the sweep line appends it); an overdraft line heads the Build panel; request cards
+  carry "Put first" on their due line; the keys card puts "N waiting" beside the network's name; while the inspector is open,
+  Needs attention (and the keys card if it would be covered) steps aside (`ApplyRightColumn`, every frame); the Intercepts list
+  names the next desk ("to typex machine") instead of "cipher".
 
 ### Graphics overhaul: period realism, CC0 assets allowed
 

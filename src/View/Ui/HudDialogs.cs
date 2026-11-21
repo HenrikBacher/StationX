@@ -263,7 +263,7 @@ public partial class Hud
         v.AddChild(Ink(
             $"Decrypts delivered so far: {S.Stats.DeliveredTotal}\n" +
             $"Requests completed: {S.Stats.ContractsCompleted} · missed: {S.Stats.ContractsFailed}\n" +
-            $"Staff: {S.Staff.Count} · funds £{S.Funds:N0}", 14));
+            $"Staff: {S.Staff.Count} · funds {UiTheme.Money(S.Funds)}", 14));
         bool last = S.ActIndex + 1 >= Campaign.Acts.Length;
         if (!last)
         {

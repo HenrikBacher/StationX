@@ -101,7 +101,8 @@ public partial class Hud
         _alertSig = sig;
         _pulsing.Clear();
         Clear(_alertBox);
-        _alertBox.GetParent<Control>().Visible = alerts.Count > 0;
+        _alertsWanted = alerts.Count > 0;
+        ApplyRightColumn();
         if (alerts.Count == 0) return;
         _alertBox.AddChild(UiTheme.Caps("Needs attention", 11, UiTheme.Accent));
         foreach (var a in alerts.Take(6))

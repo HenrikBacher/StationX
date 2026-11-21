@@ -46,6 +46,8 @@ public partial class Hud
             string? why = S.CanSecuritySweep();
             var l = UiTheme.Label(S.Stats.PapersFound > 0 ? $"Papers found left out: {S.Stats.PapersFound}" : "The Park's own security", 13, UiTheme.TextDim);
             l.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+            if (why != null && S.ActIndex >= Defs.SecurityFromAct) l.Text += " · " + why;
+            l.AutowrapMode = TextServer.AutowrapMode.WordSmart;
             _sideBox.AddChild(Row(l, UiTheme.Button("Security sweep", () => { S.SecuritySweep(); _sideSig = ""; }, why == null,
                 tooltip: why ?? $"Desks cleared, safes checked, a word in every ear: Abwehr and SD suspicion −{Defs.SweepRelief:0}. Everyone on duty loses an hour's energy and a little morale. Once every {Defs.SweepCooldownDays} days.")));
         }
@@ -209,7 +211,7 @@ public partial class Hud
             Chart("Staff idle while on watch", use.Select(d => (double)d.Idle).ToArray(), use[0].Day, Gfx.Warn, "0'%'", 0, 100,
                 "The share of their time on watch everyone spent with nothing to do. High means more people than work: move them to a short watch or let some go.");
         }
-        Chart("Funds", hist, r => r.Funds, UiTheme.Text, "£#,0");
+        Chart("Funds", hist, r => r.Funds, UiTheme.Text, "£#,0;−£#,0");
         Chart("Reputation in Whitehall", hist, r => r.Reputation, UiTheme.Accent, "0", 0, 100);
         Chart("Staff", hist, r => r.Staff, UiTheme.Text, "0");
         Chart("Average morale", hist, r => r.Morale * 100, Gfx.Good, "0'%'", 0, 100);
@@ -638,7 +640,7 @@ public partial class Hud
             row.AddThemeConstantOverride("separation", 10);
             var text = Ink(info == null
                 ? $"{Saves.SlotName(slot)}: empty"
-                : $"{Saves.SlotName(slot)}: {info.Title}\n{info.Date} · £{info.Funds:N0} · saved {info.SavedAt:d MMM HH:mm}", 13);
+                : $"{Saves.SlotName(slot)}: {info.Title}\n{info.Date} · {UiTheme.Money(info.Funds)} · saved {info.SavedAt:d MMM HH:mm}", 13);
             text.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
             row.AddChild(text);
             var s = slot;

@@ -30,7 +30,7 @@ public partial class Hud
             {
                 ReadStage.Translated => "translated",
                 ReadStage.Decrypted => "decrypted",
-                _ => m.Next == null ? "awaiting key" : "cipher",
+                _ => m.Next is StationType next ? "to " + Defs.Station(next).Name.ToLowerInvariant() : "awaiting key",
             };
             InterceptRow(m.Net, m.Day, m.Created, state, () => ShowIntercept(S.Intercept(m), stage, m.Net, m.Day, m.Garbled, m.Next));
         }
@@ -51,6 +51,8 @@ public partial class Hud
         b.AddThemeColorOverride("font_color", Gfx.NetColor(net).Lightened(0.35f));
         var tag = UiTheme.Label(state, 12, state is "garbled" or "awaiting key" ? Gfx.Warn : UiTheme.TextDim, wrap: false);
         tag.CustomMinimumSize = new Vector2(84, 0);
+        tag.TooltipText = state.StartsWith("to ") ? "Still in cipher, on its way to this desk next" : "";
+        tag.MouseFilter = Control.MouseFilterEnum.Pass;
         tag.HorizontalAlignment = HorizontalAlignment.Right;
         _sideBox.AddChild(Row(b, tag));
     }

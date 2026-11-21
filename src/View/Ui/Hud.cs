@@ -90,9 +90,26 @@ public partial class Hud : CanvasLayer
         return false;
     }
 
+    bool _keysWanted, _alertsWanted;
+
+    /// <summary>
+    /// The inspector opens over the bottom of the right column: while it's up, Needs attention steps aside, and so does the keys
+    /// card if the inspector would cover it, rather than showing half of each under it.
+    /// </summary>
+    void ApplyRightColumn()
+    {
+        if (_keyBox == null || _alertBox == null || _inspector == null) return;
+        bool insp = _inspector.Visible;
+        _alertBox.GetParent<Control>().Visible = _alertsWanted && !insp;
+        var keys = _keyBox.GetParent<Control>();
+        bool covered = insp && keys.GetGlobalRect().End.Y > _inspector.GetGlobalRect().Position.Y;
+        keys.Visible = _keysWanted && !covered;
+    }
+
     public override void _Process(double delta)
     {
         ApplyScale();
+        ApplyRightColumn();
         ShowNextToast();
         if (!ModalOpen && _main.Interactive && S.Status == GameStatus.Playing
             && S.Contracts.FirstOrDefault(c => c.Flash && c.State == ContractState.Offered && !_flashShown.Contains(c.Id)) is { } flash)
@@ -229,7 +246,7 @@ public partial class Hud : CanvasLayer
         _pauseBtn.SetPressedNoSignal(_main.Paused);
         _flowBtn.SetPressedNoSignal(_main.ShowFlows);
         foreach (var (b, sp) in _speedBtns) b.SetPressedNoSignal(!_main.Paused && _main.Speed == sp);
-        _funds.Text = $"£{S.Funds:N0}";
+        _funds.Text = UiTheme.Money(S.Funds);
         _funds.AddThemeColorOverride("font_color", S.Funds < 0 ? Gfx.Bad : UiTheme.Text);
         int cut = S.TreasuryCut(S.WeeklyGrant);
         _funds.TooltipText = $"Weekly Treasury grant £{S.WeeklyGrant:N0}, wages £{S.WeeklyWages:N0}, upkeep £{S.WeeklyUpkeep:N0}. Paid every Sunday night. " +
@@ -396,7 +413,8 @@ public partial class Hud : CanvasLayer
         if (sig == _keySig) return;
         _keySig = sig;
         Clear(_keyBox);
-        _keyBox.GetParent<Control>().Visible = nets.Count > 0;
+        _keysWanted = nets.Count > 0;
+        ApplyRightColumn();
         if (nets.Count == 0) return;
         _keyBox.AddChild(UiTheme.Caps($"Enigma keys · {S.Date:d MMMM}", 11, UiTheme.Accent));
         foreach (var n in nets)
@@ -415,7 +433,21 @@ public partial class Hud : CanvasLayer
             var name = UiTheme.Label(nd.Name.ToUpperInvariant(), 14, UiTheme.Text, Fonts.BodyBold);
             name.TooltipText = nd.Owner;
             name.MouseFilter = Control.MouseFilterEnum.Pass;
-            texts.AddChild(name);
+            // The waiting count sits beside the name, so the status line below has the card's whole width.
+            name.AutowrapMode = TextServer.AutowrapMode.Off;
+            var nameRow = new HBoxContainer();
+            nameRow.AddThemeConstantOverride("separation", 8);
+            nameRow.AddChild(name);
+            if (waiting > 0)
+            {
+                var w = UiTheme.Label($"{waiting} waiting", 12, Gfx.PaperWaiting);
+                w.AutowrapMode = TextServer.AutowrapMode.Off;
+                w.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
+                w.TooltipText = "Registered messages waiting for their day's key";
+                w.MouseFilter = Control.MouseFilterEnum.Pass;
+                nameRow.AddChild(w);
+            }
+            texts.AddChild(nameRow);
 
             string status; Color col;
             bool free = S.FreeKeysUntil.TryGetValue(n, out var until) && S.Day <= until;
@@ -451,14 +483,6 @@ public partial class Hud : CanvasLayer
                 texts.AddChild(k);
             }
             row.AddChild(texts);
-            if (waiting > 0)
-            {
-                var w = UiTheme.Label($"{waiting} waiting", 12, Gfx.PaperWaiting);
-                w.AutowrapMode = TextServer.AutowrapMode.Off;
-                w.TooltipText = "Registered messages waiting for their day's key";
-                w.MouseFilter = Control.MouseFilterEnum.Pass;
-                row.AddChild(w);
-            }
             if (!free)
             {
                 var order = S.KeyOrderOf(n);

@@ -31,6 +31,9 @@ public static class Fonts
 /// <summary>Wartime office look: dark olive panels, cream text, brass accents.</summary>
 public static class UiTheme
 {
+    /// <summary>Money as a player reads it: £1,552, and an overdraft as −£1,552 (not £-1,552).</summary>
+    public static string Money(double v) => v < 0 ? $"−£{-v:N0}" : $"£{v:N0}";
+
     public static readonly Color Panel = new("2e2b22");
     public static readonly Color PanelLight = new("3b382c");
     public static readonly Color PanelEdge = new("57513d");

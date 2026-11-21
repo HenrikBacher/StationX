@@ -37,7 +37,11 @@ public partial class Hud
         _side.AddChild(scroll);
         _sideBox = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
         _sideBox.AddThemeConstantOverride("separation", 8);
-        scroll.AddChild(_sideBox);
+        // A gutter so right-aligned text and buttons stay clear of the scrollbar.
+        var gutter = new MarginContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+        gutter.AddThemeConstantOverride("margin_right", 12);
+        gutter.AddChild(_sideBox);
+        scroll.AddChild(gutter);
     }
 
     public void OpenPanel(string id)
@@ -140,6 +144,16 @@ public partial class Hud
 
     static Control Spacer() => new Control { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
 
+    /// <summary>Beside a greyed-out button: why it can't be pressed, so nobody has to hover to find out. A spacer when it can.</summary>
+    static Control Why(string? why)
+    {
+        if (string.IsNullOrEmpty(why)) return Spacer();
+        var l = UiTheme.Label(why, 11, UiTheme.TextDim);
+        l.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        l.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+        return l;
+    }
+
     /// <summary>"any hut", or the open buildings that take this station, then the ones not open yet.</summary>
     string WhereItGoes(StationType t)
     {
@@ -189,6 +203,8 @@ public partial class Hud
     {
         _sideBox.AddChild(UiTheme.Heading("Build"));
         _sideBox.AddChild(UiTheme.Label("Desks and machines go inside a hut, with clear space in front for whoever works them. Messages come in by dispatch rider (later by teleprinter), pass through each step, and leave by the despatch box.", 13, UiTheme.TextDim));
+        if (S.Funds < 0)
+            _sideBox.AddChild(UiTheme.Label($"Overdrawn ({UiTheme.Money(S.Funds)}): nothing can be bought until the Park is back in credit. Finish requests: they pay on completion.", 13, Gfx.Bad));
         // What the chapter's objectives ask to be built comes first, marked, so a new player finds it at once.
         var wanted = S.Mode == GameMode.FreePlay ? new HashSet<StationType>()
             : S.Act.Goals.Where(g => g.Kind == GoalKind.Build && g.Station is not null && g.Progress(S) < g.Target).Select(g => g.Station!.Value).ToHashSet();
@@ -208,7 +224,8 @@ public partial class Hud
             var info = UiTheme.Label($"{who} · {d.W}×{d.H} tiles", 12, UiTheme.TextDim);
             info.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
             Control action = unlocked
-                ? UiTheme.Button("Place", () => { _main.BeginBuild(t); ClosePanel(); }, S.Funds >= d.Cost)
+                ? UiTheme.Button("Place", () => { _main.BeginBuild(t); ClosePanel(); }, S.Funds >= d.Cost,
+                    tooltip: S.Funds >= d.Cost ? "" : $"Needs £{d.Cost:N0}; there's {UiTheme.Money(S.Funds)}.")
                 : UiTheme.Label(why, 12, Gfx.Warn);
             action.SetMeta("station", t.ToString());
             if (d.Upkeep > 0) v.AddChild(UiTheme.Label($"Upkeep £{d.Upkeep} a week", 12, UiTheme.TextDim));
@@ -593,14 +610,21 @@ public partial class Hud
                 v.AddChild(UiTheme.Label(next <= c.TotalDays
                         ? $"Day {next} of {c.TotalDays}: {need} delivered in all by {S.DateOf((int)(at / Defs.MinutesPerDay)):ddd} {(int)(at % Defs.MinutesPerDay) / 60:00}:{(int)(at % 60):00} ({Hours(at - S.Now)}) · milestones met {c.MilestonesMet}/{c.MilestonesChecked}"
                         : $"Milestones met {c.MilestonesMet}/{c.MilestonesChecked}", 12, behind ? Gfx.Bad : UiTheme.Text));
-                v.AddChild(UiTheme.Label($"£{c.MilestonePay:N0} for each day met · £{c.Reward:N0} bonus on completion (half if a day was missed)", 12, UiTheme.TextDim));
             }
-            else
-                v.AddChild(UiTheme.Label($"Due in {Hours(left)} · £{c.Reward:N0} on completion", 12, left < Defs.MinutesPerDay * 0.5 ? Gfx.Bad : UiTheme.Text));
+            // The last line carries the priority button, so a card is a line shorter.
+            var last = c.Standing
+                ? UiTheme.Label($"£{c.MilestonePay:N0} for each day met · £{c.Reward:N0} bonus on completion (half if a day was missed)", 12, UiTheme.TextDim)
+                : UiTheme.Label($"Due in {Hours(left)} · £{c.Reward:N0} on completion", 12, left < Defs.MinutesPerDay * 0.5 ? Gfx.Bad : UiTheme.Text);
+            if (c.Priority)
+            {
+                last.Text += " · put first";
+                last.TooltipText = "Put first: its paper is worked and carried before anything else.";
+                last.MouseFilter = Control.MouseFilterEnum.Pass;
+            }
+            last.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+            last.AutowrapMode = TextServer.AutowrapMode.WordSmart;
             var cid = c.Id;
-            var prioNote = UiTheme.Label(c.Priority ? "Put first: its paper is worked and carried before anything else." : "", 11, Gfx.Warn);
-            prioNote.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-            v.AddChild(Row(prioNote, UiTheme.Button(c.Priority ? "Back in turn" : "Put first", () => { S.SetPriority(cid, !c.Priority); _sideSig = ""; },
+            v.AddChild(Row(last, UiTheme.Button(c.Priority ? "Back in turn" : "Put first", () => { S.SetPriority(cid, !c.Priority); _sideSig = ""; },
                 tooltip: c.Priority ? "Let this request's paper take its turn by deadline again."
                                     : "Every desk, machine and runner handles this request's paper before anything else's.")));
         }
@@ -684,7 +708,7 @@ public partial class Hud
                                      $"and there's one a fortnight at most{(S.ChiefsReports > 0 ? $" ({S.ChiefsReports} sent so far)" : "")}. " +
                                      "Keep enough back for the methods the war will bring.", 12, UiTheme.TextDim));
             string? why = S.CantReport();
-            v.AddChild(Row(Spacer(), UiTheme.Button("Send a report", () => { S.ReportToChiefs(); _sideSig = ""; }, why == null, tooltip: why ?? "")));
+            v.AddChild(Row(Why(why), UiTheme.Button("Send a report", () => { S.ReportToChiefs(); _sideSig = ""; }, why == null, tooltip: why ?? "")));
         }
     }
 
